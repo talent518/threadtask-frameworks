@@ -14,6 +14,7 @@ class InlineAction extends Action {
 	}
 	
 	public function run(array $params) {
-		return \Fwe::invoke([$this->controller, $this->method], $params);
+		$class = get_class($this->controller);
+		return \Fwe::invoke([$this->controller, $this->method], $params, "{$class}::{$this->method}");
 	}
 }

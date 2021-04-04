@@ -3,6 +3,7 @@ define('FWE_PATH', __DIR__);
 
 use fwe\base\Exception;
 use fwe\base\TsVar;
+use fwe\base\Application;
 
 /**
  *
@@ -182,13 +183,10 @@ abstract class Fwe {
 	public static function createObject($type, array $params = []) {
 		recreated:
 		if(is_string($type)) {
-			$type = array_merge([
+			$type = [
 				'class' => $type
-			], $params);
-		} else if(is_array($type)) {
-			if(! empty($params))
-				$type = array_merge($type, $params);
-		} else {
+			];
+		} else if(!is_array($type)) {
 			throw new Exception('不支持的对象创建类型：' . gettype($type));
 		}
 
@@ -205,6 +203,8 @@ abstract class Fwe {
 					throw new Exception('不支持的对象创建类型：' . gettype($class));
 				}
 			}
+			
+			$type += $params;
 
 			$reflection = new ReflectionClass($class);
 
@@ -223,11 +223,11 @@ abstract class Fwe {
 
 			return $object;
 		} else {
-			throw new Exception('必须存在class键名的数组配置参数才能创建对象：' . var_export($type, true));
+			throw new Exception('必须存在class键名的数组配置参数才能创建对象：' . @var_export($type, true));
 		}
 	}
 
-	public static function invoke(callable $callback, array $params) {
+	public static function invoke(callable $callback, array $params, ?string $funcName = null) {
 		if(is_array($callback)) {
 			$reflection = new \ReflectionMethod($callback[0], $callback[1]);
 			$object = is_object($callback[0]) ? $callback[0] : null;
@@ -249,7 +249,7 @@ abstract class Fwe {
 		unset($val);
 
 		if($isAssoc) {
-			return $reflection->invokeArgs($object, static::makeArgs($reflection, $params));
+			return $reflection->invokeArgs($object, static::makeArgs($reflection, $params, $funcName));
 		} else {
 			return $reflection->invokeArgs($object, $params);
 		}
@@ -301,8 +301,14 @@ abstract class Fwe {
 		return $args;
 	}
 
+	/**
+	 * @var Application
+	 */
 	public static $app;
 
+	/**
+	 * @var TsVar
+	 */
 	public static $config;
 
 	public static function boot() {

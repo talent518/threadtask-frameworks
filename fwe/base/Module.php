@@ -45,12 +45,23 @@ class Module {
 	 * @var Component
 	 */
 	private $_modules;
+	
+	/**
+	 * @var string
+	 */
+	private $_route;
 
 	public function __construct(string $id, Module $module = null) {
 		$this->id = $id;
 		$this->module = $module;
 		$this->_modules = \Fwe::createObject(Component::class);
 		$this->_modules->params['module'] = $this;
+
+		if($this->module !== null) $this->_route = "{$this->module->route}{$this->id}/";
+	}
+	
+	public function getRoute() {
+		return $this->_route;
 	}
 
 	public function init() {
@@ -68,33 +79,33 @@ class Module {
 	/**
 	 * 根据模块名判断模块配置或对象是否存在
 	 *
-	 * @param string $name
+	 * @param string $id
 	 * @return boolean
 	 */
-	public function hasModule(string $name) {
-		return $this->_modules->has($name);
+	public function hasModule(string $id) {
+		return $this->_modules->has($id);
 	}
 
 	/**
 	 * 根据模块名获取模块对象
 	 *
-	 * @param string $name
+	 * @param string $id
 	 * @param bool $isMake
 	 * @return object
 	 */
-	public function getModule(string $name, bool $isMake = true) {
-		return $this->_modules->get($name, $isMake);
+	public function getModule(string $id, bool $isMake = true) {
+		return $this->_modules->get($id, $isMake);
 	}
 
 	/**
 	 * 根据模块名设置模块配置或对象
 	 *
-	 * @param string $name
+	 * @param string $id
 	 * @param mixed $value
 	 * @param bool $isFull
 	 */
-	public function setModule(string $name, $value, bool $isFull = true) {
-		$this->_modules->set($name, $value, $isFull);
+	public function setModule(string $id, $value, bool $isFull = true) {
+		$this->_modules->set($id, $value, $isFull);
 	}
 
 	/**
@@ -113,8 +124,8 @@ class Module {
 	 * @param array $modules
 	 */
 	public function setModules(array $modules) {
-		foreach($modules as $name => $value) {
-			$this->_modules->set($name, $value);
+		foreach($modules as $id => $value) {
+			$this->_modules->set($id, $value);
 		}
 	}
 

@@ -101,7 +101,7 @@ trait MethodProperty {
 			$this->$name = array_shift($params);
 			return $this;
 		} elseif(is_object(($this->extendObject))) {
-			return $this->extendObject->$name($params);
+			return $this->extendObject->$name(...$params);
 		} else {
 			throw new Exception('正在调用未知方法：' . get_class($this) . "::$name()");
 		}

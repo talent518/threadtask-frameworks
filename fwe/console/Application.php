@@ -4,25 +4,31 @@ namespace fwe\console;
 use fwe\base\RouteException;
 
 class Application extends \fwe\base\Application {
+
 	public $controllerNamespace = 'app\commands';
-	
+
 	public function init() {
 		parent::init();
-		
+
 		$this->controllerMap['help'] = 'fwe\console\HelpController';
+		$this->defaultRoute = 'help';
 	}
-	
+
 	public function boot() {
-		// var_dump($_SERVER, $this, \Fwe::$aliases->all(), \Fwe::$classMap->all(), \Fwe::$classAlias->all());
-		
 		$route = $_SERVER['argv'][1] ?? '';
-		$n = count($_SERVER['argv']);
-		$params = [];
-		for($i = 2; $i<$n; $i++) {
-			$arg = $_SERVER['argv'][$i];
-			echo "$arg\n";
+		if(strncmp($route, '--', 2)) {
+			$i = 2;
+		} else {
+			$route = '';
+			$i = 1;
 		}
-		
+		$params = [];
+		for(; $i < $_SERVER['argc']; $i ++) {
+			if(preg_match('/^--([^\=]+)\=?(.*)$/', $_SERVER['argv'][$i], $matches)) {
+				$params[$matches[1]] = $matches[2];
+			}
+		}
+
 		try {
 			$this->runAction($route, $params);
 		} catch(RouteException $e) {

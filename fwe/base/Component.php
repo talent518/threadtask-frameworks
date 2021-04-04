@@ -25,87 +25,87 @@ class Component {
 	/**
 	 * 根据组件名判断组件配置或对象是否存在
 	 * 
-	 * @param string $name
+	 * @param string $id
 	 * @return boolean
 	 */
-	public function has(string $name) {
-		return isset($this->_defines[$name]) || isset($this->_objects[$name]);
+	public function has(string $id) {
+		return isset($this->_defines[$id]) || isset($this->_objects[$id]);
 	}
 
 	/**
 	 * 根据组件名获取组件对象
 	 * 
-	 * @param string $name
+	 * @param string $id
 	 * @param bool $isMake
 	 * @return object
 	 */
-	public function get(string $name, bool $isMake = true) {
-		if(isset($this->_objects[$name])) {
-			return $this->_objects[$name];
-		} else if($isMake && isset($this->_defines[$name])) {
-			return $this->_objects[$name] = \Fwe::createObject($this->_defines[$name], $this->params);
+	public function get(string $id, bool $isMake = true) {
+		if(isset($this->_objects[$id])) {
+			return $this->_objects[$id];
+		} else if($isMake && isset($this->_defines[$id])) {
+			return $this->_objects[$id] = \Fwe::createObject($this->_defines[$id], $this->params + ['id'=>$id]);
 		}
 	}
 
 	/**
 	 * 根据组件名设置组件配置或对象
 	 * 
-	 * @param string $name
+	 * @param string $id
 	 * @param mixed $value
 	 * @param bool $isFull
 	 */
-	public function set(string $name, $value, bool $isFull = true) {
+	public function set(string $id, $value, bool $isFull = true) {
 		if(is_object($value)) {
-			$this->_objects[$name] = $value;
+			$this->_objects[$id] = $value;
 		} elseif($isFull) {
-			unset($this->_objects[$name]);
-			$this->_defines[$name] = $value;
-		} elseif(isset($this->_objects[$name]) && is_array($value) && (! isset($value['class']) || $value['class'] === get_class($this->_objects[$name]))) {
-			$obj = $this->_objects[$name];
+			unset($this->_objects[$id]);
+			$this->_defines[$id] = $value;
+		} elseif(isset($this->_objects[$id]) && is_array($value) && (! isset($value['class']) || $value['class'] === get_class($this->_objects[$id]))) {
+			$obj = $this->_objects[$id];
 			foreach($value as $key => $val) {
 				$obj->$key = $val;
 			}
-			if(isset($this->_defines[$name])) {
+			if(isset($this->_defines[$id])) {
 				goto merge;
 			} else {
 				if(! isset($value['class'])) {
-					$value['class'] = get_class($this->_objects[$name]);
+					$value['class'] = get_class($this->_objects[$id]);
 				}
-				$this->_defines[$name] = $value;
+				$this->_defines[$id] = $value;
 			}
-		} elseif(isset($this->_defines[$name])) {
-			unset($this->_objects[$name]);
+		} elseif(isset($this->_defines[$id])) {
+			unset($this->_objects[$id]);
 			merge:
-			if(is_array($this->_defines[$name])) {
+			if(is_array($this->_defines[$id])) {
 				if(is_array($value)) {
-					if($value['class'] === $this->_defines[$name]['class']) {
-						$this->_defines[$name] = array_merge($this->_defines[$name], $value);
+					if($value['class'] === $this->_defines[$id]['class']) {
+						$this->_defines[$id] = array_merge($this->_defines[$id], $value);
 					} else {
-						$this->_defines[$name] = $value;
+						$this->_defines[$id] = $value;
 					}
 				} else {
-					$this->_defines[$name]['class'] = $value;
+					$this->_defines[$id]['class'] = $value;
 				}
 			} else {
 				if(is_array($value) && ! isset($value['class'])) {
-					$value['class'] = $this->_defines[$name];
+					$value['class'] = $this->_defines[$id];
 				}
 
-				$this->_defines[$name] = $value;
+				$this->_defines[$id] = $value;
 			}
 		} else {
-			unset($this->_objects[$name]);
-			$this->_defines[$name] = $value;
+			unset($this->_objects[$id]);
+			$this->_defines[$id] = $value;
 		}
 	}
 
 	/**
 	 * 根据组件名移除组件配置和对象
 	 * 
-	 * @param string $name
+	 * @param string $id
 	 */
-	public function remove(string $name) {
-		unset($this->_objects[$name], $this->_defines[$name]);
+	public function remove(string $id) {
+		unset($this->_objects[$id], $this->_defines[$id]);
 	}
 	
 	/**

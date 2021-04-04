@@ -1,7 +1,14 @@
 <?php
 namespace fwe\base;
 
+use fwe\traits\MethodProperty;
+
+/**
+ * @author abao
+ * @property-read string $route 控制器的路由
+ */
 class Controller {
+	use MethodProperty;
 
 	/**
 	 *
@@ -33,13 +40,20 @@ class Controller {
 	 */
 	public $actionObjects = [];
 
+	private $_route;
+	
 	public function __construct(string $id, Module $module) {
 		$this->id = $id;
 		$this->module = $module;
+		$this->_route = "{$module->route}{$id}/";
 	}
 
 	public function init() {
 		$this->module->controllerObjects[$this->id] = $this;
+	}
+	
+	public function getRoute() {
+		return $this->_route;
 	}
 
 	/**
