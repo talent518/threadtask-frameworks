@@ -1,30 +1,31 @@
 <?php
 namespace fwe\base;
 
-use fwe\traits\MethodProperty;
-
-abstract class Application extends Component {
-	use MethodProperty {
-		__isset as traitIsset;
-		__unset as traitUnset;
-		__get as traitGet;
+/**
+ * @method bool has(string $name)
+ * @method mixed get(string $name, bool $isMake = true)
+ * @method void set(string $name, $value, bool $isFull = true)
+ * @method void remove(string $name)
+ * @method array all(bool $isObject = true)
+ *
+ */
+abstract class Application extends Module {
+	
+	public $id, $name;
+	
+	public function __construct(string $id, string $name) {
+		$this->id = $id;
+		$this->name = $name;
+		$this->extendObject = \Fwe::createObject(Component::class);
+		
+		parent::__construct($id);
 	}
-
-	/**
-	 *
-	 * @var Component
-	 */
-	private $_modules;
-
-	public function __construct() {
-		$this->_modules = \Fwe::createObject(Component::class);
-	}
-
+	
 	public function __isset($name) {
 		if($this->has($name)) {
 			return true;
 		} else {
-			return $this->traitIsset($name);
+			return parent::__isset($name);
 		}
 	}
 
@@ -32,7 +33,7 @@ abstract class Application extends Component {
 		if($this->has($name)) {
 			$this->remove($name);
 		} else {
-			$this->traitUnset($name);
+			parent::__unset($name);
 		}
 	}
 
@@ -40,7 +41,7 @@ abstract class Application extends Component {
 		if($this->has($name)) {
 			return $this->get($name);
 		} else
-			return $this->traitGet($name);
+			return parent::__get($name);
 	}
 
 	/**
@@ -60,34 +61,6 @@ abstract class Application extends Component {
 	public function setComponents(array $components) {
 		foreach($components as $name => $compontent) {
 			$this->set($name, $compontent);
-		}
-	}
-
-	public function hasModule($name) {
-		return $this->_modules->has($name);
-	}
-
-	public function getModule($name) {
-		return $this->_modules->get($name);
-	}
-
-	public function setModule($name, $value, bool $isFull) {
-		$this->_modules->set($name, $value, $isFull);
-	}
-
-	/**
-	 * 获取所有模块配置或对象列表
-	 *
-	 * @param bool $isObject
-	 * @return array
-	 */
-	public function getModules(bool $isObject = true) {
-		return $this->_modules->all($isObject);
-	}
-
-	public function setModules(array $modules) {
-		foreach($modules as $name => $value) {
-			$this->_modules->set($name, $value);
 		}
 	}
 

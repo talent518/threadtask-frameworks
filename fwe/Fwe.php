@@ -173,6 +173,7 @@ abstract class Fwe {
 	public static $classAlias;
 
 	/**
+	 * 创建对象的入口
 	 *
 	 * @param string|callable|array $type
 	 * @param array $params
@@ -218,6 +219,8 @@ abstract class Fwe {
 				$object->$prop = $value;
 			}
 
+			method_exists($object, 'init') and $object->init();
+
 			return $object;
 		} else {
 			throw new Exception('必须存在class键名的数组配置参数才能创建对象：' . var_export($type, true));
@@ -227,10 +230,13 @@ abstract class Fwe {
 	public static function invoke(callable $callback, array $params) {
 		if(is_array($callback)) {
 			$reflection = new \ReflectionMethod($callback[0], $callback[1]);
+			$object = is_object($callback[0]) ? $callback[0] : null;
 		} elseif(is_object($callback) && ! $callback instanceof \Closure) {
 			$reflection = new \ReflectionMethod($callback, '__invoke');
+			$object = $callback;
 		} else {
 			$reflection = new \ReflectionFunction($callback);
+			$object = null;
 		}
 
 		$isAssoc = true;
@@ -243,9 +249,9 @@ abstract class Fwe {
 		unset($val);
 
 		if($isAssoc) {
-			return $reflection->invokeArgs(static::makeArgs($reflection, $params));
+			return $reflection->invokeArgs($object, static::makeArgs($reflection, $params));
 		} else {
-			return $reflection->invokeArgs($params);
+			return $reflection->invokeArgs($object, $params);
 		}
 	}
 
@@ -296,12 +302,12 @@ abstract class Fwe {
 	}
 
 	public static $app;
-	
+
 	public static $config;
 
 	public static function boot() {
 		$name = (defined('THREAD_TASK_NAME') ? preg_replace('/^(.+)[\d_-]*/', '$1', THREAD_TASK_NAME) : 'main');
-		$config = static::$config->getOrSet($name, function() use(&$name) {
+		$config = static::$config->getOrSet($name, function () use (&$name) {
 			return include static::getAlias('@app/config/' . $name . '.php');
 		});
 		static::$app = static::createObject($config);
@@ -311,7 +317,7 @@ abstract class Fwe {
 
 spl_autoload_register('Fwe::autoload', true, true);
 Fwe::$aliases = new TsVar('__aliases');
-Fwe::$aliases->getOrSet('@fwe', function() {
+Fwe::$aliases->getOrSet('@fwe', function () {
 	return __DIR__;
 });
 Fwe::$classMap = new TsVar('__classMap');

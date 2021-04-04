@@ -1,6 +1,11 @@
 <?php
 namespace fwe\base;
 
+/**
+ * 可以进行组件配置并在获取时自动创建组件对象
+ * 
+ * @author abao
+ */
 class Component {
 
 	/**
@@ -14,20 +19,42 @@ class Component {
 	 * @var array
 	 */
 	private $_objects = [];
+	
+	public $params = [];
 
-	public function has($name) {
+	/**
+	 * 根据组件名判断组件配置或对象是否存在
+	 * 
+	 * @param string $name
+	 * @return boolean
+	 */
+	public function has(string $name) {
 		return isset($this->_defines[$name]) || isset($this->_objects[$name]);
 	}
 
-	public function get($name, $isMake = true) {
+	/**
+	 * 根据组件名获取组件对象
+	 * 
+	 * @param string $name
+	 * @param bool $isMake
+	 * @return object
+	 */
+	public function get(string $name, bool $isMake = true) {
 		if(isset($this->_objects[$name])) {
 			return $this->_objects[$name];
 		} else if($isMake && isset($this->_defines[$name])) {
-			return $this->_objects[$name] = \Fwe::createObject($this->_defines[$name]);
+			return $this->_objects[$name] = \Fwe::createObject($this->_defines[$name], $this->params);
 		}
 	}
 
-	public function set($name, $value, bool $isFull = true) {
+	/**
+	 * 根据组件名设置组件配置或对象
+	 * 
+	 * @param string $name
+	 * @param mixed $value
+	 * @param bool $isFull
+	 */
+	public function set(string $name, $value, bool $isFull = true) {
 		if(is_object($value)) {
 			$this->_objects[$name] = $value;
 		} elseif($isFull) {
@@ -72,10 +99,21 @@ class Component {
 		}
 	}
 
-	public function remove($name) {
+	/**
+	 * 根据组件名移除组件配置和对象
+	 * 
+	 * @param string $name
+	 */
+	public function remove(string $name) {
 		unset($this->_objects[$name], $this->_defines[$name]);
 	}
 	
+	/**
+	 * 获取所有组件配置或对象列表
+	 * 
+	 * @param bool $isObject
+	 * @return array
+	 */
 	public function all(bool $isObject = true) {
 		return $isObject ? $this->_objects : $this->_defines;
 	}
