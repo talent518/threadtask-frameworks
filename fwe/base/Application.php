@@ -2,6 +2,8 @@
 namespace fwe\base;
 
 /**
+ * @property-read string $runActionMethod
+ * 
  * @method bool has(string $name)
  * @method mixed get(string $name, bool $isMake = true)
  * @method void set(string $name, $value, bool $isFull = true)
@@ -13,12 +15,22 @@ abstract class Application extends Module {
 	
 	public $id, $name;
 	
-	public function __construct(string $id, string $name) {
+	/**
+	 * @var string
+	 */
+	private $_runActionMethod;
+	
+	public function __construct(string $id, string $name, string $runActionMethod = 'runWithEvent') {
 		$this->id = $id;
 		$this->name = $name;
 		$this->extendObject = \Fwe::createObject(Component::class);
+		$this->_runActionMethod = $runActionMethod;
 		
 		parent::__construct($id);
+	}
+	
+	public function getRunActionMethod() {
+		return $this->_runActionMethod;
 	}
 	
 	public function __isset($name) {

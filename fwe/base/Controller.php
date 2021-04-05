@@ -55,6 +55,14 @@ class Controller {
 	public function getRoute() {
 		return $this->_route;
 	}
+	
+	public function beforeAction(Action $action) {
+		return $this->module->beforeAction($action);
+	}
+	
+	public function afterAction(Action $action) {
+		$this->module->afterAction($action);
+	}
 
 	/**
 	 *
@@ -69,7 +77,13 @@ class Controller {
 		$id = trim(preg_replace_callback('/[A-Z]/', function ($matches) {
 			return '-' . strtolower($matches[0]);
 		}, $id), '-');
-
+		
+		$runWithEvent = \Fwe::$app->runActionMethod;
+		
+		if(isset($this->actionObjects[$id])) {
+			return $this->actionObjects[$id]->$runWithEvent($params);
+		}
+		
 		if(! isset($this->actionMap[$id])) {
 			$methodName = 'action' . preg_replace_callback('/-([a-z])/i', function ($matches) {
 				return ucfirst($matches[1]);
@@ -82,23 +96,20 @@ class Controller {
 						'class' => InlineAction::class,
 						'method' => $methodName
 					];
-				} else {
-					$this->actionMap[$id] = false;
 				}
-			} else {
-				$this->actionMap[$id] = false;
 			}
 		}
 
-		$action = $this->actionMap[$id];
+		$action = $this->actionMap[$id]??false;
 		if($action) {
 			$class = $action['class'] ?? $action;
-			if(is_subclass_of($class, 'fwe\base\Action')) {
+			if(is_string($class) && is_subclass_of($class, 'fwe\base\Action')) {
 				return \Fwe::createObject($action, [
 					'id' => $id,
 					'controller' => $this
-				])->run($params);
+				])->$runWithEvent($params);
 			} else {
+				$this->actionMap[$id] = 1;
 				throw new Exception("{$class}不是fwe\base\Action的子类");
 			}
 		} else {

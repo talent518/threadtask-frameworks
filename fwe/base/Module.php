@@ -130,10 +130,11 @@ class Module {
 	}
 
 	public function beforeAction(Action $action) {
-		return true;
+		return $this->module ? $this->module->beforeAction($action) : true;
 	}
 
 	public function afterAction(Action $action) {
+		$this->module and $this->module->afterAction($action);
 	}
 
 	/**
@@ -181,6 +182,10 @@ class Module {
 			if(($module = $this->getModule($ID)) !== null) {
 				return $module->runAction($route, $params);
 			}
+			
+			if(isset($this->controllerObjects[$ID])) {
+				return $this->controllerObjects[$ID]->runAction($route, $params);
+			}
 
 			if(! isset($this->controllerMap[$ID])) {
 				$className = $this->controllerNamespace . '\\' . ($prefix === '' ? null : str_replace('/', '\\', preg_replace_callback('/-([a-z0-9_])/i', function ($matches) {
@@ -188,25 +193,21 @@ class Module {
 				}, $prefix))) . preg_replace_callback('/-([a-z])/i', function ($matches) {
 					return ucfirst($matches[1]);
 				}, ucfirst($id)) . 'Controller';
-				if(strpos($className, '-') !== false || ! class_exists($className)) {
-					$this->controllerMap[$ID] = false;
-				} else {
+				if(strpos($className, '-') === false && class_exists($className)) {
 					$this->controllerMap[$ID] = $className;
 				}
 			}
 
-			$controller = $this->controllerMap[$ID];
+			$controller = $this->controllerMap[$ID]??false;
 			if($controller) {
-				if(isset($this->controllerObjects[$ID])) {
-					return $this->controllerObjects[$ID]->runAction($route, $params);
-				}
 				$class = $controller['class'] ?? $controller;
-				if(is_subclass_of($class, 'fwe\base\Controller')) {
+				if(is_string($class) && is_subclass_of($class, 'fwe\base\Controller')) {
 					return \Fwe::createObject($controller, [
 						'id' => $ID,
 						'module' => $this
 					])->runAction($route, $params);
 				} else {
+					$this->controllerMap[$ID] = 1;
 					throw new Exception("{$class}不是fwe\base\Controller的子类");
 				}
 			} else {

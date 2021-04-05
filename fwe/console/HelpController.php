@@ -8,7 +8,7 @@ class HelpController extends Controller {
 
 	public function actionIndex() {
 		unset($this->module->controllerMap[$this->id]);
-		
+
 		$this->print($this, "{$this->route}", "当前帮助信息");
 		$this->print($this, "{$this->route}var", "查看环境变量");
 		$this->help(\Fwe::$app);
@@ -33,21 +33,19 @@ class HelpController extends Controller {
 	}
 
 	private function help(Module $app, array $defaultRoutes = []) {
-		if($app->route) $this->print($app, $app->route, $this->parseDocCommentSummary(new \ReflectionClass($app)));
-		
-		$defaultRoutes[] = $app->route . $app->defaultRoute;
-		
+		$defaultRoutes[$app->route . $app->defaultRoute] = trim($app->route ?? '', '/');
+
 		$moduleIds = array_keys($app->getModules(false));
 		sort($moduleIds, SORT_REGULAR);
 		foreach($moduleIds as $id) {
 			$this->help($app->getModule($id), $defaultRoutes);
 		}
-		
+
 		$path = \Fwe::getAlias('@' . str_replace('\\', '/', $app->controllerNamespace));
 		$this->scandir($app, $app->controllerNamespace, $path, '');
 
 		ksort($app->controllerMap, SORT_REGULAR);
-		
+
 		foreach($app->controllerMap as $id => $controller) {
 			$class = $controller['class'] ?? $controller;
 			if(is_subclass_of($class, 'fwe\base\Controller')) {
@@ -56,15 +54,14 @@ class HelpController extends Controller {
 					'module' => $app
 				]); /* @var \fwe\base\Controller $object */
 				$reflection = new \ReflectionClass($object);
-				$this->print($app, $object->route, $this->parseDocCommentSummary($reflection));
-				$defaultRoutes[] = $object->route . $object->defaultAction;
+				$defaultRoutes[$object->route . $object->defaultAction] = trim($object->route ?? '', '/');
 				foreach($object->actionMap as $id2 => $action) {
 					$class = $action['class'] ?? $action;
 					if(is_subclass_of($class, 'fwe\base\Action')) {
 						$reflection = new \ReflectionClass($class);
-						$this->print($object, "{$object->route}$id2", $this->parseDocCommentSummary($reflection));
+						$this->print($object, "{$object->route}$id2", $this->parseDocCommentSummary($reflection), $defaultRoutes);
 					} else {
-						$this->print($object, "{$object->route}$id2", "\033[31m\"$class\"没有继承\"fwe\base\Action\"\033[0m");
+						$this->print($object, "{$object->route}$id2", "\033[31m\"$class\"没有继承\"fwe\base\Action\"\033[0m", $defaultRoutes);
 					}
 				}
 				foreach($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
@@ -72,19 +69,27 @@ class HelpController extends Controller {
 						$id2 = trim(preg_replace_callback('/[A-Z]/', function ($matches) {
 							return '-' . strtolower($matches[0]);
 						}, $matches[1]), '-');
-						$this->print($object, "{$object->route}$id2", $this->parseDocCommentSummary($method));
+						$this->print($object, "{$object->route}$id2", $this->parseDocCommentSummary($method), $defaultRoutes);
 					}
 				}
 			} else {
-				$this->print($app, "{$app->route}$id", "\033[31m\"$class\"没有继承\"fwe\base\Controller\"\033[0m");
+				$this->print($app, "{$app->route}$id", "\033[31m\"$class\"没有继承\"fwe\base\Controller\"\033[0m", $defaultRoutes);
 			}
 		}
-		
-		var_dump($defaultRoutes);
 	}
-	
-	private function print($app, string $route, string $msg) {
-		printf("%s %s\n", str_pad(trim($route, '/'), 32, ' ', STR_PAD_RIGHT), $msg);
+
+	const ROUTE_LEN = 32;
+	private function print($app, string $route, string $msg, array $defaultRoutes = []) {
+		$defRoute = $route;
+		while(isset($defaultRoutes[$defRoute])) {
+			$defRoute = $defaultRoutes[$defRoute];
+		}
+		if($route !== $defRoute) {
+			echo $defRoute, "\033[30m", substr($route, strlen($defRoute)), "\033[0m";
+			printf("%s %s\n", str_pad('', self::ROUTE_LEN - strlen($route), ' ', STR_PAD_RIGHT), $msg);
+		} else {
+			printf("%s %s\n", str_pad(trim($route, '/'), self::ROUTE_LEN, ' ', STR_PAD_RIGHT), $msg);
+		}
 	}
 
 	private function scandir(Module $app, string $ns, string $path, string $prefix) {

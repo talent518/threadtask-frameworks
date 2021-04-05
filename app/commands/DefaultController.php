@@ -15,7 +15,7 @@ class DefaultController extends Controller {
 	/**
 	 * Hello-World
 	 */
-	public function actionHelloWorld() {
-		echo "Hello-World\n";
+	public function actionHelloWorld(string $actionID, string $methodName) {
+		echo "Hello-World\nactionID: $actionID\nmethodName: $methodName\n";
 	}
 }
