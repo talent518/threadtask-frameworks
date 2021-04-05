@@ -30,22 +30,29 @@ class HelpController extends Controller {
 				$reflection = new \ReflectionFunction($action->callback);
 			}
 			
-			$this->formatColor(($action->funcName??$reflection->getName()) . "()\n\n", self::FG_YELLOW);
+			$this->formatColor("函数名：", self::BG_CYAN);
+			$this->formatColor(($action->funcName??$reflection->getName()) . "()\n", self::FG_YELLOW);
+			$this->formatColor("文件名：", self::BG_CYAN);
+			$this->formatColor($reflection->getFileName() . ":" . $reflection->getStartLine() . "-" . $reflection->getEndLine() . "\n", self::FG_YELLOW);
 			
 			$docLines = preg_split('/\R/u', $reflection->getDocComment());
 			if(count($docLines) > 2) {
+				echo "\n";
+				$this->formatColor("函数描述：", self::BG_CYAN);
+				echo "\n";
 				for($i = 1; $i < count($docLines) - 1; $i ++) {
-					$this->formatColor(trim($docLines[$i], "\t *"), self::FG_BLACK);
+					$this->formatColor(trim($docLines[$i], "\t *"), self::FG_CYAN);
 					echo "\n";
 				}
 			}
 
 			if($reflection->getNumberOfParameters() === 0) {
-				$this->formatColor('无任何参数，可直接执行', self::FG_BLUE);
+				$this->formatColor("\n无任何参数，可直接执行\n", self::FG_BLUE);
 				return;
 			} else {
-				$this->formatColor("\n\n函数参数值：\n", self::FG_BLACK, self::BOLD);
-				
+				echo "\n";
+				$this->formatColor("函数参数值：", self::BG_CYAN);
+				echo "\n";
 			}
 			$i = 0;
 			foreach($reflection->getParameters() as $param) { /* @var $param \ReflectionParameter */
@@ -176,7 +183,7 @@ class HelpController extends Controller {
 		}
 		if($route !== $defRoute) {
 			echo $defRoute;
-			$this->formatColor(substr($route, strlen($defRoute)), self::FG_BLACK);
+			$this->formatColor(substr($route, strlen($defRoute)), self::FG_CYAN);
 			printf("%s %s\n", str_pad('', self::ROUTE_LEN - strlen($route), ' ', STR_PAD_RIGHT), $msg);
 		} else {
 			printf("%s %s\n", str_pad(trim($route, '/'), self::ROUTE_LEN, ' ', STR_PAD_RIGHT), $msg);
