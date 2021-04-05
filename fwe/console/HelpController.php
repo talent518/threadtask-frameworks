@@ -2,18 +2,85 @@
 namespace fwe\console;
 
 use fwe\base\Module;
-use fwe\base\Controller;
 
 class HelpController extends Controller {
 
-	public function actionIndex() {
-		unset($this->module->controllerMap[$this->id]);
-
-		$this->print($this, "{$this->route}", "当前帮助信息");
-		$this->print($this, "{$this->route}var", "查看环境变量");
-		$this->help(\Fwe::$app);
+	/**
+	 * 当前帮助信息
+	 * 
+	 * @param array $__params__
+	 * @param string $route
+	 */
+	public function actionIndex(array $__params__, string $route = '') {
+		if($route === '') {
+// 			unset($this->module->controllerMap[$this->id]);
+// 			$this->print($this, "{$this->route}", "当前帮助信息");
+// 			$this->print($this, "{$this->route}var", "查看环境变量");
+			$this->help(\Fwe::$app);
+		} else {
+			$params = $__params__;
+			$params['__params__'] = $__params__;
+			$action = \Fwe::$app->getAction($route, $params);
+			
+			if(is_array($action->callback)) {
+				$reflection = new \ReflectionMethod($action->callback[0], $action->callback[1]);
+			} elseif(is_object($action->callback) && ! $action->callback instanceof \Closure) {
+				$reflection = new \ReflectionMethod($action->callback, '__invoke');
+			} else {
+				$reflection = new \ReflectionFunction($action->callback);
+			}
+// 			unset($params['__params__']);
+// 			$params = array_diff($params, $__params__);
+// 			empty($params) or var_export($params);
+			$i = 0;
+			foreach($reflection->getParameters() as $param) { /* @var $param \ReflectionParameter */
+				if(/* $param->hasType() && !$param->getType()->isBuiltin() &&  */$param->getClass()) {
+					echo $param->getClass()->getName(), 'sdf';
+				} elseif($param->isArray()) {
+					echo 'array';
+				} elseif($param->isCallable()) {
+					echo 'callable';
+				} else {
+					echo 'mixed';
+				}
+				echo ' ';
+				if($param->isPassedByReference()) {
+					echo '&';
+				}
+				echo '$', $name = $param->getName();
+				if($param->isOptional()) {
+					if($param->isDefaultValueAvailable()) {
+						echo ' = ';
+						$this->beginColor(self::FG_RED);
+						var_export($param->getDefaultValue());
+						$this->endColor();
+						echo "  ";
+					}
+					if($param->isDefaultValueConstant()) {
+						echo ' = ';
+						$this->formatColor($param->getDefaultValueConstantName(), self::FG_RED);
+						echo "  ";
+					}
+				} else {
+					echo ' = ';
+				}
+				$this->beginColor(self::FG_GREEN);
+				if(array_key_exists($name, $params)) {
+					var_export($params[$name]);
+				} elseif(array_key_exists($i, $params)) {
+					var_export($params[$i]);
+				} else {
+					echo '?';
+				}
+				$this->endColor();
+				echo PHP_EOL;
+			}
+		}
 	}
 
+	/**
+	 * 查看环境变量
+	 */
 	public function actionVar() {
 		echo '$_SERVER = ';
 		var_export($_SERVER);
@@ -61,7 +128,7 @@ class HelpController extends Controller {
 						$reflection = new \ReflectionClass($class);
 						$this->print($object, "{$object->route}$id2", $this->parseDocCommentSummary($reflection), $defaultRoutes);
 					} else {
-						$this->print($object, "{$object->route}$id2", "\033[31m\"$class\"没有继承\"fwe\base\Action\"\033[0m", $defaultRoutes);
+						$this->print($object, "{$object->route}$id2", $this->asFormatColor("\"$class\"没有继承\"fwe\base\Action\""), $defaultRoutes);
 					}
 				}
 				foreach($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
@@ -73,7 +140,7 @@ class HelpController extends Controller {
 					}
 				}
 			} else {
-				$this->print($app, "{$app->route}$id", "\033[31m\"$class\"没有继承\"fwe\base\Controller\"\033[0m", $defaultRoutes);
+				$this->print($app, "{$app->route}$id", $this->asFormatColor("\"$class\"没有继承\"fwe\base\Controller\""), $defaultRoutes);
 			}
 		}
 	}
@@ -85,7 +152,8 @@ class HelpController extends Controller {
 			$defRoute = $defaultRoutes[$defRoute];
 		}
 		if($route !== $defRoute) {
-			echo $defRoute, "\033[30m", substr($route, strlen($defRoute)), "\033[0m";
+			echo $defRoute;
+			$this->formatColor(substr($route, strlen($defRoute)), self::FG_BLACK);
 			printf("%s %s\n", str_pad('', self::ROUTE_LEN - strlen($route), ' ', STR_PAD_RIGHT), $msg);
 		} else {
 			printf("%s %s\n", str_pad(trim($route, '/'), self::ROUTE_LEN, ' ', STR_PAD_RIGHT), $msg);

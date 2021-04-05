@@ -239,10 +239,10 @@ abstract class Fwe {
 			$object = null;
 		}
 
-		$isAssoc = true;
+		$isAssoc = false;
 		foreach($params as $key => $val) {
-			if(! is_string($key)) {
-				$isAssoc = false;
+			if(is_string($key)) {
+				$isAssoc = true;
 				break;
 			}
 		}
@@ -257,6 +257,7 @@ abstract class Fwe {
 
 	public static function makeArgs(ReflectionFunctionAbstract $reflection, array &$params, ?string $funcName = null) {
 		$args = [];
+		$i = 0;
 		foreach($reflection->getParameters() as $param) { /* @var ReflectionParameter $param */
 			$name = $param->getName();
 			if(PHP_VERSION_ID >= 80000) {
@@ -274,6 +275,7 @@ abstract class Fwe {
 				}
 
 				if(array_key_exists($name, $params)) {
+					revalue:
 					$value = $params[$name];
 					if($value instanceof $className) {
 						$args[] = $value;
@@ -283,12 +285,19 @@ abstract class Fwe {
 						$args[] = static::createObject($value);
 					}
 					unset($params[$name]);
+				} elseif(array_key_exists($i, $params)) {
+					$name = $i++;
+					goto revalue;
 				} elseif(! $param->isOptional()) {
 					$args[] = static::createObject($className);
 				}
 			} elseif(array_key_exists($name, $params)) {
 				$args[] = $params[$name];
 				unset($params[$name]);
+			} elseif(array_key_exists($i, $params)) {
+				$args[] = $params[$i];
+				unset($params[$i]);
+				$i++;
 			} elseif($param->isDefaultValueAvailable()) {
 				$args[] = $param->getDefaultValue();
 			} elseif(! $param->isOptional()) {

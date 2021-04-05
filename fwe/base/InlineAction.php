@@ -2,6 +2,7 @@
 namespace fwe\base;
 
 class InlineAction extends Action {
+
 	/**
 	 * @var string
 	 */
@@ -11,10 +12,8 @@ class InlineAction extends Action {
 		$this->method = $method;
 		
 		parent::__construct($id, $controller);
+		
+		$this->callback = [$this->controller, $this->method];
 	}
-	
-	public function run(array $params) {
-		$class = get_class($this->controller);
-		return \Fwe::invoke([$this->controller, $this->method], $params + ['actionID'=>$this->id, 'methodName'=>$this->method], "{$class}::{$this->method}");
-	}
+
 }

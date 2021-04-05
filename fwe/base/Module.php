@@ -145,12 +145,13 @@ class Module {
 	public $controllerObjects = [];
 
 	/**
-	 * 运行控制器
+	 * 根据路由获取Action对象
 	 *
 	 * @param string $route
 	 * @param array $params
+	 * @return Action
 	 */
-	public function runAction(string $route, array $params = []) {
+	public function getAction(string $route, array &$params) {
 		if($route === '') {
 			$route = $this->defaultRoute;
 		}
@@ -180,11 +181,11 @@ class Module {
 			$ID = $prefix . $id;
 
 			if(($module = $this->getModule($ID)) !== null) {
-				return $module->runAction($route, $params);
+				return $module->getAction($route, $params);
 			}
 			
 			if(isset($this->controllerObjects[$ID])) {
-				return $this->controllerObjects[$ID]->runAction($route, $params);
+				return $this->controllerObjects[$ID]->getAction($route, $params);
 			}
 
 			if(! isset($this->controllerMap[$ID])) {
@@ -205,7 +206,7 @@ class Module {
 					return \Fwe::createObject($controller, [
 						'id' => $ID,
 						'module' => $this
-					])->runAction($route, $params);
+					])->getAction($route, $params);
 				} else {
 					$this->controllerMap[$ID] = 1;
 					throw new Exception("{$class}不是fwe\base\Controller的子类");

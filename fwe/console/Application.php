@@ -26,11 +26,15 @@ class Application extends \fwe\base\Application {
 		for(; $i < $_SERVER['argc']; $i ++) {
 			if(preg_match('/^--([^\=]+)\=?(.*)$/', $_SERVER['argv'][$i], $matches)) {
 				$params[$matches[1]] = $matches[2];
+			} else {
+				$params[] = $_SERVER['argv'][$i];
 			}
 		}
-
+		$params['__params__'] = $params;
 		try {
-			$this->runAction($route, $params);
+			$action = $this->getAction($route, $params);
+			$method = $this->runActionMethod;
+			$action->$method($params);
 		} catch(RouteException $e) {
 			echo $e;
 		}
