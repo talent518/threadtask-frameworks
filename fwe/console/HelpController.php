@@ -7,21 +7,21 @@ class HelpController extends Controller {
 
 	/**
 	 * 当前帮助信息
-	 * 
+	 *
 	 * @param array $__params__
 	 * @param string $route
 	 */
 	public function actionIndex(array $__params__, string $route = '') {
 		if($route === '') {
-// 			unset($this->module->controllerMap[$this->id]);
-// 			$this->print($this, "{$this->route}", "当前帮助信息");
-// 			$this->print($this, "{$this->route}var", "查看环境变量");
+			// unset($this->module->controllerMap[$this->id]);
+			// $this->print($this, "{$this->route}", "当前帮助信息");
+			// $this->print($this, "{$this->route}var", "查看环境变量");
 			$this->help(\Fwe::$app);
 		} else {
 			$params = $__params__;
 			$params['__params__'] = $__params__;
 			$action = \Fwe::$app->getAction($route, $params);
-			
+
 			if(is_array($action->callback)) {
 				$reflection = new \ReflectionMethod($action->callback[0], $action->callback[1]);
 			} elseif(is_object($action->callback) && ! $action->callback instanceof \Closure) {
@@ -29,19 +29,41 @@ class HelpController extends Controller {
 			} else {
 				$reflection = new \ReflectionFunction($action->callback);
 			}
-// 			unset($params['__params__']);
-// 			$params = array_diff($params, $__params__);
-// 			empty($params) or var_export($params);
+			
+			$this->formatColor(($action->funcName??$reflection->getName()) . "()\n\n", self::FG_YELLOW);
+			
+			$docLines = preg_split('/\R/u', $reflection->getDocComment());
+			if(count($docLines) > 2) {
+				for($i = 1; $i < count($docLines) - 1; $i ++) {
+					$this->formatColor(trim($docLines[$i], "\t *"), self::FG_BLACK);
+					echo "\n";
+				}
+			}
+
+			if($reflection->getNumberOfParameters() === 0) {
+				$this->formatColor('无任何参数，可直接执行', self::FG_BLUE);
+				return;
+			} else {
+				$this->formatColor("\n\n函数参数值：\n", self::FG_BLACK, self::BOLD);
+				
+			}
 			$i = 0;
 			foreach($reflection->getParameters() as $param) { /* @var $param \ReflectionParameter */
-				if(/* $param->hasType() && !$param->getType()->isBuiltin() &&  */$param->getClass()) {
-					echo $param->getClass()->getName(), 'sdf';
+				if(PHP_VERSION_ID >= 80000) {
+					$class = $param->getType();
+					$isClass = $class !== null && ! $param->getType()->isBuiltin();
+				} else {
+					$class = $param->getClass();
+					$isClass = $class !== null;
+				}
+				if($isClass) {
+					echo $class->getName(), 'sdf';
 				} elseif($param->isArray()) {
 					echo 'array';
 				} elseif($param->isCallable()) {
 					echo 'callable';
 				} else {
-					echo 'mixed';
+					echo $param->getType();
 				}
 				echo ' ';
 				if($param->isPassedByReference()) {
@@ -50,25 +72,25 @@ class HelpController extends Controller {
 				echo '$', $name = $param->getName();
 				if($param->isOptional()) {
 					if($param->isDefaultValueAvailable()) {
-						echo ' = ';
-						$this->beginColor(self::FG_RED);
-						var_export($param->getDefaultValue());
-						$this->endColor();
-						echo "  ";
+						echo "\n  默认值: ";
+						$this->formatColor(str_replace("\n", "\n        ", var_export($param->getDefaultValue(), true)), self::FG_RED);
+						echo "\n    新值: ";
 					}
 					if($param->isDefaultValueConstant()) {
-						echo ' = ';
+						echo "\n   默认值: ";
 						$this->formatColor($param->getDefaultValueConstantName(), self::FG_RED);
-						echo "  ";
+						echo "\n    新值: ";
 					}
 				} else {
-					echo ' = ';
+					echo "\n    新值: ";
 				}
 				$this->beginColor(self::FG_GREEN);
 				if(array_key_exists($name, $params)) {
-					var_export($params[$name]);
+					$this->formatColor(str_replace("\n", "\n        ", var_export($params[$name], true)), self::FG_RED);
 				} elseif(array_key_exists($i, $params)) {
-					var_export($params[$i]);
+					$this->formatColor(str_replace("\n", "\n        ", var_export($params[$i], true)), self::FG_RED);
+				} elseif($isClass) {
+					echo "new $class";
 				} else {
 					echo '?';
 				}
@@ -128,7 +150,7 @@ class HelpController extends Controller {
 						$reflection = new \ReflectionClass($class);
 						$this->print($object, "{$object->route}$id2", $this->parseDocCommentSummary($reflection), $defaultRoutes);
 					} else {
-						$this->print($object, "{$object->route}$id2", $this->asFormatColor("\"$class\"没有继承\"fwe\base\Action\""), $defaultRoutes);
+						$this->print($object, "{$object->route}$id2", $this->asFormatColor("\"$class\"没有继承\"fwe\base\Action\"", self::FG_RED), $defaultRoutes);
 					}
 				}
 				foreach($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
@@ -140,12 +162,13 @@ class HelpController extends Controller {
 					}
 				}
 			} else {
-				$this->print($app, "{$app->route}$id", $this->asFormatColor("\"$class\"没有继承\"fwe\base\Controller\""), $defaultRoutes);
+				$this->print($app, "{$app->route}$id", $this->asFormatColor("\"$class\"没有继承\"fwe\base\Controller\"", self::FG_RED), $defaultRoutes);
 			}
 		}
 	}
 
 	const ROUTE_LEN = 32;
+
 	private function print($app, string $route, string $msg, array $defaultRoutes = []) {
 		$defRoute = $route;
 		while(isset($defaultRoutes[$defRoute])) {
