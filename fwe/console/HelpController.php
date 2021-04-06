@@ -18,9 +18,19 @@ class HelpController extends Controller {
 			// $this->print($this, "{$this->route}var", "查看环境变量");
 			$this->help(\Fwe::$app);
 		} else {
+			var_dump($__params__);
+			if(isset($__params__['route'])) {
+				unset($__params__['route']);
+				$I = 0;
+			} else {
+				unset($__params__[0]);
+				$I = 1;
+			}
 			$params = $__params__;
 			$params['__params__'] = $__params__;
 			$action = \Fwe::$app->getAction($route, $params);
+			$params['__params__'] += ['actionID' => $action->id];
+			$params += ['actionID' => $action->id];
 
 			if(is_array($action->callback)) {
 				$reflection = new \ReflectionMethod($action->callback[0], $action->callback[1]);
@@ -54,7 +64,7 @@ class HelpController extends Controller {
 				$this->formatColor("函数参数值：", self::BG_CYAN);
 				echo "\n";
 			}
-			$i = 0;
+			$i = $I;
 			foreach($reflection->getParameters() as $param) { /* @var $param \ReflectionParameter */
 				if(PHP_VERSION_ID >= 80000) {
 					$class = $param->getType();
@@ -95,7 +105,7 @@ class HelpController extends Controller {
 				if(array_key_exists($name, $params)) {
 					$this->formatColor(str_replace("\n", "\n        ", var_export($params[$name], true)), self::FG_RED);
 				} elseif(array_key_exists($i, $params)) {
-					$this->formatColor(str_replace("\n", "\n        ", var_export($params[$i], true)), self::FG_RED);
+					$this->formatColor(str_replace("\n", "\n        ", var_export($params[$i++], true)), self::FG_RED);
 				} elseif($isClass) {
 					echo "new $class";
 				} else {

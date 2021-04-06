@@ -34,6 +34,7 @@ class Application extends \fwe\base\Application {
 		try {
 			$action = $this->getAction($route, $params);
 			$method = $this->runActionMethod;
+			$params['actionID'] = $action->id;
 			$action->$method($params);
 		} catch(RouteException $e) {
 			echo $e;
