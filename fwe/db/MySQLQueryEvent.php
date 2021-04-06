@@ -72,40 +72,35 @@ class MySQLQueryEvent implements MySQLEvent {
 		}
 		return $data;
 	}
-	
-	/**
-	 * @return bool
-	 */
-	protected function fetchData() {
-		switch($this->_style) {
-			case MySQLEvent::FETCH_ONE: {
-				$this->_data = $this->fetchOne();
-				break;
-			}
-			case MySQLEvent::FETCH_COLUMN: {
-				$this->_data = $this->fetchOne()[$this->_col]??null;
-				break;
-			}
-			default:
-			case MySQLEvent::FETCH_ALL: {
-				for($i=0; $i<$this->_result->num_rows; $i++) {
-					$this->_data[] = $this->fetchOne();
-				}
-				break;
-			}
-			case MySQLEvent::FETCH_COLUMN_ALL: {
-				for($i=0; $i<$this->_result->num_rows; $i++) {
-					$this->_data[] = $this->fetchOne()[$this->_col]??null;
-				}
-				break;
-			}
-		}
-	}
 
 	public function recv() {
 		$this->_result = $this->_db->reapAsyncQuery();
 		if($this->_result) {
-			return $this->fetchData();
+			switch($this->_style) {
+				case MySQLEvent::FETCH_ONE: {
+					$this->_data = $this->fetchOne();
+					break;
+				}
+				case MySQLEvent::FETCH_COLUMN: {
+					$this->_data = $this->fetchOne()[$this->_col]??null;
+					break;
+				}
+				default:
+				case MySQLEvent::FETCH_ALL: {
+					$n = $this->_result->num_rows;
+					for($i=0; $i<$n; $i++) {
+						$this->_data[] = $this->fetchOne();
+					}
+					break;
+				}
+				case MySQLEvent::FETCH_COLUMN_ALL: {
+					$n = $this->_result->num_rows;
+					for($i=0; $i<$n; $i++) {
+						$this->_data[] = $this->fetchOne()[$this->_col]??null;
+					}
+					break;
+				}
+			}
 		} else {
 			list($errno, $error) = $this->_db->getError();
 			if($errno) throw new Exception("ERROR: {$this->_sql}", compact('errno', 'error'));
@@ -114,13 +109,7 @@ class MySQLQueryEvent implements MySQLEvent {
 				'affectedRows' => $this->_db->getAffectedRows(),
 				'insertId' => $this->_db->getInsertId(),
 			];
-			return true;
 		}
-// 		if($this->_result === null) {
-// 			$this->_result = $this->_db->reapAsyncQuery();
-// 		}
-
-// 		return $this->fetchData();
 	}
 
 	public function send() {

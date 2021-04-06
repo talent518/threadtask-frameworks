@@ -137,7 +137,13 @@ class MySQLConnection {
 	/**
 	 * @return \fwe\db\MySQLConnection
 	 */
-	public function asyncPrepare() {
+	public function asyncPrepare(string $sql, array $param, array $options = []) {
+		$event = \Fwe::createObject(MySQLStmtEvent::class, [
+			'db' => $this,
+			'sql' => $sql,
+			'param' => $param,
+		] + $options);
+		$this->_events[] = $event;
 		return $this;
 	}
 	
@@ -159,7 +165,7 @@ class MySQLConnection {
 			$this->reset();
 			$ret = true;
 			try {
-				$ret = \Fwe::invoke($callback, $data + ['db'=>$this]) !== false;
+				$ret = \Fwe::invoke($callback, $data + ['db'=>$this, 'data'=>$data]) !== false;
 			} catch(\Throwable $e) {
 				echo $e;
 				goto err;
