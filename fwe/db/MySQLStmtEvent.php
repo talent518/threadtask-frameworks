@@ -91,38 +91,7 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 	}
 
 	public function send() {
-		$types = '';
-		foreach($this->param as &$val) {
-			switch(gettype($val)) {
-				case 'boolean':
-					$types.='i';
-					$val = $val?1:0;
-					break;
-				case 'integer':
-					$types.='i';
-					break;
-				case 'double':
-				case 'float':
-					$types.='d';
-					break;
-				case 'string':
-					$types.='s';
-					break;
-				case 'array':
-					$types.='b';
-					$val = json_encode($val);
-					break;
-				case 'object':
-					$types.='b';
-					$val = json_encode($val);
-					break;
-				default:
-					$types.='s';
-					$val = null;
-					break;
-			}
-		}
-		unset($val);
+		$this->_db->bindParam($this->param, $types);
 		
 		$this->_stmt = $this->_db->prepare($this->_sql);
 		if($this->_stmt) {

@@ -108,6 +108,41 @@ class MySQLConnection {
 		return $ret;
 	}
 	
+	public function bindParam(array &$param, &$types) {
+		$types = '';
+		foreach($param as &$val) {
+			switch(gettype($val)) {
+				case 'boolean':
+					$types.='i';
+					$val = $val?1:0;
+					break;
+				case 'integer':
+					$types.='i';
+					break;
+				case 'double':
+				case 'float':
+					$types.='d';
+					break;
+				case 'string':
+					$types.='s';
+					break;
+				case 'array':
+					$types.='b';
+					$val = json_encode($val);
+					break;
+				case 'object':
+					$types.='b';
+					$val = json_encode($val);
+					break;
+				default:
+					$types.='s';
+					$val = null;
+					break;
+			}
+		}
+		unset($val);
+	}
+	
 	/**
 	 * @param string $sql
 	 * @return \mysqli_stmt
