@@ -96,7 +96,7 @@ trait MethodProperty {
 	 * @return \fwe\traits\MethodProperty|mixed
 	 */
 	public function __call(string $name, array $params) {
-		if(! strncmp($name, 'set', 3)) {
+		if(strlen($name) > 3 && ! strncmp($name, 'set', 3)) {
 			$name = lcfirst(substr($name, 3));
 			$this->$name = array_shift($params);
 			return $this;
