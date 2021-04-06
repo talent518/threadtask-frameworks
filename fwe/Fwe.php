@@ -249,9 +249,17 @@ abstract class Fwe {
 		unset($val);
 
 		if($isAssoc) {
-			return $reflection->invokeArgs($object, static::makeArgs($reflection, $params, $funcName));
+			if($reflection instanceof \ReflectionFunction) {
+				return $reflection->invokeArgs(static::makeArgs($reflection, $params, $funcName));
+			} else {
+				return $reflection->invokeArgs($object, static::makeArgs($reflection, $params, $funcName));
+			}
 		} else {
-			return $reflection->invokeArgs($object, $params);
+			if($reflection instanceof \ReflectionFunction) {
+				return $reflection->invokeArgs(static::makeArgs($reflection, $params, $funcName));
+			} else {
+				return $reflection->invokeArgs($object, $params);
+			}
 		}
 	}
 
@@ -319,14 +327,22 @@ abstract class Fwe {
 	 * @var TsVar
 	 */
 	public static $config;
+	
+	/**
+	 * @var EventBase
+	 */
+	public static $base;
 
 	public static function boot() {
 		$name = (defined('THREAD_TASK_NAME') ? preg_replace('/^(.+)[\d_-]*/', '$1', THREAD_TASK_NAME) : 'main');
 		$config = static::$config->getOrSet($name, function () use (&$name) {
 			return include static::getAlias('@app/config/' . $name . '.php');
 		});
+		static::$base = new EventBase();
 		static::$app = static::createObject($config);
 		static::$app->boot();
+		static::$base->dispatch();
+		// static::$base->loop(EventBase::LOOP_ONCE);
 	}
 }
 

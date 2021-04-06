@@ -5,7 +5,7 @@
  * 下载地址： https://pecl.php.net/package/event */
 
 namespace  {
-class Socket {}
+	class Socket {}
 	
 	class EventConfig {
 	    public function __construct() {}
@@ -47,6 +47,13 @@ class Socket {}
 	}
 	
 	class Event {
+		const ET = 32;
+		const PERSIST = 16 ;
+		const READ = 2 ;
+		const WRITE = 4 ;
+		const SIGNAL = 8 ;
+		const TIMEOUT = 1 ;
+		
 	    public function __construct(EventBase $base, $fd, int $what, callable $cb, $arg = null) {}
 	    public function free(): void {}
 	    public function set(EventBase $base, $fd, int $what = null, ?callable $cb = null, $arg = null): bool {}

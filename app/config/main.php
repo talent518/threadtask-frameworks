@@ -8,6 +8,9 @@ return [
 	'id' => 'fwe',
 	'name' => 'FWE框架',
 	// 'runActionMethod' => 'run', // 默认值为: runWithEvent
+	'components' => [
+		'db' => require __DIR__ . '/db.php',
+	],
 	'modules' => [
 		'gii' => 'fwe\gii\Module',
 	]

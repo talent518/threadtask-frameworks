@@ -2,14 +2,15 @@
 namespace fwe\base;
 
 /**
+ * 应用基类
+ * 
  * @property-read string $runActionMethod
  * 
- * @method bool has(string $name)
- * @method mixed get(string $name, bool $isMake = true)
- * @method void set(string $name, $value, bool $isFull = true)
- * @method void remove(string $name)
+ * @method bool has(string $id)
+ * @method mixed get(string $id, bool $isMake = true)
+ * @method void set(string $id, $value, bool $isFull = true)
+ * @method void remove(string $id)
  * @method array all(bool $isObject = true)
- *
  */
 abstract class Application extends Module {
 	
