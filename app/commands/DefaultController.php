@@ -2,9 +2,8 @@
 namespace app\commands;
 
 use fwe\console\Controller;
-use fwe\db\MySQLEvent;
 use fwe\db\MySQLConnection;
-use fwe\db\TimeoutException;
+use fwe\db\MySQLEvent;
 
 class DefaultController extends Controller {
 
@@ -68,21 +67,45 @@ class DefaultController extends Controller {
 
 			$t = microtime(true) - $t;
 			var_dump(compact('data', 't'));
-			if($e instanceof TimeoutException) {
-				$db->pool->remove($db);
-				$db = $db->pool->pop();
-			}
+
+			if($db->iUsed === null) $db = $db->pool->pop();
 			$db->asyncQuery("SHOW TABLES", ['style'=>MySQLEvent::FETCH_COLUMN_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->goAsync(function($tables = null) {
 				$this->formatColor('DATA2: ', self::FG_GREEN);
 				var_dump($tables);
 			}, function($data, $e, $db) {
 				$this->formatColor('ERR2: ', self::FG_RED);
 				var_dump($data);
-				if($e instanceof TimeoutException) {
-					$db->pool->remove($db);
-				}
 			}, 3);
 			return $db->iUsed === null;
 		}, 3);
+	}
+	
+	public function actionCallback(int $id = 1, string $table='%us%') {
+		$t = microtime(true);
+		$this->db()->pop()->asyncQuery("SHOW TABLES LIKE 'clazz'", ['callback'=>function($data, $db) use($id) {
+			$this->formatColor('CALL1: ', self::FG_BLUE);
+			var_dump($data);
+			if($data) {
+				$db->asyncPrepare("SELECT * FROM clazz WHERE cno=?", [$id], ['style'=>MySQLEvent::FETCH_ONE]);
+				return "OK: $data";
+			} else {
+				return "ERR: $table";
+			}
+		}, 'style'=>MySQLEvent::FETCH_COLUMN])->asyncPrepare("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=database() AND TABLE_NAME LIKE ?", [$table], ['callback'=>function($data, $db) use($table) {
+			$this->formatColor('CALL2: ', self::FG_BLUE);
+			var_dump($data);
+			if($data) {
+				$db->asyncQuery("SELECT * FROM `$data` LIMIT 1", ['style'=>MySQLEvent::FETCH_ONE, 'type'=>MySQLEvent::TYPE_OBJ]);
+				return "OK: $data";
+			} else {
+				return "ERR: $table";
+			}
+		}, 'style'=>MySQLEvent::FETCH_COLUMN])->goAsync(function($data) use($t) {
+			$this->formatColor('DATA: ', self::FG_GREEN);
+			var_dump($data, microtime(true)-$t);
+		}, function($data) use($t) {
+			$this->formatColor('ERR: ', self::FG_RED);
+			var_dump($data, microtime(true)-$t);
+		});
 	}
 }

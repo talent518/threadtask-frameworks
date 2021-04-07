@@ -251,6 +251,7 @@ class MySQLConnection {
 	
 	public function eventCallback(int $fd, int $what) {
 		if($what === \Event::TIMEOUT) {
+			$this->pool->remove($this);
 			$e = new TimeoutException("异步事件队列执行超时");
 			$sql = $this->_current->getSql();
 			$t = microtime(true) - $this->getTime();

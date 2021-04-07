@@ -33,8 +33,13 @@ class MySQLQueryEvent implements MySQLEvent {
 	 * @var mixed
 	 */
 	protected $_data;
+	
+	/**
+	 * @var callable
+	 */
+	protected $_callback;
 
-	public function __construct(MySQLConnection $db, string $sql, int $type = MySQLEvent::TYPE_ASSOC, int $style = MySQLEvent::FETCH_ONE, int $col = 0, $key = null) {
+	public function __construct(MySQLConnection $db, string $sql, int $type = MySQLEvent::TYPE_ASSOC, int $style = MySQLEvent::FETCH_ONE, int $col = 0, $key = null, ?callable $callback = null) {
 		$this->_db = $db;
 		$this->_sql = $sql;
 		$this->_type = ($style === MySQLEvent::FETCH_COLUMN || $style === MySQLEvent::FETCH_COLUMN_ALL ? MySQLEvent::TYPE_NUM : $type);
@@ -44,6 +49,7 @@ class MySQLQueryEvent implements MySQLEvent {
 		if($style === MySQLEvent::FETCH_ALL || MySQLEvent::FETCH_COLUMN_ALL) {
 			$this->_data = [];
 		}
+		$this->_callback = $callback;
 	}
 	
 	public function getSql() {
@@ -114,6 +120,8 @@ class MySQLQueryEvent implements MySQLEvent {
 				'insertId' => $this->_db->getInsertId(),
 			];
 		}
+		
+		if($this->_callback) $this->_data = call_user_func($this->_callback, $this->_data, $this->_db);
 	}
 
 	public function send() {

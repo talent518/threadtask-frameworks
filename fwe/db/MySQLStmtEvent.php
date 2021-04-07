@@ -88,6 +88,8 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 				'insertId' => $this->_stmt->insert_id,
 			];
 		}
+		
+		if($this->_callback) $this->_data = call_user_func($this->_callback, $this->_data, $this->_db);
 	}
 
 	public function send() {
