@@ -1,8 +1,10 @@
 <?php
 namespace app\commands;
 
-use fwe\base\Controller;
+use fwe\console\Controller;
 use fwe\db\MySQLEvent;
+use fwe\db\MySQLConnection;
+use fwe\db\TimeoutException;
 
 class DefaultController extends Controller {
 
@@ -57,12 +59,30 @@ class DefaultController extends Controller {
 	public function actionPrepare(int $id = 0, string $table='clazz', int $newId=5, string $newName='Async Prepare', string $newDesc='Test Insert') {
 		$t = microtime(true);
 		$this->db()->pop()->asyncPrepare("SELECT * FROM clazz WHERE cno>?", [$id], ['style'=>MySQLEvent::FETCH_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->goAsync(function($select, $replace) use($t) {
+			$this->formatColor('DATA1: ', self::FG_GREEN);
+
 			$t = microtime(true) - $t;
 			var_dump(get_defined_vars());
-		}, function($data) use($t) {
+		}, function(MySQLConnection $db, $data, $e) use($t,$newId,$newName,$newDesc) {
+			$this->formatColor('ERR1: ', self::FG_RED);
+
 			$t = microtime(true) - $t;
-			var_dump(get_defined_vars());
-			return false;
-		});
+			var_dump(compact('data', 't'));
+			if($e instanceof TimeoutException) {
+				$db->pool->remove($db);
+				$db = $db->pool->pop();
+			}
+			$db->asyncQuery("SHOW TABLES", ['style'=>MySQLEvent::FETCH_COLUMN_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->goAsync(function($tables = null) {
+				$this->formatColor('DATA2: ', self::FG_GREEN);
+				var_dump($tables);
+			}, function($data, $e, $db) {
+				$this->formatColor('ERR2: ', self::FG_RED);
+				var_dump($data);
+				if($e instanceof TimeoutException) {
+					$db->pool->remove($db);
+				}
+			}, 3);
+			return $db->iUsed === null;
+		}, 3);
 	}
 }

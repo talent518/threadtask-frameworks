@@ -19,7 +19,7 @@ class MySQLConnection {
 	private $_mysqli;
 	
 	/**
-	 * @var int
+	 * @var float
 	 */
 	private $_time;
 	
@@ -64,7 +64,7 @@ class MySQLConnection {
 	public function __construct(string $host, int $port, string $username, string $password, string $database, MySQLPool $pool, ?string $socket = null, bool $isMaster = false) {
 		$this->pool = $pool;
 		$this->_mysqli = new \mysqli($host, $username, $password, $database, $port, $socket);
-		$this->_time = time();
+		$this->_time = microtime(true);
 		$this->_isMaster = $isMaster;
 	}
 	
@@ -88,6 +88,10 @@ class MySQLConnection {
 		return [$this->_mysqli->errno, $this->_mysqli->error];
 	}
 	
+	public function ping() {
+		return $this->_mysqli->ping();
+	}
+	
 	/**
 	 * @param string $sql
 	 * @param int $resultMode
@@ -95,7 +99,7 @@ class MySQLConnection {
 	 */
 	public function query(string $sql, int $resultMode = MYSQLI_STORE_RESULT) {
 		$ret = $this->_mysqli->query($sql, $resultMode);
-		$this->_time = time();
+		$this->_time = microtime(true);
 		return $ret;
 	}
 	
@@ -104,7 +108,7 @@ class MySQLConnection {
 	 */
 	public function reapAsyncQuery() {
 		$ret = $this->_mysqli->reap_async_query();
-		$this->_time = time();
+		$this->_time = microtime(true);
 		return $ret;
 	}
 	
@@ -149,7 +153,7 @@ class MySQLConnection {
 	 */
 	public function prepare(string $sql) {
 		$ret = $this->_mysqli->prepare($sql);
-		$this->_time = time();
+		$this->_time = microtime(true);
 		return $ret;
 	}
 	
@@ -202,7 +206,7 @@ class MySQLConnection {
 			try {
 				$ret = \Fwe::invoke($callback, $data + ['db'=>$this, 'data'=>$data]) !== false;
 			} catch(\Throwable $e) {
-				echo $e;
+				echo "$e\n";
 				goto err;
 			} finally {
 				$this->reset();
@@ -216,7 +220,7 @@ class MySQLConnection {
 			try {
 				$ret = \Fwe::invoke($this->_callbacks[1], ['db'=>$this, 'data'=>$this->_data, 'e'=>$e, 'event'=>$this->_current]) !== false;
 			} catch(\Throwable $e) {
-				echo $e;
+				echo "$e\n";
 			} finally {
 				if($ret) {
 					$this->reset();
@@ -239,14 +243,21 @@ class MySQLConnection {
 			try {
 				$this->_current->send();
 			} catch(\Throwable $e) {
-				echo $e;
+				echo "$e\n";
 				$this->trigger($e);
 			}
 		}
 	}
 	
-	public function eventCallback() {
-		if($this->_current === null) {
+	public function eventCallback(int $fd, int $what) {
+		if($what === \Event::TIMEOUT) {
+			$e = new TimeoutException("异步事件队列执行超时");
+			$sql = $this->_current->getSql();
+			$t = microtime(true) - $this->getTime();
+			echo "SQL: $sql\n执行时间：$t\n$e\n";
+			$this->trigger($e);
+			$this->reset();
+		} elseif($this->_current === null) {
 			$this->trigger(new Exception("没有要处理的事件"));
 		} else {
 			try {
@@ -254,13 +265,13 @@ class MySQLConnection {
 				$this->_data[$this->_current->getKey()] = $this->_current->getData();
 				$this->send();
 			} catch(\Throwable $e) {
-				echo $e;
+				echo "$e\n";
 				$this->trigger($e);
 			}
 		}
 	}
 	
-	public function goAsync(callable $success, callable $error) {
+	public function goAsync(callable $success, callable $error, float $timeout = -1) {
 		if($this->_event === null) {
 			if($this->_events) {
 				$fd = mysqli_export_fd($this->_mysqli);
@@ -270,7 +281,7 @@ class MySQLConnection {
 				}
 
 				$this->_event = new \Event(\Fwe::$base, $fd, \Event::READ | \Event::PERSIST, [$this, 'eventCallback']);
-				$this->_event->add();
+				$this->_event->add($timeout);
 				$this->_callbacks = [$success, $error];
 				$this->send();
 				
@@ -289,3 +300,5 @@ class MySQLConnection {
 		$this->_mysqli->close();
 	}
 }
+
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);

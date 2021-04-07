@@ -45,6 +45,10 @@ class MySQLQueryEvent implements MySQLEvent {
 			$this->_data = [];
 		}
 	}
+	
+	public function getSql() {
+		return $this->_sql;
+	}
 
 	public function getData() {
 		return $this->_data;
@@ -121,6 +125,9 @@ class MySQLQueryEvent implements MySQLEvent {
 	}
 	
 	public function __destruct() {
-		if($this->_result) $this->_result->close();
+		if($this->_result) {
+			$this->_result->close();
+			$this->_result = null;
+		}
 	}
 }

@@ -12,6 +12,11 @@ interface MySQLEvent {
 	const FETCH_COLUMN_ALL = 4;
 	
 	/**
+	 * @return string
+	 */
+	public function getSql();
+	
+	/**
 	 * @return string|int
 	 */
 	public function getKey();

@@ -42,6 +42,8 @@ class MySQLPool {
 	 * @param MySQLConnection $db
 	 */
 	public function push(MySQLConnection $db) {
+		if(!is_int($db->iUsed)) return;
+		
 		if($db->isMaster()) {
 			$this->_mPool[] = $db;
 			unset($this->_mUsed[$db->iUsed]);
@@ -58,6 +60,8 @@ class MySQLPool {
 	 * @return MySQLConnection
 	 */
 	public function pop(bool $isSalve = true) {
+		reconn:
+		$isNew = false;
 		/* @var $db MySQLConnection */
 		if($isSalve && $this->slaves) {
 			$db = array_pop($this->_sPool);
@@ -74,8 +78,10 @@ class MySQLPool {
 				if($this->_sIndex === count($this->slaves)) {
 					$this->_sIndex = 0;
 				}
+				$isNew = true;
 			}
-			$db->iUsed = array_push($this->_sUsed, $db);
+			$this->_sUsed[] = $db;
+			$db->iUsed = array_key_last($this->_sUsed);
 		} else {
 			$db = array_pop($this->_mPool);
 			if($db === null) {
@@ -93,9 +99,26 @@ class MySQLPool {
 				if($this->_mIndex === count($this->masters)) {
 					$this->_mIndex = 0;
 				}
+				$isNew = true;
 			}
-			$db->iUsed = array_push($this->_mUsed, $db);
+			$this->_mUsed[] = $db;
+			$db->iUsed = array_key_last($this->_mUsed);
+		}
+		if(!$isNew && !$db->ping()) {
+			$this->remove($db);
+			goto reconn;
 		}
 		return $db;
+	}
+	
+	public function remove(MySQLConnection $db) {
+		if(!is_int($db->iUsed)) return;
+		
+		if($db->isMaster()) {
+			unset($this->_mUsed[$db->iUsed]);
+		} else {
+			unset($this->_sUsed[$db->iUsed]);
+		}
+		$db->iUsed = null;
 	}
 }
