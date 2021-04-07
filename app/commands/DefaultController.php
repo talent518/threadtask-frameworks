@@ -80,6 +80,12 @@ class DefaultController extends Controller {
 		}, 3);
 	}
 	
+	/**
+	 * 单个异步SQL事件的回调操作。
+	 * 
+	 * @param int $id
+	 * @param string $table
+	 */
 	public function actionCallback(int $id = 1, string $table='%us%') {
 		$t = microtime(true);
 		$this->db()->pop()->asyncQuery("SHOW TABLES LIKE 'clazz'", ['callback'=>function($data, $db) use($id) {
