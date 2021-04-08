@@ -6,9 +6,9 @@ use fwe\base\TsVar;
 use fwe\base\Application;
 
 /**
+ * getAlias/getRootAlias/setAlias/autoload 来自yii2
  *
  * @author abao
- *         getAlias/getRootAlias/setAlias/autoload 来自yii2
  */
 abstract class Fwe {
 
