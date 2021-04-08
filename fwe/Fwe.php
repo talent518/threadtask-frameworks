@@ -354,3 +354,5 @@ Fwe::$aliases->getOrSet('@fwe', function () {
 Fwe::$classMap = new TsVar('__classMap');
 Fwe::$classAlias = new TsVar('__classAlias');
 Fwe::$config = new TsVar('__config');
+
+include_once __DIR__ . '/functions.php';

@@ -26,7 +26,7 @@ class DefaultController extends Controller {
 	 */
 	public function actionQuery(string $table='clazz') {
 		$t = microtime(true);
-		$this->db()->pop()->asyncQuery("SHOW TABLES", ['style'=>MySQLEvent::FETCH_COLUMN_ALL])->asyncQuery("SHOW GLOBAL VARIABLES LIKE '%timeout%'", ['type'=>MySQLEvent::TYPE_OBJ, 'style'=>MySQLEvent::FETCH_ALL])->goAsync(function($tables, $variables) use($t) {
+		db()->pop()->asyncQuery("SHOW TABLES", ['style'=>MySQLEvent::FETCH_COLUMN_ALL])->asyncQuery("SHOW GLOBAL VARIABLES LIKE '%timeout%'", ['type'=>MySQLEvent::TYPE_OBJ, 'style'=>MySQLEvent::FETCH_ALL])->goAsync(function($tables, $variables) use($t) {
 			$t = microtime(true) - $t;
 			var_dump(get_defined_vars());
 		}, function($data) use($t) {
@@ -36,7 +36,7 @@ class DefaultController extends Controller {
 		});
 			
 		$t2 = microtime(true);
-		$this->db()->pop()->asyncQuery("SHOW CREATE TABLE `$table`", ['style'=>MySQLEvent::FETCH_COLUMN,'col'=>1])->asyncQuery("SHOW FULL PROCESSLIST", ['style'=>MySQLEvent::FETCH_ALL])->goAsync(function($sql, $list) use($t2) {
+		db()->pop()->asyncQuery("SHOW CREATE TABLE `$table`", ['style'=>MySQLEvent::FETCH_COLUMN,'col'=>1])->asyncQuery("SHOW FULL PROCESSLIST", ['style'=>MySQLEvent::FETCH_ALL])->goAsync(function($sql, $list) use($t2) {
 			$t2 = microtime(true) - $t2;
 			var_dump(get_defined_vars());
 		}, function($data) use($t2) {
@@ -57,7 +57,7 @@ class DefaultController extends Controller {
 	 */
 	public function actionPrepare(int $id = 0, string $table='clazz', int $newId=5, string $newName='Async Prepare', string $newDesc='Test Insert') {
 		$t = microtime(true);
-		$this->db()->pop()->asyncPrepare("SELECT * FROM clazz WHERE cno>?", [$id], ['style'=>MySQLEvent::FETCH_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->goAsync(function($select, $replace) use($t) {
+		db()->pop()->asyncPrepare("SELECT * FROM clazz WHERE cno>?", [$id], ['style'=>MySQLEvent::FETCH_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->goAsync(function($select, $replace) use($t) {
 			$this->formatColor('DATA1: ', self::FG_GREEN);
 
 			$t = microtime(true) - $t;
@@ -88,7 +88,7 @@ class DefaultController extends Controller {
 	 */
 	public function actionCallback(int $id = 1, string $table='%us%') {
 		$t = microtime(true);
-		$this->db()->pop()->asyncQuery("SHOW TABLES LIKE 'clazz'", ['callback'=>function($data, $db) use($id) {
+		db()->pop()->asyncQuery("SHOW TABLES LIKE 'clazz'", ['callback'=>function($data, $db) use($id) {
 			$this->formatColor('CALL1: ', self::FG_BLUE);
 			var_dump($data);
 			if($data) {

@@ -118,12 +118,4 @@ class Controller {
 			throw new RouteException($id, "没有发现操作\"$id\"");
 		}
 	}
-	
-	/**
-	 * @param string $id
-	 * @return \fwe\db\MySQLPool
-	 */
-	public function db(string $id = 'db') {
-		return \Fwe::$app->get($id);
-	}
 }
