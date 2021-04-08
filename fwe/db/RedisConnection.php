@@ -17,13 +17,13 @@ namespace fwe\db;
  * @method mixed shutdown($saveOption = null) 将数据集同步保存到磁盘，然后关闭服务器。 <https://redis.io/commands/shutdown>
  * @method mixed slowlog($subcommand, $argument = null) 管理Redis慢速查询日志。 <https://redis.io/commands/slowlog>
  * 
- * Redis 命令信息
+ * # Redis 命令信息
  * @method mixed command() 获取Redis命令详细信息数组。 <https://redis.io/commands/command>
  * @method mixed commandCount() 获取Redis命令总数. <https://redis.io/commands/command-count>
  * @method mixed commandGetkeys() 使用完整的Redis命令提取密钥。 <https://redis.io/commands/command-getkeys>
  * @method mixed commandInfo(...$commandNames) 获取特定Redis命令详细信息的数组。 <https://redis.io/commands/command-info>
  * 
- * Redis 持久化数组
+ * # Redis 持久化数组
  * @method mixed lastsave() 获取上次成功保存到磁盘的UNIX时间戳。 <https://redis.io/commands/lastsave>
  * @method mixed save() 将数据集同步保存到磁盘。 <https://redis.io/commands/save>
  * @method mixed bgrewriteaof() 异步执行一个 AOF（AppendOnly File） 文件重写操作。 <https://redis.io/commands/bgrewriteaof>
@@ -269,7 +269,7 @@ namespace fwe\db;
  * @method mixed xrevrange($stream, $end, $start, ...$options) 与XRANGE完全相同，但显著的区别是以相反的顺序返回条目，并且以相反的顺序获取开始-结束范围 <https://redis.io/commands/xrevrange>
  * @method mixed xtrim($stream, $strategy, ...$options) 将流修剪为给定数量的项，如果需要，逐出较旧的项（ID较低的项） <https://redis.io/commands/xtrim>
  */
-class RedisConection {
+class RedisConnection {
 
 	protected $_host;
 
