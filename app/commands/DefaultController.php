@@ -88,7 +88,7 @@ class DefaultController extends Controller {
 	 */
 	public function actionCallback(int $id = 1, string $table='%us%') {
 		$t = microtime(true);
-		db()->pop()->asyncQuery("SHOW TABLES LIKE 'clazz'", ['callback'=>function($data, $db) use($id) {
+		db()->pop()->asyncQuery("SHOW TABLES LIKE 'clazz'", ['callback'=>function($data, $db) use($id,$table) {
 			$this->formatColor('CALL1: ', self::FG_BLUE);
 			var_dump($data);
 			if($data) {
