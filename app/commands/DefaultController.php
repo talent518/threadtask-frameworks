@@ -69,7 +69,7 @@ class DefaultController extends Controller {
 			var_dump(compact('data', 't'));
 
 			if($db->iUsed === null) $db = $db->pool->pop();
-			$db->asyncQuery("SHOW TABLES", ['style'=>MySQLEvent::FETCH_COLUMN_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->goAsync(function($tables = null) {
+			$db->reset()->asyncQuery("SHOW TABLES", ['style'=>MySQLEvent::FETCH_COLUMN_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->goAsync(function($tables = null) {
 				$this->formatColor('DATA2: ', self::FG_GREEN);
 				var_dump($tables);
 			}, function($data, $e, $db) {

@@ -186,7 +186,10 @@ class MySQLConnection {
 		return $this;
 	}
 	
-	protected function reset() {
+	/**
+	 * @return \fwe\db\MySQLConnection
+	 */
+	public function reset() {
 		$this->_events = [];
 		$this->_data = [];
 		$this->_callbacks = [];
@@ -195,6 +198,7 @@ class MySQLConnection {
 			$this->_event->del();
 			$this->_event = null;
 		}
+		return $this;
 	}
 	
 	protected function trigger(\Throwable $e = null) {
