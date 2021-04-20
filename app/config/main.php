@@ -10,6 +10,7 @@ return [
 	// 'runActionMethod' => 'run', // 默认值为: runWithEvent
 	'components' => [
 		'db' => require __DIR__ . '/db.php',
+		'redis' => require __DIR__ . '/redis.php',
 	],
 	'modules' => [
 		'gii' => 'fwe\gii\Module',

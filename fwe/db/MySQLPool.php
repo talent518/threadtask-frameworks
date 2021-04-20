@@ -1,7 +1,7 @@
 <?php
 namespace fwe\db;
 
-class MySQLPool {
+class MySQLPool implements IPool {
 	
 	public $id;
 
@@ -41,7 +41,7 @@ class MySQLPool {
 	 * 
 	 * @param MySQLConnection $db
 	 */
-	public function push(MySQLConnection $db) {
+	public function push($db) {
 		if(!is_int($db->iUsed)) return;
 		
 		if($db->isMaster()) {
@@ -111,7 +111,7 @@ class MySQLPool {
 		return $db;
 	}
 	
-	public function remove(MySQLConnection $db) {
+	public function remove($db) {
 		if(!is_int($db->iUsed)) return;
 		
 		if($db->isMaster()) {

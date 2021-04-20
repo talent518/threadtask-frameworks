@@ -17,19 +17,19 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 	protected function clone(&$params, &$result) {
 		switch($this->_type) {
 			default:
-			case MySQLEvent::TYPE_ASSOC:
+			case IEvent::TYPE_ASSOC:
 				$data = [];
 				foreach($result as $key=>$val) {
 					$data[$key] = $val;
 				}
 				break;
-			case MySQLEvent::TYPE_NUM:
+			case IEvent::TYPE_NUM:
 				$data = [];
 				foreach($params as $val) {
 					$data[] = $val;
 				}
 				break;
-			case MySQLEvent::TYPE_OBJ:
+			case IEvent::TYPE_OBJ:
 				$data = new \stdClass();
 				foreach($result as $key=>$val) {
 					$data->$key = $val;
@@ -49,7 +49,7 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 			$this->_stmt->bind_result(...$params);
 			
 			switch($this->_style) {
-				case MySQLEvent::FETCH_ONE: {
+				case IEvent::FETCH_ONE: {
 					if($this->_stmt->fetch()) {
 						$this->_data = $this->clone($params, $result);
 					} else {
@@ -57,7 +57,7 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 					}
 					break;
 				}
-				case MySQLEvent::FETCH_COLUMN: {
+				case IEvent::FETCH_COLUMN: {
 					if($this->_stmt->fetch()) {
 						$this->_data = $params[$this->_col]??null;
 					} else {
@@ -66,14 +66,14 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 					break;
 				}
 				default:
-				case MySQLEvent::FETCH_ALL: {
+				case IEvent::FETCH_ALL: {
 					$this->_data = [];
 					while($this->_stmt->fetch()) {
 						$this->_data[] = $this->clone($params, $result);
 					}
 					break;
 				}
-				case MySQLEvent::FETCH_COLUMN_ALL: {
+				case IEvent::FETCH_COLUMN_ALL: {
 					$this->_data = [];
 					while($this->_stmt->fetch()) {
 						$this->_data[] = $params[$this->_col]??null;

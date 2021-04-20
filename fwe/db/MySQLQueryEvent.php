@@ -1,7 +1,7 @@
 <?php
 namespace fwe\db;
 
-class MySQLQueryEvent implements MySQLEvent {
+class MySQLQueryEvent implements IEvent {
 	/**
 	 *
 	 * @var MySQLConnection
@@ -39,14 +39,14 @@ class MySQLQueryEvent implements MySQLEvent {
 	 */
 	protected $_callback;
 
-	public function __construct(MySQLConnection $db, string $sql, int $type = MySQLEvent::TYPE_ASSOC, int $style = MySQLEvent::FETCH_ONE, int $col = 0, $key = null, ?callable $callback = null) {
+	public function __construct(MySQLConnection $db, string $sql, int $type = IEvent::TYPE_ASSOC, int $style = IEvent::FETCH_ONE, int $col = 0, $key = null, ?callable $callback = null) {
 		$this->_db = $db;
 		$this->_sql = $sql;
-		$this->_type = ($style === MySQLEvent::FETCH_COLUMN || $style === MySQLEvent::FETCH_COLUMN_ALL ? MySQLEvent::TYPE_NUM : $type);
+		$this->_type = ($style === IEvent::FETCH_COLUMN || $style === IEvent::FETCH_COLUMN_ALL ? IEvent::TYPE_NUM : $type);
 		$this->_style = $style;
 		$this->_col = $col;
 		$this->_key = $key === null ? $db->eventKey++ : $key;
-		if($style === MySQLEvent::FETCH_ALL || MySQLEvent::FETCH_COLUMN_ALL) {
+		if($style === IEvent::FETCH_ALL || IEvent::FETCH_COLUMN_ALL) {
 			$this->_data = [];
 		}
 		$this->_callback = $callback;
@@ -70,13 +70,13 @@ class MySQLQueryEvent implements MySQLEvent {
 	protected function fetchOne() {
 		switch($this->_type) {
 			default:
-			case MySQLEvent::TYPE_ASSOC:
+			case IEvent::TYPE_ASSOC:
 				$data = $this->_result->fetch_assoc();
 				break;
-			case MySQLEvent::TYPE_NUM:
+			case IEvent::TYPE_NUM:
 				$data = $this->_result->fetch_array(MYSQLI_NUM);
 				break;
-			case MySQLEvent::TYPE_OBJ:
+			case IEvent::TYPE_OBJ:
 				$data = $this->_result->fetch_object();
 				break;
 		}
@@ -87,23 +87,23 @@ class MySQLQueryEvent implements MySQLEvent {
 		$this->_result = $this->_db->reapAsyncQuery();
 		if($this->_result) {
 			switch($this->_style) {
-				case MySQLEvent::FETCH_ONE: {
+				case IEvent::FETCH_ONE: {
 					$this->_data = $this->fetchOne();
 					break;
 				}
-				case MySQLEvent::FETCH_COLUMN: {
+				case IEvent::FETCH_COLUMN: {
 					$this->_data = $this->fetchOne()[$this->_col]??null;
 					break;
 				}
 				default:
-				case MySQLEvent::FETCH_ALL: {
+				case IEvent::FETCH_ALL: {
 					$n = $this->_result->num_rows;
 					for($i=0; $i<$n; $i++) {
 						$this->_data[] = $this->fetchOne();
 					}
 					break;
 				}
-				case MySQLEvent::FETCH_COLUMN_ALL: {
+				case IEvent::FETCH_COLUMN_ALL: {
 					$n = $this->_result->num_rows;
 					for($i=0; $i<$n; $i++) {
 						$this->_data[] = $this->fetchOne()[$this->_col]??null;

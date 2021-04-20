@@ -10,7 +10,7 @@ use fwe\traits\MethodProperty;
  * @property-read $insertId int
  * @property-read $error array
  */
-class MySQLConnection {
+class MySQLConnection extends AsyncConnection {
 	use MethodProperty;
 	
 	/**
@@ -29,37 +29,12 @@ class MySQLConnection {
 	private $_isMaster;
 	
 	/**
-	 * @var MySQLPool
-	 */
-	public $pool;
-	
-	/**
 	 * @see MySQLPool::push()
 	 * @see MySQLPool::pop()
 	 * 
 	 * @var int
 	 */
 	public $iUsed;
-
-	/**
-	 * @var array
-	 */
-	private $_events = [], $_data = [], $_callbacks = [];
-	
-	/**
-	 * @var MySQLEvent
-	 */
-	private $_current;
-	
-	/**
-	 * @var \Event
-	 */
-	private $_event;
-	
-	/**
-	 * @var int
-	 */
-	public $eventKey = 0;
 	
 	public function __construct(string $host, int $port, string $username, string $password, string $database, MySQLPool $pool, ?string $socket = null, bool $isMaster = false) {
 		$this->pool = $pool;
@@ -186,119 +161,8 @@ class MySQLConnection {
 		return $this;
 	}
 	
-	/**
-	 * @return \fwe\db\MySQLConnection
-	 */
-	public function reset() {
-		$this->_events = [];
-		$this->_data = [];
-		$this->_callbacks = [];
-		$this->_current = null;
-		if($this->_event) {
-			$this->_event->del();
-			$this->_event = null;
-		}
-		return $this;
-	}
-	
-	protected function trigger(\Throwable $e = null) {
-		if($e === null) {
-			$data = $this->_data;
-			$callback = $this->_callbacks[0];
-			$this->reset();
-			$ret = true;
-			try {
-				$ret = \Fwe::invoke($callback, $data + ['db'=>$this, 'data'=>$data]) !== false;
-			} catch(\Throwable $e) {
-				echo "$e\n";
-				goto err;
-			} finally {
-				$this->reset();
-				if($ret) {
-					$this->pool->push($this);
-				}
-			}
-		} else {
-			err:
-			$ret = true;
-			try {
-				$ret = \Fwe::invoke($this->_callbacks[1], ['db'=>$this, 'data'=>$this->_data, 'e'=>$e, 'event'=>$this->_current]) !== false;
-			} catch(\Throwable $e) {
-				echo "$e\n";
-			} finally {
-				if($ret) {
-					$this->reset();
-					$this->pool->push($this);
-				} else {
-					if(MySQLEvent::FETCH_COLUMN_ALL) {
-						$this->_data[$this->_current->getKey()] = $this->_current->getData();
-					}
-					$this->send();
-				}
-			}
-		}
-	}
-	
-	protected function send() {
-		$this->_current = array_shift($this->_events);
-		if($this->_current === null) {
-			$this->trigger();
-		} else {
-			try {
-				$this->_current->send();
-			} catch(\Throwable $e) {
-				echo "$e\n";
-				$this->trigger($e);
-			}
-		}
-	}
-	
-	public function eventCallback(int $fd, int $what) {
-		if($what === \Event::TIMEOUT) {
-			$this->pool->remove($this);
-			$e = new TimeoutException("异步事件队列执行超时");
-			$sql = $this->_current->getSql();
-			$t = microtime(true) - $this->getTime();
-			echo "SQL: $sql\n执行时间：$t\n$e\n";
-			$this->trigger($e);
-			$this->reset();
-		} elseif($this->_current === null) {
-			$this->trigger(new Exception("没有要处理的事件"));
-		} else {
-			try {
-				$this->_current->recv();
-				$this->_data[$this->_current->getKey()] = $this->_current->getData();
-				$this->send();
-			} catch(\Throwable $e) {
-				echo "$e\n";
-				$this->trigger($e);
-			}
-		}
-	}
-	
-	public function goAsync(callable $success, callable $error, float $timeout = -1) {
-		if($this->_event === null) {
-			if($this->_events) {
-				$fd = mysqli_export_fd($this->_mysqli);
-				if(!is_int($fd)) {
-					$this->_events = [];
-					return false;
-				}
-
-				$this->_event = new \Event(\Fwe::$base, $fd, \Event::READ | \Event::PERSIST, [$this, 'eventCallback']);
-				$this->_event->add($timeout);
-				$this->_callbacks = [$success, $error];
-				$this->send();
-				
-				return true;
-			} else {
-				echo new Exception("异步事件队列为空");
-				return false;
-			}
-		} else {
-			echo new Exception("异步事件正在执行");
-			return false;
-		}
+	public function getFd() {
+		return mysqli_export_fd($this->_mysqli);
 	}
 	
 	public function __destruct() {

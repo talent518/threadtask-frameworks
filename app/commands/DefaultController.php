@@ -3,7 +3,7 @@ namespace app\commands;
 
 use fwe\console\Controller;
 use fwe\db\MySQLConnection;
-use fwe\db\MySQLEvent;
+use fwe\db\IEvent;
 
 class DefaultController extends Controller {
 
@@ -26,7 +26,7 @@ class DefaultController extends Controller {
 	 */
 	public function actionQuery(string $table='clazz') {
 		$t = microtime(true);
-		db()->pop()->asyncQuery("SHOW TABLES", ['style'=>MySQLEvent::FETCH_COLUMN_ALL])->asyncQuery("SHOW GLOBAL VARIABLES LIKE '%timeout%'", ['type'=>MySQLEvent::TYPE_OBJ, 'style'=>MySQLEvent::FETCH_ALL])->goAsync(function($tables, $variables) use($t) {
+		db()->pop()->asyncQuery("SHOW TABLES", ['style'=>IEvent::FETCH_COLUMN_ALL])->asyncQuery("SHOW GLOBAL VARIABLES LIKE '%timeout%'", ['type'=>IEvent::TYPE_OBJ, 'style'=>IEvent::FETCH_ALL])->goAsync(function($tables, $variables) use($t) {
 			$t = microtime(true) - $t;
 			var_dump(get_defined_vars());
 		}, function($data) use($t) {
@@ -36,7 +36,7 @@ class DefaultController extends Controller {
 		});
 			
 		$t2 = microtime(true);
-		db()->pop()->asyncQuery("SHOW CREATE TABLE `$table`", ['style'=>MySQLEvent::FETCH_COLUMN,'col'=>1])->asyncQuery("SHOW FULL PROCESSLIST", ['style'=>MySQLEvent::FETCH_ALL])->goAsync(function($sql, $list) use($t2) {
+		db()->pop()->asyncQuery("SHOW CREATE TABLE `$table`", ['style'=>IEvent::FETCH_COLUMN,'col'=>1])->asyncQuery("SHOW FULL PROCESSLIST", ['style'=>IEvent::FETCH_ALL])->goAsync(function($sql, $list) use($t2) {
 			$t2 = microtime(true) - $t2;
 			var_dump(get_defined_vars());
 		}, function($data) use($t2) {
@@ -57,7 +57,7 @@ class DefaultController extends Controller {
 	 */
 	public function actionPrepare(int $id = 0, string $table='clazz', int $newId=5, string $newName='Async Prepare', string $newDesc='Test Insert') {
 		$t = microtime(true);
-		db()->pop()->asyncPrepare("SELECT * FROM clazz WHERE cno>?", [$id], ['style'=>MySQLEvent::FETCH_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->goAsync(function($select, $replace) use($t) {
+		db()->pop()->asyncPrepare("SELECT * FROM clazz WHERE cno>?", [$id], ['style'=>IEvent::FETCH_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->goAsync(function($select, $replace) use($t) {
 			$this->formatColor('DATA1: ', self::FG_GREEN);
 
 			$t = microtime(true) - $t;
@@ -69,7 +69,7 @@ class DefaultController extends Controller {
 			var_dump(compact('data', 't'));
 
 			if($db->iUsed === null) $db = $db->pool->pop();
-			$db->reset()->asyncQuery("SHOW TABLES", ['style'=>MySQLEvent::FETCH_COLUMN_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->goAsync(function($tables = null) {
+			$db->reset()->asyncQuery("SHOW TABLES", ['style'=>IEvent::FETCH_COLUMN_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->goAsync(function($tables = null) {
 				$this->formatColor('DATA2: ', self::FG_GREEN);
 				var_dump($tables);
 			}, function($data, $e, $db) {
@@ -92,26 +92,47 @@ class DefaultController extends Controller {
 			$this->formatColor('CALL1: ', self::FG_BLUE);
 			var_dump($data);
 			if($data) {
-				$db->asyncPrepare("SELECT * FROM clazz WHERE cno=?", [$id], ['style'=>MySQLEvent::FETCH_ONE]);
+				$db->asyncPrepare("SELECT * FROM clazz WHERE cno=?", [$id], ['style'=>IEvent::FETCH_ONE]);
 				return "OK: $data";
 			} else {
 				return "ERR: $table";
 			}
-		}, 'style'=>MySQLEvent::FETCH_COLUMN])->asyncPrepare("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=database() AND TABLE_NAME LIKE ?", [$table], ['callback'=>function($data, $db) use($table) {
+		}, 'style'=>IEvent::FETCH_COLUMN])->asyncPrepare("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=database() AND TABLE_NAME LIKE ?", [$table], ['callback'=>function($data, $db) use($table) {
 			$this->formatColor('CALL2: ', self::FG_BLUE);
 			var_dump($data);
 			if($data) {
-				$db->asyncQuery("SELECT * FROM `$data` LIMIT 1", ['style'=>MySQLEvent::FETCH_ONE, 'type'=>MySQLEvent::TYPE_OBJ]);
+				$db->asyncQuery("SELECT * FROM `$data` LIMIT 1", ['style'=>IEvent::FETCH_ONE, 'type'=>IEvent::TYPE_OBJ]);
 				return "OK: $data";
 			} else {
 				return "ERR: $table";
 			}
-		}, 'style'=>MySQLEvent::FETCH_COLUMN])->goAsync(function($data) use($t) {
+		}, 'style'=>IEvent::FETCH_COLUMN])->goAsync(function($data) use($t) {
 			$this->formatColor('DATA: ', self::FG_GREEN);
 			var_dump($data, microtime(true)-$t);
 		}, function($data) use($t) {
 			$this->formatColor('ERR: ', self::FG_RED);
 			var_dump($data, microtime(true)-$t);
 		});
+	}
+	
+	/**
+	 * 根据$isAsync参数是否进行异步Redis请求
+	 * 
+	 * @param bool $isAsync
+	 */
+	public function actionRedis(bool $isAsync = false) {
+		if($isAsync) {
+			redis()->pop()->beginAsync()->keys('*')->commandInfo("keys", "info")->goAsync(function($keys, $commands) {
+				$this->formatColor('CALL: ', self::FG_BLUE);
+				var_dump(get_defined_vars());
+			}, function($data) {
+				$this->formatColor('ERR: ', self::FG_BLUE);
+				var_dump($data);
+			});
+		} else {
+			$db = redis()->pop();
+			var_dump($db->keys('*'), $db->commandInfo("keys", "info"));
+			$db->pool->push($db);
+		}
 	}
 }

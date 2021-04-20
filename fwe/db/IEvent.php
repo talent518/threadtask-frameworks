@@ -1,7 +1,7 @@
 <?php
 namespace fwe\db;
 
-interface MySQLEvent {
+interface IEvent {
 	const TYPE_ASSOC = 1;
 	const TYPE_NUM = 2;
 	const TYPE_OBJ = 3;
@@ -20,13 +20,13 @@ interface MySQLEvent {
 	 * @return string|int
 	 */
 	public function getKey();
-
-	public function send();
-
-	public function recv();
-
+	
 	/**
 	 * @return mixed
 	 */
 	public function getData();
+
+	public function send();
+
+	public function recv();
 }
