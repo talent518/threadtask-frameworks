@@ -333,13 +333,30 @@ abstract class Fwe {
 	 */
 	public static $base;
 
+	/**
+	 * @var string
+	 */
+	public static $name;
+	
+	/**
+	 * @var string
+	 */
+	public static $method;
+	
 	public static function boot() {
-		$name = (defined('THREAD_TASK_NAME') ? preg_replace('/^(.+)[\d_-]*/', '$1', THREAD_TASK_NAME) : 'main');
-		$config = static::$config->getOrSet($name, function () use (&$name) {
-			return include static::getAlias('@app/config/' . $name . '.php');
+		if(defined('THREAD_TASK_NAME')) {
+			$names = explode(THREAD_TASK_NAME, ':');
+			static::$name = array_shift($names);
+			static::$method = array_shift($names);
+		} else {
+			static::$name = 'main';
+		}
+		$config = static::$config->getOrSet(static::$name, function () {
+			return include static::getAlias('@app/config/' . static::$name . '.php');
 		});
 		static::$base = new EventBase();
 		static::$app = static::createObject($config);
+		unset($config);
 		static::$app->boot();
 		static::$base->dispatch();
 		// static::$base->loop(EventBase::LOOP_ONCE);

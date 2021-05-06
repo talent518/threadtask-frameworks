@@ -21,8 +21,26 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 	 */
 	private $_parent;
 
-	private $_expire = 0;
-
+	/**
+	 * @var integer
+	 */
+	private $_expire;
+	
+	/**
+	 * @var bool
+	 */
+	private $_isFd;
+	
+	/**
+	 * @var resource
+	 */
+	private $_readFd;
+	
+	/**
+	 * @var resource
+	 */
+	private $_writeFd;
+	
 	/**
 	 *
 	 * @param string|int|null $key
@@ -30,11 +48,32 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 	 * @param int $expire
 	 * @param TsVar|null $parent
 	 */
-	public function __construct($key, int $expire = 0, ?TsVar $parent = null) {
+	public function __construct($key, int $expire = 0, ?TsVar $parent = null, bool $isFd = false) {
 		$this->_key = $key;
 		$this->_parent = $parent;
-		$this->_var = ts_var_declare($key, $parent ? $parent->_var : null);
+		$this->_var = ts_var_declare($key, $parent ? $parent->_var : null, $isFd);
 		$this->setExpire($expire);
+		$this->_isFd = $isFd;
+	}
+	
+	public function getReadFd() {
+		if(!$this->_isFd) return false;
+		
+		if($this->_readFd === null) {
+			$this->_readFd = ts_var_fd($this->_var, false);
+		}
+		
+		return $this->_readFd;
+	}
+	
+	public function getWriteFd() {
+		if(!$this->_isFd) return false;
+		
+		if($this->_writeFd === null) {
+			$this->_writeFd = ts_var_fd($this->_var, true);
+		}
+		
+		return $this->_writeFd;
 	}
 
 	public function getParent() {
@@ -156,16 +195,31 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 		return $isRetKey ? ts_var_pop($this->_var, $key) : ts_var_pop($this->_var);
 	}
 
+	/**
+	 * @var bool
+	 */
 	public $isAutoRemove = false;
 
 	public function __destruct() {
-		if(! $this->isAutoRemove)
-			return;
-
-		if($this->_parent) {
-			return ts_var_del($this->_parent->_var, $this->_key);
-		} else {
-			return ts_var_del(ts_var_declare(null), $this->_key);
+		if($this->_readFd) {
+			socket_export_fd($this->_readFd, true);
+			$this->_readFd = null;
 		}
+
+		if($this->_writeFd) {
+			socket_export_fd($this->_writeFd, true);
+			$this->_writeFd = null;
+		}
+		
+		if($this->isAutoRemove) {
+			if($this->_parent) {
+				ts_var_del($this->_parent->_var, $this->_key);
+			} else {
+				ts_var_del(ts_var_declare(null), $this->_key);
+			}
+		}
+		
+		$this->_var = null;
+		$this->_parent = null;
 	}
 }
