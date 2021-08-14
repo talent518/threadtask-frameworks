@@ -4,12 +4,14 @@ Fwe::setAlias('@runtime', ROOT . '/runtime');
 Fwe::setAlias('@web', ROOT . '/web');
 
 return [
-	'class' => 'fwe\console\Application',
+	'class' => 'fwe\web\Application',
 	'id' => 'fwe',
 	'name' => 'FWE框架',
-	// 'runActionMethod' => 'run', // 默认值为: runWithEvent
 	'components' => [
 		'db' => require __DIR__ . '/db.php',
 		'redis' => require __DIR__ . '/redis.php',
+	],
+	'modules' => [
+		'gii' => 'fwe\gii\Module',
 	]
 ];

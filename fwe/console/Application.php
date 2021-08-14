@@ -6,11 +6,13 @@ use fwe\base\RouteException;
 class Application extends \fwe\base\Application {
 
 	public $controllerNamespace = 'app\commands';
+	public $runActionMethod = 'runWithEvent';
 
 	public function init() {
 		parent::init();
 
 		$this->controllerMap['help'] = 'fwe\console\HelpController';
+		$this->controllerMap['serve'] = 'fwe\console\ServeController';
 		$this->defaultRoute = 'help';
 	}
 
@@ -24,18 +26,18 @@ class Application extends \fwe\base\Application {
 		}
 		$params = [];
 		for(; $i < $_SERVER['argc']; $i ++) {
-			if(preg_match('/^--([^\=]+)\=?(.*)$/', $_SERVER['argv'][$i], $matches)) {
+			$param = $_SERVER['argv'][$i];
+			if(preg_match('/^--([^\=]+)\=?(.*)$/', $param, $matches)) {
 				$params[$matches[1]] = $matches[2];
 			} else {
-				$params[] = $_SERVER['argv'][$i];
+				$params[] = $param;
 			}
 		}
-		$params['__params__'] = $params;
+		$params['__params__'] = &$params;
 		try {
 			$action = $this->getAction($route, $params);
 			$method = $this->runActionMethod;
-			$params['actionID'] = $action->id;
-			$action->$method($params);
+			$action->$method(['actionID' => $action->id]);
 		} catch(RouteException $e) {
 			echo $e;
 		}

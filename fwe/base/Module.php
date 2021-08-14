@@ -130,11 +130,11 @@ class Module {
 	}
 
 	public function beforeAction(Action $action) {
-		return $this->module ? $this->module->beforeAction($action) : true;
+		return $this->module->beforeAction($action);
 	}
 
 	public function afterAction(Action $action) {
-		$this->module and $this->module->afterAction($action);
+		$this->module->afterAction($action);
 	}
 
 	/**
@@ -152,16 +152,16 @@ class Module {
 	 * @return Action
 	 */
 	public function getAction(string $route, array &$params) {
-		if($route === '') {
-			$route = $this->defaultRoute;
-		}
-
 		// double slashes or leading/ending slashes may cause substr problem
 		$route = trim($route, '/');
 		if(strpos($route, '//') !== false) {
 			throw new Exception("路由\"$route\"中包括了//");
 		}
 		
+		if($route === '') {
+			$route = $this->defaultRoute;
+		}
+
 		$_route = $route;
 
 		$prefix = '';

@@ -1,4 +1,4 @@
 #!/usr/bin/bash -l
 
-threadtask -- $(dirname $)/index.php $*
+threadtask -- $(dirname $0)/index.php $*
 

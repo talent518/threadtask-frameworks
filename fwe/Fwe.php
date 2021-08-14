@@ -339,17 +339,17 @@ abstract class Fwe {
 	public static $name;
 	
 	/**
-	 * @var string
+	 * @var array
 	 */
-	public static $method;
+	public static $names;
 	
 	public static function boot() {
 		if(defined('THREAD_TASK_NAME')) {
-			$names = explode(THREAD_TASK_NAME, ':');
-			static::$name = array_shift($names);
-			static::$method = array_shift($names);
+			static::$names = explode(':', THREAD_TASK_NAME);
+			static::$name = array_shift(static::$names);
 		} else {
 			static::$name = 'main';
+			static::$names = [];
 		}
 		$config = static::$config->getOrSet(static::$name, function () {
 			return include static::getAlias('@app/config/' . static::$name . '.php');

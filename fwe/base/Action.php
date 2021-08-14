@@ -35,15 +35,25 @@ class Action {
 	 */
 	private $_route;
 	
-	public function __construct(string $id, Controller $controller) {
+	/**
+	 * @var array
+	 */
+	private $_params;
+	
+	public function __construct(string $id, Controller $controller, array $params) {
 		$this->id = $id;
 		$this->controller = $controller;
 		$this->_route = "{$controller->route}{$id}";
 		$this->callback = [$this, 'runWithParams'];
+		$this->_params = $params;
 	}
 	
 	public function getRoute() {
 		return $this->_route;
+	}
+	
+	public function getParams() {
+		return $this->_params;
 	}
 	
 	public function init() {
@@ -67,7 +77,7 @@ class Action {
 		$this->controller->afterAction($this);
 	}
 	
-	final public function runWithEvent(array $params) {
+	final public function runWithEvent(array $params = []) {
 		if($this->beforeAction()) {
 			$ret = $this->run($params);
 			$this->afterAction();
@@ -76,7 +86,7 @@ class Action {
 		}
 	}
 
-	final public function run(array $params) {
-		return \Fwe::invoke($this->callback, $params + ['actionID'=>$this->id], $this->funcName);
+	final public function run(array $params = []) {
+		return \Fwe::invoke($this->callback, $this->_params + $params + ['actionID'=>$this->id], $this->funcName);
 	}
 }

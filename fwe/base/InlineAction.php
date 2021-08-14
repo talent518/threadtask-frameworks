@@ -8,10 +8,10 @@ class InlineAction extends Action {
 	 */
 	public $method;
 	
-	public function __construct(string $id, string $method, Controller $controller) {
+	public function __construct(string $id, string $method, Controller $controller, array $params) {
 		$this->method = $method;
 		
-		parent::__construct($id, $controller);
+		parent::__construct($id, $controller, $params);
 		
 		$this->callback = [$this->controller, $this->method];
 	}

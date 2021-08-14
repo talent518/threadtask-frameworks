@@ -76,6 +76,14 @@ class Controller {
 		if($id === '') {
 			$id = $this->defaultAction;
 		}
+		
+		if(strpos($id, '/') !== false) {
+			list($id, $route) = explode('/', $id, 2);
+		} else {
+			$route = '';
+		}
+		$params['route__'] = $this->_route . $id;
+		$params['__route'] = $route;
 
 		$id = preg_replace('/[_-]+/', '-', $id);
 		$id = trim(preg_replace_callback('/[A-Z]/', function ($matches) {
@@ -108,7 +116,8 @@ class Controller {
 			if(is_string($class) && is_subclass_of($class, 'fwe\base\Action')) {
 				return \Fwe::createObject($action, [
 					'id' => $id,
-					'controller' => $this
+					'controller' => $this,
+					'params' => $params
 				]);
 			} else {
 				$this->actionMap[$id] = 1;

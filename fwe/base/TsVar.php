@@ -42,7 +42,6 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 	private $_writeFd;
 	
 	/**
-	 *
 	 * @param string|int|null $key
 	 *        	$key
 	 * @param int $expire
@@ -193,6 +192,10 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 
 	public function pop(bool $isRetKey = false, &$key = null) {
 		return $isRetKey ? ts_var_pop($this->_var, $key) : ts_var_pop($this->_var);
+	}
+	
+	public function inc($key, $inc = 1) {
+		return ts_var_inc($this->_var, $key, $inc);
 	}
 
 	/**
