@@ -4,7 +4,7 @@
  * 使用手册：https://www.php.net/manual/zh/book.event.php
  * 下载地址： https://pecl.php.net/package/event */
 
-namespace  {
+namespace {
 	class Socket {}
 	
 	class EventConfig {
@@ -13,12 +13,8 @@ namespace  {
 	    final public function __wakeup() : void {}
 	    public static function avoidMethod(string $method): bool {}
 	    public function requireFeatures(int $feature): bool {}
-	#if LIBEVENT_VERSION_NUMBER >= 0x02010000
 	    public function setMaxDispatchInterval(int $max_interval, int $max_callbacks, int $min_priority): void {}
-	#endif
-	#if LIBEVENT_VERSION_NUMBER >= 0x02000201 /* 2.0.2-alpha */
 	    public function setFlags(int $flags): bool {}
-	#endif
 	}
 	
 	class EventBase {
@@ -86,7 +82,6 @@ namespace  {
 	    public function delSignal(): bool {}
 	}
 	
-	#if HAVE_EVENT_EXTRA_LIB
 	class EventDnsBase {
 	    public function __construct(EventBase $base, bool $initialize) {}
 	    public function parseResolvConf(int $flags, string $filename): bool {}
@@ -100,11 +95,7 @@ namespace  {
 	}
 	
 	class EventHttpConnection {
-	#if LIBEVENT_VERSION_NUMBER >= 0x02010000 && defined(HAVE_EVENT_OPENSSL_LIB)
 	    public function __construct(EventBase $base, ?EventDnsBase $dns_base, string $address, int $port, ?EventSslContext $ctx = null) {}
-	#else
-	    public function __construct(EventBase $base, ?EventDnsBase $dns_base, string $address, int $port) {}
-	#endif
 	    final public function __sleep() : array {}
 	    final public function __wakeup() : void {}
 	    public function getBase() : EventBase {}
@@ -120,11 +111,7 @@ namespace  {
 	}
 	
 	class EventHttp {
-	#if LIBEVENT_VERSION_NUMBER >= 0x02010000 && defined(HAVE_EVENT_OPENSSL_LIB)
 		public function __construct(EventBase $base, ?EventSslContext $ctx = null) {}
-	#else
-		public function __construct(EventBase $base) {}
-	#endif
 	    final public function __sleep() : array {}
 	    final public function __wakeup() : void {}
 		public function accept($socket): bool {}
@@ -153,9 +140,7 @@ namespace  {
 	    public function getOutputHeaders(): array {}
 	    public function getInputBuffer(): EventBuffer {}
 	    public function getOutputBuffer(): EventBuffer {}
-	#if LIBEVENT_VERSION_NUMBER >= 0x02001100
 	    public function getBufferEvent(): ?EventBufferEvent {}
-	#endif
 	    public function getConnection(): ?EventHttpConnection{}
 	    public function closeConnection(): void {}
 	    public function sendError(int $error, ?string $reason = null): void {}
@@ -179,27 +164,19 @@ namespace  {
 	    public function disable(): bool {}
 	    public function setCallback(callable $cb, $arg = null): void {}
 	    public function setErrorCallback(callable $cb): void {}
-	#if LIBEVENT_VERSION_NUMBER >= 0x02000300
 	    public function getBase(): EventBase {}
-	#endif
 	    public function getSocketName(&$address, &$port): bool {}
 	}
-	
-	#endif
 	
 	class EventUtil {
 	    private function __construct() {}
 	    public static function getLastSocketErrno(?\Socket $socket = null): int {}
 	    public static function getLastSocketError($socket = null): string {}
-	#ifdef HAVE_EVENT_OPENSSL_LIB
 		public static function sslRandPoll(): bool {}
-	#endif
 		public static function getSocketName($socket, &$address, &$port = null): bool {}
 		public static function getSocketFd($socket): int {}
 		public static function setSocketOption($socket, int $level, int $optname, $optval): bool {}
-	#ifdef PHP_EVENT_SOCKETS_SUPPORT
 		public static function createSocket(int $fd): \Socket {}
-	#endif
 	}
 	
 	class EventBuffer {
@@ -233,11 +210,7 @@ namespace  {
 	    public function free(): void {}
 	    public function close(): void {}
 	    public function connect(string $addr): bool {}
-	#ifdef HAVE_EVENT_EXTRA_LIB
 	    public function connectHost(?EventDnsBase $dns_base, string $hostname, int $port, int $family = EventUtil::AF_UNSPEC): bool {}
-	#else
-	    public function connectHost($unused, string $hostname, int $port, int $family = EventUtil::AF_UNSPEC): bool {}
-	#endif
 	    public function getDnsErrorString(): string {}
 	    public function setCallbacks(?callable $readcb, ?callable $writecb, ?callable $eventcb, $arg = null): void {}
 	    public function enable(int $events): bool {}
@@ -253,7 +226,6 @@ namespace  {
 	    public static function createPair(EventBase $base, int $options = 0): array {}
 	    public function setPriority(int $priority): bool {}
 	    public function setTimeouts(float $timeout_read, float $timeout_write): bool {}
-	#ifdef HAVE_EVENT_OPENSSL_LIB
 		public static function createSslFilter(EventBufferEvent $unnderlying, EventSslContext $ctx, int $state, int $options = 0): EventBufferEvent {}
 	    public static function sslSocket(EventBase $base, $socket, EventSslContext $ctx, int $state, int $options = 0): EventBufferEvent {}
 	    public function sslError(): string {}
@@ -262,18 +234,13 @@ namespace  {
 	    public function sslGetCipherName(): string {}
 	    public function sslGetCipherVersion(): string {}
 	    public function sslGetProtocol(): string {}
-	#endif
 	}
 	
-	#ifdef HAVE_EVENT_OPENSSL_LIB
 	class EventSslContext {
 		public function __construct(int $method, array $options) {}
-	#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
 	    public function setMinProtoVersion(int $proto): bool {}
 	    public function setMaxProtoVersion(int $proto): bool {}
-	#endif
 	}
-	#endif
 
 }
 
