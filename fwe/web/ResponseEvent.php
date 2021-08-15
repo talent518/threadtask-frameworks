@@ -18,14 +18,8 @@ class ResponseEvent {
 	 */
 	protected $request;
 	
-	/**
-	 * @var \EventBufferEvent
-	 */
-	protected $event;
-	
-	public function __construct($request, $event, string $protocol, int $status = 200, $statusText = 'OK') {
+	public function __construct($request, string $protocol, int $status = 200, $statusText = 'OK') {
 		$this->request = $request;
-		$this->event = $event;
 		$this->protocol = $protocol;
 		$this->status = $status;
 		$this->statusText = $statusText;
@@ -117,13 +111,13 @@ class ResponseEvent {
 			} else {
 				$data = "0\r\n\r\n";
 			}
-		}
-		
-		return $data === null || $this->send($data);
+			return $this->send($data);
+		} elseif($n) return $this->send($data);
+		else return true;
 	}
 	
-	public function send(string $data): bool {
-		return $this->event->write($data);
+	protected function send(string $data): bool {
+		return $this->request->send($data);
 	}
 	
 	/**

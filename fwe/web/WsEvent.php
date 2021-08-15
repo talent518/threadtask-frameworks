@@ -31,9 +31,14 @@ class WsEvent {
 		$this->event->enable(\Event::READ);
 	}
 	
+	public function __destruct() {
+		// echo __METHOD__, PHP_EOL;
+	}
+	
 	public function eventHandler($bev, $event, $arg) {
 		if($event & (\EventBufferEvent::EOF | \EventBufferEvent::ERROR)) {
 			$this->event->free();
+			$this->event = null;
 			\Fwe::$app->setReqEvent($this->key);
 		} else {
 			echo "key: {$this->key}, event: {$event}\n";
@@ -41,7 +46,7 @@ class WsEvent {
 	}
 	
 	public function writeHandler($bev, $arg) {
-		echo __METHOD__, PHP_EOL;
+		// echo __METHOD__, PHP_EOL;
 	}
 	
 	protected $buffer;
@@ -50,6 +55,7 @@ class WsEvent {
 		if($buf === false) {
 		close:
 			$this->event->free();
+			$this->event = null;
 			\Fwe::$app->setReqEvent($this->key);
 			return;
 		}
@@ -125,7 +131,7 @@ class WsEvent {
 		}
 		$buf = $text;
 
-		echo "ctl: $ctl\n";
+		// echo "ctl: $ctl\n";
 		switch($ctl) {
 			case 0x1: // text
 			case 0x2: // binary
@@ -166,7 +172,7 @@ class WsEvent {
 		}
 	}
 	
-	function mask(string $txt, int $ctl = 0x81) {
+	public function mask(string $txt, int $ctl = 0x81) {
 		$n = strlen($txt);
 		if($n <= 125)
 			return pack('CC', $ctl, $n) . $txt;

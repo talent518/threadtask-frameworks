@@ -80,6 +80,7 @@ class RequestEvent {
 		$this->key = $key;
 
 		$this->event = new \EventBufferEvent(\Fwe::$base, $this->fd, 0, [$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler']);
+		// echo __METHOD__ . ":{$this->key}\n";
 	}
 	
 	public function init() {
@@ -96,8 +97,11 @@ class RequestEvent {
 			@unlink($file['path']);
 		}
 		
-		echo __METHOD__, PHP_EOL;
-		$this->event = $this->response = null;
+		// echo __METHOD__ . ":{$this->key}\n";
+	}
+	
+	public function getKey() {
+		return $this->key;
 	}
 	
 	public function setFp($fp) {
@@ -114,7 +118,6 @@ class RequestEvent {
 
 		return $this->response = \Fwe::createObject(ResponseEvent::class, [
 			'request' => $this,
-			'event' => $this->event,
 			'protocol' => $this->protocol??'HTTP/1.0',
 			'status' => $status,
 			'statusText' => $statusText
@@ -126,7 +129,7 @@ class RequestEvent {
 			$response = $this->getResponse(404, 'Not Found');
 			$response->setContentType('text/plain; charset=utf-8');
 			$response->headers['Connection'] = 'close';
-			$response->end($ex->getMessage());
+			$response->end("WebSocket Error\n");
 			$this->isKeepAlive = false;
 			
 			\Fwe::$app->stat('error');
@@ -145,36 +148,48 @@ class RequestEvent {
 		}
 	}
 	
+	protected $isFree = false;
+	protected function free(bool $isClose = true) {
+		if($this->isFree) return;
+		$this->isFree = true;
+
+		// echo __METHOD__ . ":{$this->key}\n";
+
+		if($isClose) $this->event->close();
+		$this->event->free();
+		if($this->action->controller) $this->action->controller->actionObjects[$this->action->id] = null;
+		$this->event = $this->response = $this->action = null;
+		\Fwe::$app->setReqEvent($this->key);
+	}
+	
 	/**
 	 * @var \fwe\base\Action
 	 */
 	protected $action;
 
 	public function eventHandler($bev, $event, $arg) {
+		// echo __METHOD__ . ":{$this->key}\n";
 		if($event & (\EventBufferEvent::EOF | \EventBufferEvent::ERROR)) {
-			$this->event->free();
-			\Fwe::$app->setReqEvent($this->key);
-		} else {
-			echo "key: {$this->key}, event: {$event}\n";
+			$this->free();
 		}
 	}
 	
 	public function writeHandler($bev, $arg) {
-		echo __METHOD__, PHP_EOL;
+		// echo __METHOD__ . ":{$this->key}\n";
 		if(!$this->response) return;
 		if(!$this->response->isEnd) {
 			$buf = $this->response->read();
-			if($buf === false) $this->response->end();
+			if($buf === false || $buf === '') $this->response->end();
 			else $this->send($buf);
 			return;
 		}
 
 		if($this->response->isWebSocket) {
-			$this->event->free();
-			\Fwe::$app->setReqEvent($this->key);
+			$this->free(false);
 			\Fwe::$app->addWs($this->key, [$this->fd, $this->clientAddr, $this->clientPort]);
-		} elseif($this->isKeepAlive && $this->mode === self::MODE_END) {
-			$this->event->free();
+		} elseif($this->isKeepAlive) {
+			$this->free(false);
+
 			$reqEvent = \Fwe::createObject(RequestEvent::class, [
 				'fd' => $this->fd,
 				'addr' => $this->clientAddr,
@@ -183,14 +198,12 @@ class RequestEvent {
 			]);
 			\Fwe::$app->setReqEvent($this->key, $reqEvent);
 		} else {
-			$this->event->close();
-			$this->event->free();
-			\Fwe::$app->setReqEvent($this->key);
+			$this->free();
 		}
 	}
 	
 	public function readHandler($bev, $arg) {
-		echo __METHOD__, PHP_EOL;
+		// echo __METHOD__ . ":{$this->key}\n";
 		try {
 			$ret = $this->read();
 			if($ret === false) return;
@@ -211,7 +224,7 @@ class RequestEvent {
 				\Fwe::$app->stat('error');
 			} else {
 				\Fwe::$app->stat('error');
-				$this->event->close();
+				$this->free();
 			}
 		} catch(RouteException $ex) {
 			$response = $this->getResponse(404, 'Not Found');
@@ -221,11 +234,10 @@ class RequestEvent {
 			
 			\Fwe::$app->stat('error');
 		} catch(\Throwable $ex) {
-			$response = $this->getResponse(400, 'Bad Request');
-			$response->setContentType('text/plain');
-			$response->headers['Connection'] = 'close';
-			$response->end('Error: ' . $ex->getMessage());
+			echo "Throwable: $ex\n";
+
 			\Fwe::$app->stat('error');
+			$this->free();
 		}
 		$this->isKeepAlive = false;
 	}
@@ -238,7 +250,7 @@ class RequestEvent {
 		
 		$this->readlen += $n;
 		
-		// echo $buf;
+		// echo ">>>\n$buf";
 		
 		if($this->buf !== null) {
 			$n += strlen($this->buf);
@@ -495,8 +507,10 @@ class RequestEvent {
 		return $ret;
 	}
 	
-	protected function send(string $data): bool {
-		$this->event->enable(\Event::WRITE);
+	public function send(string $data): bool {
+		// echo "<<<\n$data";
+		
+		if($this->isFree) return true;
 		return $this->event->write($data);
 	}
 }

@@ -357,7 +357,9 @@ abstract class Fwe {
 		static::$base = new EventBase();
 		static::$app = static::createObject($config);
 		unset($config);
-		static::$app->boot();
+		go(function() {
+			static::$app->boot();
+		});
 		static::$base->dispatch();
 		// static::$base->loop(EventBase::LOOP_ONCE);
 	}
