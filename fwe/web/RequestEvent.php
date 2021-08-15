@@ -157,7 +157,7 @@ class RequestEvent {
 
 		if($isClose) $this->event->close();
 		$this->event->free();
-		if($this->action->controller) $this->action->controller->actionObjects[$this->action->id] = null;
+		if($this->action && $this->action->controller) $this->action->controller->actionObjects[$this->action->id] = null;
 		$this->event = $this->response = $this->action = null;
 		\Fwe::$app->setReqEvent($this->key);
 	}
