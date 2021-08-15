@@ -201,4 +201,9 @@ class DefaultController extends Controller {
 			return false;
 		});
 	}
+	public function actionAttach(RequestEvent $request) {
+		$response = $request->getResponse();
+		$response->setContentDisposition('FWE构架首页PHP代码.php', false);
+		$response->sendFile(INFILE);
+	}
 }

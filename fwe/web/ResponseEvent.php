@@ -193,21 +193,18 @@ class ResponseEvent {
         if ($utfName !== $fallbackName) {
             $dispositionHeader .= "; filename*=utf-8''{$utfName}";
         }
-        $this->headers['Content-Disposition'] = $dispositionHeader;
+		$this->headers['Content-Disposition'] = $dispositionHeader;
+		$this->headers['Content-Type'] = 'application/octet-stream';
 	}
 	
 	protected $fp, $size = 0, $ranges = [], $range = 0, $rsize = 0, $boundaryEnd;
 	public function sendFile($path) {
 		if(is_file($path)) {
-			$ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-			if(isset($this->request->get['format']) && $ext === 'php') {
-				if(($buf = highlight_file($path, true)) === false) return false;
-				$this->end($buf);
-				return true;
-			}
-
 			if(($fp = @fopen($path, 'r')) !== false) {
-				if(isset(static::$MIME_TYPES[$ext])) $this->setContentType(static::$MIME_TYPES[$ext]); else unset($this->headers['Content-Type']);
+				if(!isset($this->headers['Content-Disposition'])) {
+					$ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+					if(isset(static::$MIME_TYPES[$ext])) $this->setContentType(static::$MIME_TYPES[$ext]); else unset($this->headers['Content-Type']);
+				}
 				$stat = @fstat($fp);
 				if($stat === false) {
 					fclose($fp);
