@@ -193,8 +193,8 @@ class ResponseEvent {
 				$this->headers['Last-Modified'] = gmdate('D, d-M-Y H:i:s T', $stat['mtime']);
 				$this->headers['ETag'] = sprintf('%xT-%xO', $stat['mtime'], $stat['size']);
 				$this->headers['Accept-Ranges'] = 'bytes';
-				$this->headers['Expires'] = gmdate('D, d-M-Y H:i:s T', time() + 60);
-				$this->headers['Cache-Control'] = 'max-age=60';
+				$this->headers['Expires'] = gmdate('D, d-M-Y H:i:s T', time() + 3600);
+				$this->headers['Cache-Control'] = ['must-revalidate', 'public', 'max-age=3600'];
 
 				if(isset($this->request->headers['If-None-Match'])) {
 					if($this->request->headers['If-None-Match'] === $this->headers['ETag']) {
@@ -351,6 +351,11 @@ class ResponseEvent {
 		'exe' => 'application/x-msdownload',
 		'msi' => 'application/x-msdownload',
 		'cab' => 'application/vnd.ms-cab-compressed',
+		'xz' => 'application/x-xz-compressed-tar',
+		'gz' => 'application/x-compressed-tar',
+		'bz2' => 'application/x-bzip-compressed-tar',
+		'jar' => 'application/x-java-archive',
+		'tgz' => 'application/x-compressed-tar',
 		
 		// audio/video
 		'mp3' => 'audio/mpeg',
