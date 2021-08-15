@@ -168,6 +168,34 @@ class ResponseEvent {
 		}
 	}
 	
+	public static $transliteration = [
+        'À' => 'A', 'Á' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A', 'Å' => 'A', 'Æ' => 'AE', 'Ç' => 'C',
+        'È' => 'E', 'É' => 'E', 'Ê' => 'E', 'Ë' => 'E', 'Ì' => 'I', 'Í' => 'I', 'Î' => 'I', 'Ï' => 'I',
+        'Ð' => 'D', 'Ñ' => 'N', 'Ò' => 'O', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O', 'Ő' => 'O',
+        'Ø' => 'O', 'Ù' => 'U', 'Ú' => 'U', 'Û' => 'U', 'Ü' => 'U', 'Ű' => 'U', 'Ý' => 'Y', 'Þ' => 'TH',
+        'ß' => 'ss',
+        'à' => 'a', 'á' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'å' => 'a', 'æ' => 'ae', 'ç' => 'c',
+        'è' => 'e', 'é' => 'e', 'ê' => 'e', 'ë' => 'e', 'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i',
+        'ð' => 'd', 'ñ' => 'n', 'ò' => 'o', 'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o', 'ő' => 'o',
+        'ø' => 'o', 'ù' => 'u', 'ú' => 'u', 'û' => 'u', 'ü' => 'u', 'ű' => 'u', 'ý' => 'y', 'þ' => 'th',
+        'ÿ' => 'y',
+    ];
+	public function setContentDisposition(string $attachmentName, bool $isInline) {
+		$disposition = ($isInline ? 'inline' : 'attachment');
+        $fallbackName = str_replace(
+            ['%', '/', '\\', '"'],
+            ['_', '_', '_', '\\"'],
+            strtr($attachmentName, static::$transliteration)
+        );
+        $utfName = rawurlencode(str_replace(['%', '/', '\\'], '', $attachmentName));
+
+        $dispositionHeader = "{$disposition}; filename=\"{$fallbackName}\"";
+        if ($utfName !== $fallbackName) {
+            $dispositionHeader .= "; filename*=utf-8''{$utfName}";
+        }
+        $this->headers['Content-Disposition'] = $dispositionHeader;
+	}
+	
 	protected $fp, $size = 0, $ranges = [], $range = 0, $rsize = 0, $boundaryEnd;
 	public function sendFile($path) {
 		if(is_file($path)) {
@@ -179,7 +207,7 @@ class ResponseEvent {
 			}
 
 			if(($fp = @fopen($path, 'r')) !== false) {
-				if(isset($MIME_TYPES[$ext])) $this->setContentType($MIME_TYPES[$ext]); else unset($this->headers['Content-Type']);
+				if(isset(static::$MIME_TYPES[$ext])) $this->setContentType(static::$MIME_TYPES[$ext]); else unset($this->headers['Content-Type']);
 				$stat = @fstat($fp);
 				if($stat === false) {
 					fclose($fp);
