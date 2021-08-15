@@ -192,7 +192,7 @@ class ResponseEvent {
 					
 					goto end404;
 				}
-				if(!$stat['stat']) {
+				if(!$stat['size']) {
 					$this->end();
 					return true;
 				}

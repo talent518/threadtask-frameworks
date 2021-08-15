@@ -95,6 +95,9 @@ class RequestEvent {
 		foreach($this->files as $file) {
 			@unlink($file['path']);
 		}
+		
+		echo __METHOD__, PHP_EOL;
+		$this->event = $this->response = null;
 	}
 	
 	public function setFp($fp) {
@@ -124,6 +127,7 @@ class RequestEvent {
 			$response->setContentType('text/plain; charset=utf-8');
 			$response->headers['Connection'] = 'close';
 			$response->end($ex->getMessage());
+			$this->isKeepAlive = false;
 			
 			\Fwe::$app->stat('error');
 		} else {
@@ -160,8 +164,8 @@ class RequestEvent {
 		if(!$this->response) return;
 		if(!$this->response->isEnd) {
 			$buf = $this->response->read();
-			$this->send($buf);
 			if($buf === false) $this->response->end();
+			else $this->send($buf);
 			return;
 		}
 
@@ -180,6 +184,8 @@ class RequestEvent {
 			\Fwe::$app->setReqEvent($this->key, $reqEvent);
 		} else {
 			$this->event->close();
+			$this->event->free();
+			\Fwe::$app->setReqEvent($this->key);
 		}
 	}
 	
@@ -195,6 +201,7 @@ class RequestEvent {
 				if(is_string($ret)) $this->getResponse()->end($ret);
 				$this->action->afterAction();
 				\Fwe::$app->stat('success');
+				return;
 			} else if($ret === 0) {
 				$response = $this->getResponse(400, 'Bad Request');
 				$response->setContentType('text/plain');
@@ -220,6 +227,7 @@ class RequestEvent {
 			$response->end('Error: ' . $ex->getMessage());
 			\Fwe::$app->stat('error');
 		}
+		$this->isKeepAlive = false;
 	}
 	
 	protected function read() {

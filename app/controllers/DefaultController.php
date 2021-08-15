@@ -9,6 +9,9 @@ class DefaultController extends Controller {
 	public function actionIndex() {
 		return __METHOD__ . PHP_EOL;
 	}
+	public function actionWs(RequestEvent $request) {
+		$request->webSocket();
+	}
 	public function actionInfo(RequestEvent $request) {
 		$response = $request->getResponse();
 		$response->setContentType('text/plain; charset=utf-8');

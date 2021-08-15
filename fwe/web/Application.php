@@ -104,7 +104,7 @@ class Application extends \fwe\base\Application {
 	/**
 	 * @var integer
 	 */
-	public $maxThreads = 2, $backlog = 128;
+	public $maxThreads = 4, $backlog = 128;
 	
 	public $isToFile = true;
 	
@@ -178,6 +178,7 @@ class Application extends \fwe\base\Application {
 			}
 			
 			list($fd, $addr, $port) = $this->_wsVar->shift(true, $key);
+
 			$this->_reqEvents[$key] = \Fwe::createObject(WsEvent::class, compact('fd', 'addr', 'port', 'key'));
 		});
 		$this->_reqEvent->add();
@@ -186,6 +187,12 @@ class Application extends \fwe\base\Application {
 	public function addWs($key, array $args) {
 		$this->_wsVar[$key] = $args;
 		@socket_write($this->_wsVar->getWriteFd(), 'a', 1);
+	}
+	
+	public function sendWs($data) {
+		foreach($this->_reqEvents as $ev) {
+			$ev->send($data);
+		}
 	}
 	
 	public function setReqEvent(int $key, $val = false) {
@@ -209,6 +216,17 @@ class Application extends \fwe\base\Application {
 			$this->_reqEvents[$key] = \Fwe::createObject(RequestEvent::class, compact('fd', 'addr', 'port', 'key'));
 		});
 		$this->_reqEvent->add();
+	}
+	
+	public $statics = ['/' => '@app/static/'];
+	public function getAction(string $route, array &$params) {
+		foreach($this->statics as $prefix => $path) {
+			$n = strlen($prefix);
+			if(!strncmp($route, $prefix, $n) && is_file($file = \Fwe::getAlias($path . substr($route, $n)))) {
+				return \Fwe::createObject(StaticAction::class, compact('route', 'prefix', 'path', 'file', 'params'));
+			}
+		}
+		return parent::getAction($route, $params);
 	}
 	
 	public function boot() {
