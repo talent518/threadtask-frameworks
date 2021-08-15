@@ -24,7 +24,10 @@ class WsEvent {
 		$this->key = $key;
 
 		$this->event = new \EventBufferEvent(\Fwe::$base, $this->fd, \EventBufferEvent::OPT_CLOSE_ON_FREE, [$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler']);
-		$this->event->write($this->mask("{$addr}:{$port} connected"));
+		
+		$msg = $this->mask("{$addr}:{$port} connected");
+		$this->event->write($msg);
+		\Fwe::$app->sendWs($msg);
 	}
 	
 	public function init() {
