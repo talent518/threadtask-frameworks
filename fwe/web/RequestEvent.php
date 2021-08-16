@@ -272,11 +272,12 @@ class RequestEvent {
 					} else {
 						$this->head = substr($buf, $i, $pos-$i);
 						@list($this->method, $this->uri, $this->protocol) = explode(' ', $this->head, 3);
+						$this->isHTTP = preg_match('/HTTP\/1\.[01]/', $this->protocol) > 0;
+						if(!$this->isHTTP) return null; // Access Denied
 						$uri = parse_url($this->uri);
 						if(isset($uri['path'])) {
 							$this->path = $uri['path'];
 							if(strpos($this->path, '%') !== false) $this->path = urldecode($this->path);
-							$this->isHTTP = preg_match('/HTTP\/1\.[01]/', $this->protocol) > 0;
 						}
 						if(isset($uri['query'])) {
 							$this->query = $uri['query'];
