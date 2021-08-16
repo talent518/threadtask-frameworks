@@ -15,7 +15,11 @@ class Application extends \fwe\base\Application {
 		$this->controllerMap['serve'] = 'fwe\console\ServeController';
 		$this->defaultRoute = 'help';
 	}
-
+	
+	public function isWeb() {
+		return false;
+	}
+	
 	public function boot() {
 		$route = $_SERVER['argv'][1] ?? '';
 		if(strncmp($route, '--', 2)) {

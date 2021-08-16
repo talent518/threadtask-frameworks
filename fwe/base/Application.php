@@ -71,6 +71,8 @@ abstract class Application extends Module {
 
 	public function afterAction(Action $action) {
 	}
+	
+	abstract public function isWeb();
 
 	abstract public function boot();
 }

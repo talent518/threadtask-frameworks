@@ -2,7 +2,6 @@
 
 namespace fwe\event;
 
-use fwe\web\StaticAction;
 use fwe\base\TsVar;
 
 class Application extends \fwe\base\Application {
@@ -177,6 +176,10 @@ class Application extends \fwe\base\Application {
 			$req->sendReply(200, "OK");
 			$this->stat('success');
 		});
+	}
+	
+	public function isWeb() {
+		return true;
 	}
 	
 	public function boot() {

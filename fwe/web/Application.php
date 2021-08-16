@@ -229,6 +229,10 @@ class Application extends \fwe\base\Application {
 		return parent::getAction($route, $params);
 	}
 	
+	public function isWeb() {
+		return true;
+	}
+	
 	public function boot() {
 		$method = array_shift(\Fwe::$names) ?: 'listen';
 		
