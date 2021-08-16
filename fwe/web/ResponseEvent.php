@@ -199,140 +199,133 @@ class ResponseEvent {
 	
 	protected $fp, $size = 0, $ranges = [], $range = 0, $rsize = 0, $boundaryEnd;
 	public function sendFile($path) {
-		if(is_file($path)) {
-			if(($fp = @fopen($path, 'r')) !== false) {
-				if(!isset($this->headers['Content-Disposition'])) {
-					$ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-					if(isset(static::$MIME_TYPES[$ext])) $this->setContentType(static::$MIME_TYPES[$ext]); else unset($this->headers['Content-Type']);
-				}
-				$stat = @fstat($fp);
-				if($stat === false) {
-					fclose($fp);
-					
-					goto end404;
-				}
-				if(!$stat['size']) {
+		if(is_file($path) && ($fp = @fopen($path, 'r')) !== false) {
+			if(!isset($this->headers['Content-Disposition'])) {
+				$ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+				if(isset(static::$MIME_TYPES[$ext])) $this->setContentType(static::$MIME_TYPES[$ext]); else unset($this->headers['Content-Type']);
+			}
+			$stat = @fstat($fp);
+			if($stat === false) {
+				fclose($fp);
+				
+				goto end404;
+			}
+			if(!$stat['size']) {
+				$this->end();
+				return true;
+			}
+			$this->headers['Last-Modified'] = gmdate('D, d-M-Y H:i:s T', $stat['mtime']);
+			$this->headers['ETag'] = sprintf('%xT-%xO', $stat['mtime'], $stat['size']);
+			$this->headers['Accept-Ranges'] = 'bytes';
+			$this->headers['Expires'] = gmdate('D, d-M-Y H:i:s T', time() + 3600);
+			$this->headers['Cache-Control'] = ['must-revalidate', 'public', 'max-age=3600'];
+
+			if(isset($this->request->headers['If-None-Match'])) {
+				if($this->request->headers['If-None-Match'] === $this->headers['ETag']) {
+					$this->headers['If-None-Match'] = 'false';
+					$this->status = 304;
+					$this->statusText = 'Not Modified';
+					@fclose($fp);
 					$this->end();
-					return true;
+					return false;
+				} else {
+					$this->headers['If-None-Match'] = 'true';
 				}
-				$this->headers['Last-Modified'] = gmdate('D, d-M-Y H:i:s T', $stat['mtime']);
-				$this->headers['ETag'] = sprintf('%xT-%xO', $stat['mtime'], $stat['size']);
-				$this->headers['Accept-Ranges'] = 'bytes';
-				$this->headers['Expires'] = gmdate('D, d-M-Y H:i:s T', time() + 3600);
-				$this->headers['Cache-Control'] = ['must-revalidate', 'public', 'max-age=3600'];
+			}
 
-				if(isset($this->request->headers['If-None-Match'])) {
-					if($this->request->headers['If-None-Match'] === $this->headers['ETag']) {
-						$this->headers['If-None-Match'] = 'false';
-						$this->status = 304;
-						$this->statusText = 'Not Modified';
-						@fclose($fp);
-						$this->end();
-						return false;
-					} else {
-						$this->headers['If-None-Match'] = 'true';
-					}
+			if(isset($this->request->headers['If-Modified-Since'])) {
+				if($this->request->headers['If-Modified-Since'] === $this->headers['Last-Modified']) {
+					$this->headers['If-Modified-Since'] = 'true';
+					$this->status = 304;
+					$this->statusText = 'Not Modified';
+					@fclose($fp);
+					$this->end();
+					return false;
+				} else {
+					$this->headers['If-Modified-Since'] = 'false';
 				}
+			}
 
-				if(isset($this->request->headers['If-Modified-Since'])) {
-					if($this->request->headers['If-Modified-Since'] === $this->headers['Last-Modified']) {
-						$this->headers['If-Modified-Since'] = 'true';
-						$this->status = 304;
-						$this->statusText = 'Not Modified';
-						@fclose($fp);
-						$this->end();
-						return false;
-					} else {
-						$this->headers['If-Modified-Since'] = 'false';
-					}
+			if(isset($this->request->headers['If-Unmodified-Since'])) {
+				if(strcmp($this->request->headers['If-Unmodified-Since'], $this->headers['Last-Modified']) < 0) {
+					$this->headers['If-Unmodified-Since'] = 'false';
+					$this->status = 412;
+					$this->statusText = 'Precondition failed';
+					@fclose($fp);
+					$this->end();
+					return false;
+				} else {
+					$this->headers['If-Unmodified-Since'] = 'true';
 				}
+			}
 
-				if(isset($this->request->headers['If-Unmodified-Since'])) {
-					if(strcmp($this->request->headers['If-Unmodified-Since'], $this->headers['Last-Modified']) < 0) {
-						$this->headers['If-Unmodified-Since'] = 'false';
-						$this->status = 412;
-						$this->statusText = 'Precondition failed';
-						@fclose($fp);
-						$this->end();
-						return false;
-					} else {
-						$this->headers['If-Unmodified-Since'] = 'true';
-					}
+			if(isset($this->request->headers['If-Range'])) {
+				if(isset($this->request->headers['Range']) && $this->request->headers['If-Range'] === $this->headers['Last-Modified']) {
+					goto range;
 				}
+			} elseif(isset($this->request->headers['Range'])) {
+				range:
+				$ranges = [];
+				$range = $this->request->headers['Range'];
+				$n = preg_match_all('/(bytes=)?([0-9]+)\-([0-9]*),?\s*/i', $this->request->headers['Range'], $matches);
 
-				if(isset($this->request->headers['If-Range'])) {
-					if(isset($this->request->headers['Range']) && $this->request->headers['If-Range'] === $this->headers['Last-Modified']) {
-						goto range;
-					}
-				} elseif(isset($this->request->headers['Range'])) {
-					range:
-					$ranges = [];
-					$range = $this->request->headers['Range'];
-					$n = preg_match_all('/(bytes=)?([0-9]+)\-([0-9]*),?\s*/i', $this->request->headers['Range'], $matches);
-
-					if($n && implode('', $matches[0]) === $range) {
-						for($i=0; $i<$n; $i++) {
-							$range = $matches[3][$i];
-							$start = $matches[2][$i];
-							$end = ($range === '' ? $stat['size']-1 : $range);
-							$ranges[] = [$start, $end];
-							if($start < 0 || $start > $stat['size'] || $end < 0 || $end > $stat['size']) {
-								$this->status = 416;
-								$this->statusText = 'Requested Range Not Satisfiable';
-								@fclose($fp);
-								$this->end();
-								return false;
-							}
+				if($n && implode('', $matches[0]) === $range) {
+					for($i=0; $i<$n; $i++) {
+						$range = $matches[3][$i];
+						$start = $matches[2][$i];
+						$end = ($range === '' ? $stat['size']-1 : $range);
+						$ranges[] = [$start, $end];
+						if($start < 0 || $start > $stat['size'] || $end < 0 || $end > $stat['size']) {
+							$this->status = 416;
+							$this->statusText = 'Requested Range Not Satisfiable';
+							@fclose($fp);
+							$this->end();
+							return false;
 						}
-						if($n > 1) {
-							$boundary = bin2hex(random_bytes(8));
-							$boundaryEnd = "--$boundary--\r\n";
-							$contentType = $this->headers['Content-Type'];
-							$this->status = 206;
-							$this->statusText = 'Partial Content';
-							$this->headers['Content-Type'] = 'multipart/byteranges; boundary=' . $boundary;
-							$size = strlen($boundaryEnd);
-							foreach($ranges as &$range) {
-								$range[2] = "--$boundary\r\nContent-Type: {$contentType}\r\nContent-Range: bytes {$range[0]}-{$range[1]}/{$stat['size']}\r\n\r\n";
-								$size += strlen($range[2]) + $range[1] - $range[0] + 3;
-							}
-							unset($range);
-							$this->headSend($size);
-							$this->size = $size;
-							$this->ranges = $ranges;
-							$this->fp = $fp;
-							$this->boundaryEnd = $boundaryEnd;
-							$this->send($ranges[0][2]);
-							$this->rsize = $ranges[0][1] - $ranges[0][0] + 1;
-							$this->size -= strlen($ranges[0][2]);
-							@fseek($fp, $ranges[0][0], SEEK_SET);
-							return true;
-						} else {
-							$size = $ranges[0][1] - $ranges[0][0] + 1;
-							if($size === $stat['size']) goto all;
-							$this->status = 206;
-							$this->statusText = 'Partial Content';
-							$this->headers['Content-Range'] = "bytes {$ranges[0][0]}-$ranges[0][1]/{$stat['size']}";
-							$this->headSend($size);
-							$this->fp = $fp;
-							$this->size = $size;
-							fseek($fp, $ranges[0][0], SEEK_SET);
-							return true;
+					}
+					if($n > 1) {
+						$boundary = bin2hex(random_bytes(8));
+						$boundaryEnd = "--$boundary--\r\n";
+						$contentType = $this->headers['Content-Type'];
+						$this->status = 206;
+						$this->statusText = 'Partial Content';
+						$this->headers['Content-Type'] = 'multipart/byteranges; boundary=' . $boundary;
+						$size = strlen($boundaryEnd);
+						foreach($ranges as &$range) {
+							$range[2] = "--$boundary\r\nContent-Type: {$contentType}\r\nContent-Range: bytes {$range[0]}-{$range[1]}/{$stat['size']}\r\n\r\n";
+							$size += strlen($range[2]) + $range[1] - $range[0] + 3;
 						}
-						@fclose($fp);
-						$this->end();
+						unset($range);
+						$this->headSend($size);
+						$this->size = $size;
+						$this->ranges = $ranges;
+						$this->fp = $fp;
+						$this->boundaryEnd = $boundaryEnd;
+						$this->send($ranges[0][2]);
+						$this->rsize = $ranges[0][1] - $ranges[0][0] + 1;
+						$this->size -= strlen($ranges[0][2]);
+						@fseek($fp, $ranges[0][0], SEEK_SET);
+						return true;
+					} else {
+						$size = $ranges[0][1] - $ranges[0][0] + 1;
+						if($size === $stat['size']) goto all;
+						$this->status = 206;
+						$this->statusText = 'Partial Content';
+						$this->headers['Content-Range'] = "bytes {$ranges[0][0]}-$ranges[0][1]/{$stat['size']}";
+						$this->headSend($size);
+						$this->fp = $fp;
+						$this->size = $size;
+						fseek($fp, $ranges[0][0], SEEK_SET);
 						return true;
 					}
 				}
-
-			all:
-				$this->headSend($stat['size']);
-				$this->size = $stat['size'];
-				$this->fp = $fp;
-				return true;
-			} else {
-				goto end404;
 			}
+
+		all:
+			$this->headSend($stat['size']);
+			$this->size = $stat['size'];
+			$this->fp = $fp;
+			return true;
 		} else {
 		end404:
 			$this->status = 404;

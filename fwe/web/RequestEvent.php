@@ -73,11 +73,16 @@ class RequestEvent {
 	 */
 	protected $key;
 	
-	public function __construct(int $fd, string $addr, int $port, int $key) {
+	public $time;
+	protected $keepAlive;
+	
+	public function __construct(int $fd, string $addr, int $port, int $key, float $keepAlive) {
 		$this->fd = $fd;
 		$this->clientAddr = $addr;
 		$this->clientPort = $port;
 		$this->key = $key;
+		$this->time = microtime(true);
+		$this->keepAlive = $keepAlive;
 
 		$this->event = new \EventBufferEvent(\Fwe::$base, $this->fd, 0, [$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler']);
 		// echo __METHOD__ . ":{$this->key}\n";
@@ -186,7 +191,9 @@ class RequestEvent {
 			else $this->send($buf);
 			return;
 		}
-
+		
+		\Fwe::$app->stat($this->response->status < 400 ? 'success' : 'error');
+		
 		if($this->response->isWebSocket) {
 			$this->free(false);
 			\Fwe::$app->addWs($this->key, [$this->fd, $this->clientAddr, $this->clientPort]);
@@ -207,18 +214,27 @@ class RequestEvent {
 	
 	public function readHandler($bev, $arg) {
 		// echo __METHOD__ . ":{$this->key}\n";
+		$ret = null;
 		try {
 			$ret = $this->read();
 			if($ret === false) return;
+
+			$this->isKeepAlive = ($this->isKeepAlive && microtime(true) < $this->keepAlive);
 			
 			if($ret) {
-				$this->event->disable(\Event::READ);
+				// $this->event->disable(\Event::READ);
+
+				$response = $this->getResponse();
+				$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
+				
 				$ret = $this->action->run($this->post + ['actionID' => $this->action->id]);
 				if(is_string($ret)) $this->getResponse()->end($ret);
+				
 				$this->action->afterAction();
-				\Fwe::$app->stat('success');
 				return;
 			} else if($ret === 0) {
+				$this->isKeepAlive = false;
+				
 				$response = $this->getResponse(400, 'Bad Request');
 				$response->setContentType('text/plain');
 				$response->headers['Connection'] = 'close';
@@ -226,23 +242,34 @@ class RequestEvent {
 	
 				\Fwe::$app->stat('error');
 			} else {
+				$this->isKeepAlive = false;
+				
 				\Fwe::$app->stat('error');
 				$this->free();
 			}
 		} catch(RouteException $ex) {
+			$this->isKeepAlive = ($this->isKeepAlive && microtime(true) < $this->keepAlive);
+			
 			$response = $this->getResponse(404, 'Not Found');
 			$response->setContentType('text/plain; charset=utf-8');
-			$response->headers['Connection'] = 'close';
+			$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
 			$response->end($ex->getMessage());
-			
-			\Fwe::$app->stat('error');
 		} catch(\Throwable $ex) {
 			echo "Throwable: $ex\n";
 
-			\Fwe::$app->stat('error');
-			$this->free();
+			if($ret === true) {
+				$this->isKeepAlive = ($this->isKeepAlive && microtime(true) < $this->keepAlive);
+				
+				$response = $this->getResponse(500, 'Not Found');
+				$response->setContentType('text/plain; charset=utf-8');
+				$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
+				$response->end($ex->getMessage());
+			} else {
+				$this->isKeepAlive = false;
+				\Fwe::$app->stat('error');
+				$this->free();
+			}
 		}
-		$this->isKeepAlive = false;
 	}
 	
 	protected function read() {
@@ -513,7 +540,6 @@ class RequestEvent {
 	
 	public function send(string $data): bool {
 		// echo "<<<\n$data";
-		
 		if($this->isFree) return true;
 		return $this->event->write($data);
 	}

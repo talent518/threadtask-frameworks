@@ -200,6 +200,7 @@ class Application extends \fwe\base\Application {
 		else unset($this->_reqEvents[$key]);
 	}
 
+	public $keepAlive = 10;
 	public function req(int $index) {
 		$this->_reqIndex = $index;
 		$this->_reqVars = new TsVar("req:$index", 0, null, true);
@@ -213,7 +214,8 @@ class Application extends \fwe\base\Application {
 			
 			list($fd, $addr, $port) = $this->_reqVars->shift(true, $key);
 			
-			$this->_reqEvents[$key] = \Fwe::createObject(RequestEvent::class, compact('fd', 'addr', 'port', 'key'));
+			$keepAlive = microtime(true) + $this->keepAlive;
+			$this->_reqEvents[$key] = \Fwe::createObject(RequestEvent::class, compact('fd', 'addr', 'port', 'key', 'keepAlive'));
 		});
 		$this->_reqEvent->add();
 	}
