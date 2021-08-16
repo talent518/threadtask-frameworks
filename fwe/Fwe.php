@@ -264,10 +264,15 @@ abstract class Fwe {
 	}
 
 	public static function makeArgs(ReflectionFunctionAbstract $reflection, array &$params, ?string $funcName = null) {
+		$__params__ = $params;
 		$args = [];
 		$i = 0;
 		foreach($reflection->getParameters() as $param) { /* @var ReflectionParameter $param */
 			$name = $param->getName();
+			if($name === '__params__') {
+				$args[] = $__params__;
+				continue;
+			}
 			if(PHP_VERSION_ID >= 80000) {
 				$class = $param->getType();
 				$isClass = $class !== null && ! $param->getType()->isBuiltin();

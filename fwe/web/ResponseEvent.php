@@ -18,11 +18,66 @@ class ResponseEvent {
 	 */
 	protected $request;
 	
-	public function __construct($request, string $protocol, int $status = 200, $statusText = 'OK') {
+	public function __construct(RequestEvent $request, string $protocol, int $status = 200, string $statusText = 'OK') {
 		$this->request = $request;
 		$this->protocol = $protocol;
 		$this->status = $status;
 		$this->statusText = $statusText;
+	}
+	
+	public function setStatus(int $status, ?string $statusText = null) {
+		if($this->isHeadSent) return false;
+
+		$this->status = $status;
+		if($statusText !== null) {
+			$this->statusText = $statusText;
+			return true;
+		}
+		
+		switch ($status) {
+		    case 100: $this->statusText = 'Continue'; break;
+		    case 101: $this->statusText = 'Switching Protocols'; break;
+		    case 200: $this->statusText = 'OK'; break;
+		    case 201: $this->statusText = 'Created'; break;
+		    case 202: $this->statusText = 'Accepted'; break;
+		    case 203: $this->statusText = 'Non-Authoritative Information'; break;
+		    case 204: $this->statusText = 'No Content'; break;
+		    case 205: $this->statusText = 'Reset Content'; break;
+		    case 206: $this->statusText = 'Partial Content'; break;
+		    case 300: $this->statusText = 'Multiple Choices'; break;
+		    case 301: $this->statusText = 'Moved Permanently'; break;
+		    case 302: $this->statusText = 'Moved Temporarily'; break;
+		    case 303: $this->statusText = 'See Other'; break;
+		    case 304: $this->statusText = 'Not Modified'; break;
+		    case 305: $this->statusText = 'Use Proxy'; break;
+		    case 400: $this->statusText = 'Bad Request'; break;
+		    case 401: $this->statusText = 'Unauthorized'; break;
+		    case 402: $this->statusText = 'Payment Required'; break;
+		    case 403: $this->statusText = 'Forbidden'; break;
+		    case 404: $this->statusText = 'Not Found'; break;
+		    case 405: $this->statusText = 'Method Not Allowed'; break;
+		    case 406: $this->statusText = 'Not Acceptable'; break;
+		    case 407: $this->statusText = 'Proxy Authentication Required'; break;
+		    case 408: $this->statusText = 'Request Time-out'; break;
+		    case 409: $this->statusText = 'Conflict'; break;
+		    case 410: $this->statusText = 'Gone'; break;
+		    case 411: $this->statusText = 'Length Required'; break;
+		    case 412: $this->statusText = 'Precondition Failed'; break;
+		    case 413: $this->statusText = 'Request Entity Too Large'; break;
+		    case 414: $this->statusText = 'Request-URI Too Large'; break;
+		    case 415: $this->statusText = 'Unsupported Media Type'; break;
+		    case 500: $this->statusText = 'Internal Server Error'; break;
+		    case 501: $this->statusText = 'Not Implemented'; break;
+		    case 502: $this->statusText = 'Bad Gateway'; break;
+		    case 503: $this->statusText = 'Service Unavailable'; break;
+		    case 504: $this->statusText = 'Gateway Time-out'; break;
+		    case 505: $this->statusText = 'HTTP Version not supported'; break;
+		    default : $this->statusText = 'Unknown'; break;
+		}
+	}
+	
+	public function isHeadSent() {
+		return $this->isHeadSent;
 	}
 	
 	public function headSend(int $bodyLen = 0): bool {
@@ -98,12 +153,20 @@ class ResponseEvent {
 		return $this->send($data);
 	}
 	
+	private $endEx;
 	public function end(?string $data = null): bool {
-		if($this->isEnd) return true;
-		$this->isEnd = true;
+		if($this->isEnd) {
+			return true;
+		}
 		
 		$n = strlen($data);
-		if(!$this->headSend($n)) return false;
+		if(!$this->headSend($n)) {
+			$this->isEnd = true;
+			$this->endEx = new \Exception('Response end(): ' . $this->request->getKey(), 0, $this->endEx);
+			return false;
+		}
+
+		$this->endEx = new \Exception('Response end(): ' . $this->request->getKey(), 0, $this->endEx);
 		
 		if($this->isChunked) {
 			if($n) {
@@ -111,12 +174,22 @@ class ResponseEvent {
 			} else {
 				$data = "0\r\n\r\n";
 			}
-			return $this->send($data);
-		} elseif($n) return $this->send($data);
-		else return true;
+			$ret = $this->send($data);
+			$this->isEnd = true;
+			return $ret;
+		} elseif($n) {
+			$ret = $this->send($data);
+			$this->isEnd = true;
+			return $ret;
+		} else return $this->isEnd = true;
 	}
 	
 	protected function send(string $data): bool {
+		if($this->isEnd) {
+			$e = new \Exception('Response send(): ' . $this->request->getKey(), __LINE__, $this->endEx);
+			echo "$e\n";
+			return true;
+		}
 		return $this->request->send($data);
 	}
 	
@@ -124,7 +197,16 @@ class ResponseEvent {
 	 * @see RequestEvent::writeHandler()
 	 */
 	public function read() {
-		if(!$this->isEnd && $this->fp && !feof($this->fp)) {
+		if($this->fp) {
+			if(feof($this->fp) || (!$this->size && !$this->rsize)) {
+				$e = new \Exception('Send file is complete');
+				echo "$e\n";
+
+				$this->isEnd = true;
+				fclose($this->fp);
+				$this->fp = null;
+				return false;
+			}
 			if($this->ranges) {
 				$range = $this->ranges[$this->range];
 				if(($buf = @fread($this->fp, min(16384, $this->rsize))) === false) {
@@ -152,6 +234,8 @@ class ResponseEvent {
 					}
 				}
 			} elseif(($buf = @fread($this->fp, min(16384, $this->size))) === false) {
+				$n = strlen($buf);
+				$this->size -= $n;
 				$this->isEnd = true;
 				$this->request->isKeepAlive = false;
 				fclose($this->fp);
@@ -163,7 +247,6 @@ class ResponseEvent {
 			}
 			return $buf;
 		} else {
-			$this->isEnd = true;
 			return false;
 		}
 	}

@@ -36,6 +36,7 @@ abstract class AsyncConnection {
 		if($this->_event) {
 			$this->_event->del();
 			$this->_event = null;
+			\Fwe::$app->events--;
 		}
 	}
 	
@@ -125,6 +126,7 @@ abstract class AsyncConnection {
 			if($this->_events) {
 				$this->_event = new \Event(\Fwe::$base, $this->getFd(), \Event::READ | \Event::PERSIST, [$this, 'eventCallback']);
 				$this->_event->add($timeout);
+				\Fwe::$app->events++;
 				$this->_callbacks = [$success, $error];
 				$this->send();
 				

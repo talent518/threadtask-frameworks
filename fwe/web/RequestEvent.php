@@ -9,6 +9,7 @@ class RequestEvent {
 	public $readlen = 0;
 	
 	public $head = null;
+	public $headlen = 0;
 	
 	public $method = null;
 	public $uri = null;
@@ -84,7 +85,8 @@ class RequestEvent {
 		$this->time = microtime(true);
 		$this->keepAlive = $keepAlive;
 
-		$this->event = new \EventBufferEvent(\Fwe::$base, $this->fd, 0, [$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler']);
+		$this->event = new \EventBufferEvent(\Fwe::$base, $this->fd, 0, [$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler'], $this->key);
+		\Fwe::$app->events++;
 		// echo __METHOD__ . ":{$this->key}\n";
 	}
 	
@@ -119,7 +121,13 @@ class RequestEvent {
 	protected $response;
 
 	public function getResponse(int $status = 200, $statusText = 'OK'): ResponseEvent {
-		if($this->response) return $this->response;
+		if($this->response) {
+			if(!$this->response->isHeadSent()) {
+				$this->response->status = $status;
+				$this->response->statusText = $statusText;
+			}
+			return $this->response;
+		}
 
 		return $this->response = \Fwe::createObject(ResponseEvent::class, [
 			'request' => $this,
@@ -158,9 +166,9 @@ class RequestEvent {
 		if($this->isFree) return;
 		$this->isFree = true;
 
-		// echo __METHOD__ . ":{$this->key}\n";
+		\Fwe::$app->events--;
 
-		if($this->action) $this->action->free();
+		// echo __METHOD__ . ":{$this->key}\n";
 		
 		if($isClose) $this->event->close();
 		$this->event->free();
@@ -168,6 +176,7 @@ class RequestEvent {
 		\Fwe::$app->setReqEvent($this->key);
 
 		$this->event = $this->response = $this->action = null;
+		$this->params = [];
 	}
 	
 	/**
@@ -187,8 +196,7 @@ class RequestEvent {
 		if(!$this->response) return;
 		if(!$this->response->isEnd) {
 			$buf = $this->response->read();
-			if($buf === false || $buf === '') $this->response->end();
-			else $this->send($buf);
+			if(is_string($buf)) $this->send($buf);
 			return;
 		}
 		
@@ -215,23 +223,31 @@ class RequestEvent {
 	public function readHandler($bev, $arg) {
 		// echo __METHOD__ . ":{$this->key}\n";
 		$ret = null;
+		$events = \Fwe::$app->events;
 		try {
 			$ret = $this->read();
 			if($ret === false) return;
+			
+			if($this->bodylen + $this->headlen != $this->readlen) {
+				$this->isKeepAlive = false;
+			}
 
 			$this->isKeepAlive = ($this->isKeepAlive && microtime(true) < $this->keepAlive);
 			
 			if($ret) {
-				// $this->event->disable(\Event::READ);
-
 				$response = $this->getResponse();
 				$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
 				
-				$ret = $this->action->run($this->post + ['actionID' => $this->action->id]);
-				if(is_string($ret)) $this->getResponse()->end($ret);
-				
-				$this->action->afterAction();
-				return;
+				$this->params += $this->get + $this->post;
+				$ret = $this->action->run($this->params);
+				$this->action->afterAction($this->params);
+
+				if(is_string($ret)) $response->end($ret);
+				elseif(!$response->isHeadSent() && $events == \Fwe::$app->events) {
+					echo "Not Content in the route({$this->key}): '{$this->action->route}'\n";
+					$response->setStatus(501);
+					$response->end();
+				}
 			} else if($ret === 0) {
 				$this->isKeepAlive = false;
 				
@@ -248,19 +264,36 @@ class RequestEvent {
 				$this->free();
 			}
 		} catch(RouteException $ex) {
+			echo "{$this->key}: $ex\n";
+			
+			if($this->bodylen + $this->headlen != $this->readlen) {
+				$this->isKeepAlive = false;
+			}
+
 			$this->isKeepAlive = ($this->isKeepAlive && microtime(true) < $this->keepAlive);
 			
-			$response = $this->getResponse(404, 'Not Found');
-			$response->setContentType('text/plain; charset=utf-8');
-			$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
-			$response->end($ex->getMessage());
+			if($ex->getMessage() === 'Not Acceptable') {
+				$response = $this->getResponse(406, 'Not Acceptable');
+				$response->setContentType('text/plain; charset=utf-8');
+				$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
+				$response->end($ex->getMessage());
+			} else {
+				$response = $this->getResponse(404, 'Not Found');
+				$response->setContentType('text/plain; charset=utf-8');
+				$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
+				$response->end($ex->getMessage());
+			}
 		} catch(\Throwable $ex) {
-			echo "Throwable: $ex\n";
+			echo "{$this->key}: $ex\n";
+			
+			if($this->bodylen + $this->headlen != $this->readlen) {
+				$this->isKeepAlive = false;
+			}
 
-			if($ret === true) {
+			if($ret) {
 				$this->isKeepAlive = ($this->isKeepAlive && microtime(true) < $this->keepAlive);
 				
-				$response = $this->getResponse(500, 'Not Found');
+				$response = $this->getResponse(500, 'Internal Server Error');
 				$response->setContentType('text/plain; charset=utf-8');
 				$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
 				$response->end($ex->getMessage());
@@ -272,6 +305,7 @@ class RequestEvent {
 		}
 	}
 	
+	protected $params = [];
 	protected function read() {
 		if($this->mode === self::MODE_END) return true;
 		
@@ -316,15 +350,17 @@ class RequestEvent {
 						$i = $pos + 2;
 						$this->mode = self::MODE_HEAD;
 					}
+					$this->headlen = $i;
 					break;
 				case self::MODE_HEAD:
 					$pos = strpos($buf, "\r\n", $i);
 					if($pos === false) {
 						$this->buf = substr($buf, $i);
 						$i = $n;
+						$this->headlen = $i;
 					} elseif($i === $pos) {
 						$i += 2;
-						
+						$this->headlen = $i;
 						$this->bodylen = (int) ($this->headers['Content-Length'] ?? 0);
 						if($this->bodylen < 0) $this->bodylen = 0;
 						$this->mode = ($this->bodylen ? self::MODE_BODY : self::MODE_END);
@@ -348,10 +384,10 @@ class RequestEvent {
 							}
 						}
 						
-						$params = ['request'=>$this] + $this->get;
-						$this->action = \Fwe::$app->getAction($this->path, $params);
-						if(!$this->action->beforeAction()) {
-							throw new RouteException($this->path, "没有发现路由\"{$this->path}\"");
+						$this->params = ['request'=>$this] + $this->get + $this->cookies;
+						$this->action = \Fwe::$app->getAction($this->path, $this->params);
+						if(!$this->action->beforeAction($this->params)) {
+							throw new RouteException($this->path, "Not Acceptable");
 						}
 						
 						if(isset($this->headers['Expect']) && $this->headers['Expect'] === '100-continue') {
@@ -539,8 +575,13 @@ class RequestEvent {
 	}
 	
 	public function send(string $data): bool {
-		// echo "<<<\n$data";
-		if($this->isFree) return true;
-		return $this->event->write($data);
+		if($this->isFree) {
+			echo "Write freed({$this->key}): $data\n";
+			return true;
+		}
+
+		$ret = $this->event->write($data);
+		if(!$ret) echo "Writed error({$this->key}): $data\n";		
+		return $ret;
 	}
 }

@@ -129,12 +129,12 @@ class Module {
 		}
 	}
 
-	public function beforeAction(Action $action) {
-		return $this->module->beforeAction($action);
+	public function beforeAction(Action $action, array $params = []) {
+		return $this->module->beforeAction($action, $params);
 	}
 
-	public function afterAction(Action $action) {
-		$this->module->afterAction($action);
+	public function afterAction(Action $action, array $params = []) {
+		$this->module->afterAction($action, $params);
 	}
 
 	/**

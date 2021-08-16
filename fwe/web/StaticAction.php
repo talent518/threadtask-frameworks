@@ -6,15 +6,15 @@ use fwe\base\IAction;
 
 class StaticAction implements IAction {
 
-	public $id, $controller, $callback, $funcName, $route, $params;
+	public $id, $controller, $callback, $funcName, $route;
 
 	public $prefix, $path, $file;
 
-	public function beforeAction() {
+	public function beforeAction(array $params = []) {
 		return true;
 	}
 
-	public function afterAction() {
+	public function afterAction(array $params = []) {
 	}
 
 	final public function runWithEvent(array $params = []) {
@@ -26,12 +26,6 @@ class StaticAction implements IAction {
 	}
 
 	public function getRoute() {
-	}
-
-	public function getParams() {
-	}
-
-	public function free() {
 	}
 
 }

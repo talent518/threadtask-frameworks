@@ -179,12 +179,16 @@ class DefaultController extends Controller {
 	public function actionWs(RequestEvent $request) {
 		$request->webSocket();
 	}
-	public function actionInfo(RequestEvent $request) {
+	public function actionInfo(RequestEvent $request, bool $isChunk = true) {
 		$response = $request->getResponse();
 		$response->setContentType('text/plain; charset=utf-8');
-		$response->write(json_encode($request, JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT));
-		$response->write("\r\n\r\n");
-		$response->end(json_encode($response, JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT));
+		if($isChunk) {
+			$response->write(json_encode($request, JSON_PRETTY_PRINT));
+			$response->write("\r\n\r\n");
+			$response->end(json_encode($response, JSON_PRETTY_PRINT));
+		} else {
+			$response->end(json_encode($request, JSON_PRETTY_PRINT) . "\r\n\r\n" . json_encode($response, JSON_PRETTY_PRINT));
+		}
 	}
 	public function actionTables(RequestEvent $request) {
 		$t = microtime(true);
@@ -192,12 +196,12 @@ class DefaultController extends Controller {
 			$t = microtime(true) - $t;
 			$response = $request->getResponse();
 			$response->setContentType('text/plain; charset=utf-8');
-			$response->end(json_encode(compact('tables', 'sleep', 'variables', 't'), JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT));
+			$response->end(json_encode(compact('tables', 'sleep', 'variables', 't'), JSON_PRETTY_PRINT));
 		}, function($data) use($t) {
 			$t = microtime(true) - $t;
 			$response = $request->getResponse();
 			$response->setContentType('text/plain; charset=utf-8');
-			$response->end(json_encode(compact('data', 't'), JSON_UNESCAPED_SLASHES|JSON_PRETTY_PRINT));
+			$response->end(json_encode(compact('data', 't'), JSON_PRETTY_PRINT));
 			return false;
 		});
 	}

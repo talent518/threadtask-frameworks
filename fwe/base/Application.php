@@ -13,6 +13,7 @@ namespace fwe\base;
 abstract class Application extends Module {
 	
 	public $id, $name;
+	public $events = 0; // EventBase中添加的事件数
 	
 	public function __construct(string $id, string $name) {
 		$this->id = $id;
@@ -20,6 +21,12 @@ abstract class Application extends Module {
 		$this->extendObject = \Fwe::createObject(Component::class);
 		
 		parent::__construct($id);
+	}
+	
+	public function init() {
+		parent::init();
+
+		$this->events = 0;
 	}
 	
 	public function __isset($name) {
@@ -65,11 +72,11 @@ abstract class Application extends Module {
 		}
 	}
 
-	public function beforeAction(Action $action) {
+	public function beforeAction(Action $action, array $params = []) {
 		return true;
 	}
 
-	public function afterAction(Action $action) {
+	public function afterAction(Action $action, array $params = []) {
 	}
 	
 	abstract public function isWeb();

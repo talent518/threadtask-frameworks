@@ -13,9 +13,6 @@ class HelpController extends Controller {
 	 */
 	public function actionIndex(array $__params__, string $route = '') {
 		if($route === '') {
-			// unset($this->module->controllerMap[$this->id]);
-			// $this->print($this, "{$this->route}", "当前帮助信息");
-			// $this->print($this, "{$this->route}var", "查看环境变量");
 			$this->help(\Fwe::$app);
 		} else {
 			var_dump($__params__);
@@ -27,10 +24,7 @@ class HelpController extends Controller {
 				$I = 1;
 			}
 			$params = $__params__;
-			$params['__params__'] = $__params__;
-			$action = \Fwe::$app->getAction($route, $params);
-			$params['__params__'] += ['actionID' => $action->id];
-			$params += ['actionID' => $action->id];
+			$action = \Fwe::$app->getAction($route, $__params__);
 
 			if(is_array($action->callback)) {
 				$reflection = new \ReflectionMethod($action->callback[0], $action->callback[1]);

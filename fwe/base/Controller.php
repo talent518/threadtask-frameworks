@@ -16,28 +16,29 @@ class Controller {
 	public $id;
 
 	/**
-	 *
 	 * @var Module
 	 */
 	public $module;
 
 	/**
-	 *
 	 * @var string
 	 */
 	public $defaultAction = 'index';
 
 	/**
-	 *
 	 * @var array
 	 */
 	public $actionMap = [];
 
 	/**
-	 *
 	 * @var array
 	 */
 	public $actionObjects = [];
+	
+	/**
+	 * @var string
+	 */
+	public $actionID;
 
 	private $_route;
 
@@ -50,17 +51,21 @@ class Controller {
 	public function init() {
 		$this->module->controllerObjects[$this->id] = $this;
 	}
+	
+	public function action(): ?IAction {
+		return $this->actionID ? ($this->actionObjects[$this->actionID] ?? null) : null;
+	}
 
 	public function getRoute() {
 		return $this->_route;
 	}
 
-	public function beforeAction(Action $action) {
-		return $this->module->beforeAction($action);
+	public function beforeAction(Action $action, array $params = []) {
+		return $this->module->beforeAction($action, $params);
 	}
 
-	public function afterAction(Action $action) {
-		$this->module->afterAction($action);
+	public function afterAction(Action $action, array $params = []) {
+		$this->module->afterAction($action, $params);
 	}
 
 	/**
@@ -114,8 +119,7 @@ class Controller {
 			if(is_string($class) && is_subclass_of($class, 'fwe\base\IAction')) {
 				return \Fwe::createObject($action, [
 					'id' => $id,
-					'controller' => $this,
-					'params' => $params
+					'controller' => $this
 				]);
 			} else {
 				$this->actionMap[$id] = 1;

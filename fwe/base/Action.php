@@ -35,25 +35,15 @@ class Action implements IAction {
 	 */
 	private $_route;
 	
-	/**
-	 * @var array
-	 */
-	private $_params;
-	
-	public function __construct(string $id, Controller $controller, array $params) {
+	public function __construct(string $id, Controller $controller) {
 		$this->id = $id;
 		$this->controller = $controller;
 		$this->_route = "{$controller->route}{$id}";
 		$this->callback = [$this, 'runWithParams'];
-		$this->_params = $params;
 	}
 	
 	public function getRoute() {
 		return $this->_route;
-	}
-	
-	public function getParams() {
-		return $this->_params;
 	}
 	
 	public function init() {
@@ -69,29 +59,33 @@ class Action implements IAction {
 		}
 	}
 	
-	public function free() {
-		unset($this->controller->actionObjects[$this->id]);
-	}
-	
-	public function beforeAction() {
-		return $this->controller->beforeAction($this);
+	public function beforeAction(array $params = []) {
+		$this->controller->actionID = $this->id;
+		$ret = $this->controller->beforeAction($this, $params);
+		$this->controller->actionID = null;
+		return $ret;
 	}
 
-	public function afterAction() {
-		$this->controller->afterAction($this);
+	public function afterAction(array $params = []) {
+		$this->controller->actionID = $this->id;
+		$this->controller->afterAction($this, $params);
+		$this->controller->actionID = null;
 	}
 	
 	final public function runWithEvent(array $params = []) {
-		if($this->beforeAction()) {
+		if($this->beforeAction($params)) {
 			$ret = $this->run($params);
-			$this->afterAction();
+			$this->afterAction($params);
 			
 			return $ret;
 		}
 	}
 
 	final public function run(array $params = []) {
-		return \Fwe::invoke($this->callback, $this->_params + $params + ['actionID'=>$this->id], $this->funcName);
+		$this->controller->actionID = $this->id;
+		$ret = \Fwe::invoke($this->callback, $params, $this->funcName);
+		$this->controller->actionID = null;
+		return $ret;
 	}
 
 }
