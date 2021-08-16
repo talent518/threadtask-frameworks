@@ -17,11 +17,11 @@ class StaticAction implements IAction {
 	public function afterAction() {
 	}
 
-	final public function runWithEvent() {
+	final public function runWithEvent(array $params = []) {
 		$this->run();
 	}
 
-	final public function run() {
+	final public function run(array $params = []) {
 		$this->params['request']->getResponse()->sendFile($this->file);
 	}
 
