@@ -9,10 +9,13 @@ class ServeController extends Controller {
 	 * @param array $__params__
 	 * @param string $route
 	 */
-	public function actionIndex(string $name = 'web') {
+	public function actionIndex(string $name = 'web', int $maxThreads = 16, int $backlog = 128) {
 		\Fwe::$name = $name;
-		$config = \Fwe::$config->getOrSet(\Fwe::$name, function () {
-			return include \Fwe::getAlias('@app/config/' . \Fwe::$name . '.php');
+		$config = \Fwe::$config->getOrSet(\Fwe::$name, function () use($maxThreads, $backlog) {
+			$cfg = include \Fwe::getAlias('@app/config/' . \Fwe::$name . '.php');
+			$cfg['maxThreads'] = $maxThreads;
+			$cfg['backlog'] = $backlog;
+			return $cfg;
 		});
 		\Fwe::$app = \Fwe::createObject($config);
 		unset($config);
