@@ -25,7 +25,7 @@ class WsEvent {
 
 		$this->event = new \EventBufferEvent(\Fwe::$base, $this->fd, \EventBufferEvent::OPT_CLOSE_ON_FREE, [$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler']);
 		
-		$msg = $this->mask("{$addr}:{$port} connected");
+		$msg = $this->mask("Connected {$addr}:{$port}");
 		$this->event->write($msg);
 		\Fwe::$app->sendWs($msg);
 	}
@@ -143,8 +143,12 @@ class WsEvent {
 				if($length > 2) {
 					$errno = unpack('n', $buf)[1];
 					$error = substr($buf, 2);
-					echo "WebSocket($errno): $error\n";
+				} else {
+					$errno = 0;
+					$error = 'OK';
 				}
+				\Fwe::$app->setReqEvent($this->key);
+				\Fwe::$app->sendWs($this->mask("Disconnected {$this->clientAddr}:{$this->clientPort} Error($errno): $error"));
 				goto close;
 				break;
 			case 0x9: // ping
