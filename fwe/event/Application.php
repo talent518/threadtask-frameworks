@@ -58,7 +58,7 @@ class Application extends \fwe\base\Application {
 				}
 			}
 		});
-		$this->_sigEvent->addTimer(0.01);
+		$this->_sigEvent->addTimer(0.1);
 	}
 	
 	public function signal(int $sig) {
