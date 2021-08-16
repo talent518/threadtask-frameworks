@@ -23,7 +23,8 @@ class WsEvent {
 		$this->clientPort = $port;
 		$this->key = $key;
 
-		$this->event = new \EventBufferEvent(\Fwe::$base, $this->fd, \EventBufferEvent::OPT_CLOSE_ON_FREE, [$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler']);
+		$this->event = new \EventBufferEvent(\Fwe::$base, $this->fd, \EventBufferEvent::OPT_CLOSE_ON_FREE, [$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler'], $this->key);
+		\Fwe::$app->events++;
 		
 		$msg = $this->mask("Connected {$addr}:{$port}");
 		$this->event->write($msg);
@@ -36,6 +37,7 @@ class WsEvent {
 	
 	public function __destruct() {
 		// echo __METHOD__, PHP_EOL;
+		\Fwe::$app->events--;
 	}
 	
 	public function eventHandler($bev, $event, $arg) {

@@ -9,7 +9,6 @@ class RequestEvent {
 	public $readlen = 0;
 	
 	public $head = null;
-	public $headlen = 0;
 	
 	public $method = null;
 	public $uri = null;
@@ -120,7 +119,7 @@ class RequestEvent {
 	 */
 	protected $response;
 
-	public function getResponse(int $status = 200, $statusText = 'OK'): ResponseEvent {
+	public function getResponse(int $status = 200, $statusText = 'OK') {
 		if($this->response) {
 			if(!$this->response->isHeadSent()) {
 				$this->response->status = $status;
@@ -144,8 +143,6 @@ class RequestEvent {
 			$response->headers['Connection'] = 'close';
 			$response->end("WebSocket Error\n");
 			$this->isKeepAlive = false;
-			
-			\Fwe::$app->stat('error');
 		} else {
 			$host = $this->headers['Host'] ?? '127.0.0.1:5000';
 			$secAccept = base64_encode(pack('H*', sha1($this->headers['Sec-WebSocket-Key'] . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
@@ -212,7 +209,8 @@ class RequestEvent {
 				'fd' => $this->fd,
 				'addr' => $this->clientAddr,
 				'port' => $this->clientPort,
-				'key' => $this->key
+				'key' => $this->key,
+				'keepAlive' => $this->keepAlive
 			]);
 			\Fwe::$app->setReqEvent($this->key, $reqEvent);
 		} else {
@@ -227,8 +225,8 @@ class RequestEvent {
 		try {
 			$ret = $this->read();
 			if($ret === false) return;
-			
-			if($this->bodylen + $this->headlen != $this->readlen) {
+
+			if($this->bodylen !== $this->bodyoff) {
 				$this->isKeepAlive = false;
 			}
 
@@ -255,8 +253,6 @@ class RequestEvent {
 				$response->setContentType('text/plain');
 				$response->headers['Connection'] = 'close';
 				$response->end('Bad Request');
-	
-				\Fwe::$app->stat('error');
 			} else {
 				$this->isKeepAlive = false;
 				
@@ -266,7 +262,7 @@ class RequestEvent {
 		} catch(RouteException $ex) {
 			echo "{$this->key}: $ex\n";
 			
-			if($this->bodylen + $this->headlen != $this->readlen) {
+			if($this->bodylen !== $this->bodyoff) {
 				$this->isKeepAlive = false;
 			}
 
@@ -286,7 +282,7 @@ class RequestEvent {
 		} catch(\Throwable $ex) {
 			echo "{$this->key}: $ex\n";
 			
-			if($this->bodylen + $this->headlen != $this->readlen) {
+			if($this->bodylen !== $this->bodyoff) {
 				$this->isKeepAlive = false;
 			}
 
@@ -302,6 +298,8 @@ class RequestEvent {
 				\Fwe::$app->stat('error');
 				$this->free();
 			}
+		} finally {
+			// printf("%s: %d\n", __METHOD__, __LINE__);
 		}
 	}
 	
@@ -350,17 +348,14 @@ class RequestEvent {
 						$i = $pos + 2;
 						$this->mode = self::MODE_HEAD;
 					}
-					$this->headlen = $i;
 					break;
 				case self::MODE_HEAD:
 					$pos = strpos($buf, "\r\n", $i);
 					if($pos === false) {
 						$this->buf = substr($buf, $i);
 						$i = $n;
-						$this->headlen = $i;
 					} elseif($i === $pos) {
 						$i += 2;
-						$this->headlen = $i;
 						$this->bodylen = (int) ($this->headers['Content-Length'] ?? 0);
 						if($this->bodylen < 0) $this->bodylen = 0;
 						$this->mode = ($this->bodylen ? self::MODE_BODY : self::MODE_END);

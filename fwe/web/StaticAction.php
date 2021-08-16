@@ -10,7 +10,7 @@ class StaticAction implements IAction {
 
 	public $prefix, $path, $file;
 
-	public function beforeAction(array $params = []) {
+	public function beforeAction(array $params = []): bool {
 		return true;
 	}
 
@@ -18,7 +18,7 @@ class StaticAction implements IAction {
 	}
 
 	final public function runWithEvent(array $params = []) {
-		$this->run();
+		$this->run($params);
 	}
 
 	final public function run(array $params = []) {

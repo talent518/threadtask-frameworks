@@ -59,7 +59,7 @@ class Action implements IAction {
 		}
 	}
 	
-	public function beforeAction(array $params = []) {
+	public function beforeAction(array $params = []): bool {
 		$this->controller->actionID = $this->id;
 		$ret = $this->controller->beforeAction($this, $params);
 		$this->controller->actionID = null;

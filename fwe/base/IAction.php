@@ -6,7 +6,7 @@ interface IAction {
 
 	public function getRoute();
 
-	public function beforeAction(array $params = []);
+	public function beforeAction(array $params = []): bool;
 
 	public function afterAction(array $params = []);
 

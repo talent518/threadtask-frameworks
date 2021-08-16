@@ -129,7 +129,7 @@ class Module {
 		}
 	}
 
-	public function beforeAction(Action $action, array $params = []) {
+	public function beforeAction(Action $action, array $params = []): bool {
 		return $this->module->beforeAction($action, $params);
 	}
 

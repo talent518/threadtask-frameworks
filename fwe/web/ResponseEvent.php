@@ -158,15 +158,14 @@ class ResponseEvent {
 		if($this->isEnd) {
 			return true;
 		}
+
+		$this->endEx = new \Exception('Response end(): ' . $this->request->getKey(), 0, $this->endEx);
 		
 		$n = strlen($data);
 		if(!$this->headSend($n)) {
 			$this->isEnd = true;
-			$this->endEx = new \Exception('Response end(): ' . $this->request->getKey(), 0, $this->endEx);
 			return false;
 		}
-
-		$this->endEx = new \Exception('Response end(): ' . $this->request->getKey(), 0, $this->endEx);
 		
 		if($this->isChunked) {
 			if($n) {
@@ -186,7 +185,7 @@ class ResponseEvent {
 	
 	protected function send(string $data): bool {
 		if($this->isEnd) {
-			$e = new \Exception('Response send(): ' . $this->request->getKey(), __LINE__, $this->endEx);
+			$e = new \Exception('Response send(): ' . $this->request->getKey(), 0, $this->endEx);
 			echo "$e\n";
 			return true;
 		}

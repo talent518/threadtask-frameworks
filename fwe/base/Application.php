@@ -72,7 +72,7 @@ abstract class Application extends Module {
 		}
 	}
 
-	public function beforeAction(Action $action, array $params = []) {
+	public function beforeAction(Action $action, array $params = []): bool {
 		return true;
 	}
 

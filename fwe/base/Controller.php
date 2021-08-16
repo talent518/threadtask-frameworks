@@ -60,7 +60,7 @@ class Controller {
 		return $this->_route;
 	}
 
-	public function beforeAction(Action $action, array $params = []) {
+	public function beforeAction(Action $action, array $params = []): bool {
 		return $this->module->beforeAction($action, $params);
 	}
 
