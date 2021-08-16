@@ -7,7 +7,7 @@ use fwe\traits\MethodProperty;
  * @author abao
  * @property-read string $route
  */
-class Action {
+class Action implements IAction {
 	use MethodProperty;
 	
 	/**
@@ -69,6 +69,10 @@ class Action {
 		}
 	}
 	
+	public function free() {
+		unset($this->controller->actionObjects[$this->id]);
+	}
+	
 	public function beforeAction() {
 		return $this->controller->beforeAction($this);
 	}
@@ -89,4 +93,5 @@ class Action {
 	final public function run(array $params = []) {
 		return \Fwe::invoke($this->callback, $this->_params + $params + ['actionID'=>$this->id], $this->funcName);
 	}
+
 }

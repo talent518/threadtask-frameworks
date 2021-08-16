@@ -5,7 +5,8 @@
  * 下载地址： https://pecl.php.net/package/event */
 
 namespace {
-	class Socket {}
+	class Socket {
+	}
 	
 	class EventConfig {
 	    public function __construct() {}
@@ -170,13 +171,13 @@ namespace {
 	
 	class EventUtil {
 	    private function __construct() {}
-	    public static function getLastSocketErrno(?\Socket $socket = null): int {}
+	    public static function getLastSocketErrno(?Socket $socket = null): int {}
 	    public static function getLastSocketError($socket = null): string {}
 		public static function sslRandPoll(): bool {}
 		public static function getSocketName($socket, &$address, &$port = null): bool {}
 		public static function getSocketFd($socket): int {}
 		public static function setSocketOption($socket, int $level, int $optname, $optval): bool {}
-		public static function createSocket(int $fd): \Socket {}
+		public static function createSocket(int $fd): Socket {}
 	}
 	
 	class EventBuffer {

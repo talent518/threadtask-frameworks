@@ -4,7 +4,6 @@ namespace fwe\base;
 use fwe\traits\MethodProperty;
 
 /**
- *
  * @author abao
  * @property-read string $route 控制器的路由
  */
@@ -12,7 +11,6 @@ class Controller {
 	use MethodProperty;
 
 	/**
-	 *
 	 * @var string
 	 */
 	public $id;
@@ -113,7 +111,7 @@ class Controller {
 		$action = $this->actionMap[$id] ?? false;
 		if($action) {
 			$class = $action['class'] ?? $action;
-			if(is_string($class) && is_subclass_of($class, 'fwe\base\Action')) {
+			if(is_string($class) && is_subclass_of($class, 'fwe\base\IAction')) {
 				return \Fwe::createObject($action, [
 					'id' => $id,
 					'controller' => $this,
@@ -121,7 +119,7 @@ class Controller {
 				]);
 			} else {
 				$this->actionMap[$id] = 1;
-				throw new Exception("{$class}不是fwe\base\Action的子类");
+				throw new Exception("{$class}不是fwe\base\IAction的子类");
 			}
 		} else {
 			throw new RouteException($id, "没有发现操作\"$id\"");
