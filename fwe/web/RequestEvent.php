@@ -86,6 +86,7 @@ class RequestEvent {
 
 		$this->event = new \EventBufferEvent(\Fwe::$base, $this->fd, 0, [$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler'], $this->key);
 		\Fwe::$app->events++;
+
 		// echo __METHOD__ . ":{$this->key}\n";
 	}
 	
@@ -94,6 +95,8 @@ class RequestEvent {
 	}
 	
 	public function __destruct() {
+		// echo __METHOD__ . ":{$this->key}\n";
+
 		if($this->fp) {
 			fclose($this->fp);
 			$this->fp = null;
@@ -103,7 +106,7 @@ class RequestEvent {
 			@unlink($file['path']);
 		}
 		
-		// echo __METHOD__ . ":{$this->key}\n";
+		$this->free();
 	}
 	
 	public function getKey() {

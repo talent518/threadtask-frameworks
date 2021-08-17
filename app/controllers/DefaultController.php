@@ -192,7 +192,7 @@ class DefaultController extends Controller {
 	}
 	public function actionTables(RequestEvent $request) {
 		$t = microtime(true);
-		db()->pop()->asyncQuery("SHOW TABLES", ['style'=>IEvent::FETCH_COLUMN_ALL])->asyncQuery("SELECT sleep(1)", ['style'=>IEvent::FETCH_ONE])->asyncQuery("SHOW GLOBAL VARIABLES LIKE '%timeout%'", ['type'=>IEvent::TYPE_OBJ, 'style'=>IEvent::FETCH_ALL])->goAsync(function($tables, $sleep, $variables) use($t, $request) {
+		db()->pop()->asyncQuery("SHOW TABLES", ['style'=>IEvent::FETCH_COLUMN_ALL])->asyncQuery("SELECT TABLE_SCHEMA, (DATA_LENGTH+INDEX_LENGTH) as TABLE_SPACE FROM information_schema.TABLES GROUP BY TABLE_SCHEMA", ['style'=>IEvent::FETCH_ALL])->asyncQuery("SHOW GLOBAL VARIABLES LIKE '%timeout%'", ['type'=>IEvent::TYPE_OBJ, 'style'=>IEvent::FETCH_ALL])->goAsync(function($tables, $sleep, $variables) use($t, $request) {
 			$t = microtime(true) - $t;
 			$response = $request->getResponse();
 			$response->setContentType('text/plain; charset=utf-8');

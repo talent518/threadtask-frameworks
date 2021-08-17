@@ -29,6 +29,8 @@ class WsEvent {
 		$msg = $this->mask("Connected {$addr}:{$port}");
 		$this->event->write($msg);
 		\Fwe::$app->sendWs($msg);
+
+		// echo __METHOD__ . ":{$this->key}\n";
 	}
 	
 	public function init() {
@@ -36,15 +38,28 @@ class WsEvent {
 	}
 	
 	public function __destruct() {
-		// echo __METHOD__, PHP_EOL;
+		// echo __METHOD__ . ":{$this->key}\n";
+
+		$this->free();
+	}
+	
+	protected $isFree = false;
+	protected function free() {
+		if($this->isFree) return;
+		$this->isFree = true;
+
 		\Fwe::$app->events--;
+
+		// echo __METHOD__ . ":{$this->key}\n";
+		
+		$this->event->free();
+		$this->event = null;
+		\Fwe::$app->setReqEvent($this->key);
 	}
 	
 	public function eventHandler($bev, $event, $arg) {
 		if($event & (\EventBufferEvent::EOF | \EventBufferEvent::ERROR)) {
-			$this->event->free();
-			$this->event = null;
-			\Fwe::$app->setReqEvent($this->key);
+			$this->free();
 		} else {
 			echo "key: {$this->key}, event: {$event}\n";
 		}
@@ -59,9 +74,7 @@ class WsEvent {
 		$buf = $this->event->read(16384);
 		if($buf === false) {
 		close:
-			$this->event->free();
-			$this->event = null;
-			\Fwe::$app->setReqEvent($this->key);
+			$this->free();
 			return;
 		}
 		
