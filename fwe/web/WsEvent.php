@@ -39,8 +39,6 @@ class WsEvent {
 	
 	public function __destruct() {
 		// echo __METHOD__ . ":{$this->key}\n";
-
-		$this->free();
 	}
 	
 	protected $isFree = false;
@@ -167,12 +165,12 @@ class WsEvent {
 				goto close;
 				break;
 			case 0x9: // ping
-				// echo "ping\n";
+				//echo "ping: $buf\n";
 				if($this->event->write($this->mask($buf, 0x8a)) === false) goto close;
 				goto next;
 				break;
 			case 0xA: // pong
-				// echo "pong\n";
+				//echo "pong: $buf\n";
 				goto next;
 				break;
 			default:

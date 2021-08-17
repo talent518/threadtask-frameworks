@@ -105,8 +105,6 @@ class RequestEvent {
 		foreach($this->files as $file) {
 			@unlink($file['path']);
 		}
-		
-		$this->free();
 	}
 	
 	public function getKey() {

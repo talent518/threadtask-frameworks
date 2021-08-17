@@ -25,7 +25,7 @@ class Application extends \fwe\base\Application {
 	protected $_running = true;
 	protected $_exitSig = 0;
 	
-	protected $_statEvent;
+	protected $_sigEvent, $_statEvent;
 	public function init() {
 		parent::init();
 		
@@ -108,7 +108,7 @@ class Application extends \fwe\base\Application {
 	
 	public $isToFile = true;
 	
-	protected $_sigEvent, $_lstEvent;
+	protected $_lstEvent;
 	public function listen() {
 		($this->_sock = @socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) or $this->strerror('socket_create');
 		@socket_set_option($this->_sock, SOL_SOCKET, SO_REUSEADDR, 1) or $this->strerror('socket_set_option', false);
@@ -169,6 +169,7 @@ class Application extends \fwe\base\Application {
 	
 	protected $_reqIndex = 0, $_reqEvent, $_reqEvents = [];
 	
+	public $wsPingDelay = 30;
 	public function ws() {
 		$this->_reqEvent = new \Event(\Fwe::$base, $this->_wsVar->getReadFd(), \Event::READ | \Event::PERSIST, function() {
 			if(!($a = @socket_read($this->_wsVar->getReadFd(), 1))) return;
@@ -182,6 +183,12 @@ class Application extends \fwe\base\Application {
 			$this->_reqEvents[$key] = \Fwe::createObject(WsEvent::class, compact('fd', 'addr', 'port', 'key'));
 		});
 		$this->_reqEvent->add();
+		
+		$ping = pack('CC', 0x8a, 4) . 'ping';
+		$this->_statEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() use($ping) {
+			$this->sendWs($ping);
+		});
+		$this->_statEvent->addTimer($this->wsPingDelay);
 	}
 	
 	public function addWs($key, array $args) {
