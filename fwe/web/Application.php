@@ -17,19 +17,12 @@ class Application extends \fwe\base\Application {
 	 */
 	public $port = 5000;
 	
-	/**
-	 * @var TsVar
-	 */
-	protected $_wsVar;
-	
 	protected $_running = true;
 	protected $_exitSig = SIGINT;
 	
 	protected $_sigEvent, $_statEvent;
 	public function init() {
 		parent::init();
-		
-		$this->_wsVar = new TsVar('__ws__', 0, null, true);
 		
 		$handler = [$this, 'signal'];
 		
@@ -45,7 +38,8 @@ class Application extends \fwe\base\Application {
 		$this->_sigEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() {
 			trigger_timeout();
 			
-			if(!$this->_running && (empty($this->_reqEvents) || !defined('THREAD_TASK_NAME') || !strncmp(THREAD_TASK_NAME, 'ws', 2) || (strpos(THREAD_TASK_NAME, ':req:') !== false && $this->isEmptyReq()))) {
+			$isExit = !defined('THREAD_TASK_NAME') || (strpos(THREAD_TASK_NAME, ':req:') !== false && $this->isEmptyReq());
+			if(!$this->_running && ($isExit || strpos(THREAD_TASK_NAME, ':ws:') !== false)) {
 				\Fwe::$base->exit();
 				if(!defined('THREAD_TASK_NAME')) {
 					@socket_shutdown($this->_sock);
@@ -69,7 +63,7 @@ class Application extends \fwe\base\Application {
 			}
 		}
 		
-		return $count === 0;
+		return !$count;
 	}
 	
 	public function signal(int $sig) {
@@ -117,7 +111,7 @@ class Application extends \fwe\base\Application {
 	/**
 	 * @var integer
 	 */
-	public $maxThreads = 4, $backlog = 128;
+	public $maxThreads = 4, $backlog = 128, $maxWsGroups = 2;
 	
 	public $isToFile = true;
 	
@@ -135,7 +129,10 @@ class Application extends \fwe\base\Application {
 		$n = $ns = $ne = 0;
 		$this->_statEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() use(&$statFile, &$n, &$ns, &$ne) {
 			$n2 = $this->stat('conns', 0);
-			$n3 = $this->_wsVar->count();
+			$n3 = 0;
+			for($i = 0; $i < $this->maxWsGroups; $i++) {
+				$n3 += $this->_wsVars[$i]->count();
+			}
 			$n4 = $this->stat('success', 0);
 			$n5 = $this->stat('error', 0);
 			$n = $n2 - $n;
@@ -164,7 +161,11 @@ class Application extends \fwe\base\Application {
 		});
 		$this->_lstEvent->add();
 		
-		create_task(\Fwe::$name . ":ws", INFILE, []);
+		for($i = 0; $i < $this->maxWsGroups; $i++) {
+			$this->_wsVars[$i] = new TsVar("__ws{$i}__", 0, null, true);
+			create_task(\Fwe::$name . ":ws:$i", INFILE, [$i]);
+		}
+
 		for($i = 0; $i < $this->maxThreads; $i++) {
 			$this->_reqVars[$i] = new TsVar("req:$i", 0, null, true);
 			create_task(\Fwe::$name . ":req:$i", INFILE, [$i]);
@@ -176,9 +177,17 @@ class Application extends \fwe\base\Application {
 	}
 	
 	protected $_reqIndex = 0, $_reqEvent, $_reqEvents = [];
+
+	/**
+	 * @var TsVar
+	 */
+	protected $_wsVar;
 	
 	public $wsPingDelay = 30;
-	public function ws() {
+	public function ws(int $index) {
+		$this->_reqIndex = $index;
+		$this->_wsVar = new TsVar("__ws{$index}__", 0, null, true);
+
 		$this->_reqEvent = new \Event(\Fwe::$base, $this->_wsVar->getReadFd(), \Event::READ | \Event::PERSIST, function() {
 			if(!($a = @socket_read($this->_wsVar->getReadFd(), 1))) return;
 			if($a !== 'a') {
@@ -199,9 +208,13 @@ class Application extends \fwe\base\Application {
 		$this->_statEvent->addTimer($this->wsPingDelay);
 	}
 	
-	public function addWs($key, array $args) {
-		$this->_wsVar[$key] = $args;
-		@socket_write($this->_wsVar->getWriteFd(), 'a', 1);
+	public function addWs(int $index, $key, array $args) {
+		if($index >= $this->maxWsGroups) $index = $this->maxWsGroups - 1;
+		elseif($index < 0) $index = 0;
+
+		$wsVar = $this->_wsVars[$index];
+		$wsVar[$key] = $args;
+		@socket_write($wsVar->getWriteFd(), 'a', 1);
 	}
 	
 	public function sendWs($data) {
@@ -215,10 +228,19 @@ class Application extends \fwe\base\Application {
 		else unset($this->_reqEvents[$key]);
 	}
 
+	/**
+	 * @var array|TsVar
+	 */
+	protected $_wsVars = [];
+
 	public $keepAlive = 10;
 	public function req(int $index) {
 		$this->_reqIndex = $index;
 		$this->_reqVars = new TsVar("req:$index", 0, null, true);
+
+		for($i = 0; $i < $this->maxWsGroups; $i++) {
+			$this->_wsVars[$i] = new TsVar("__ws{$i}__", 0, null, true);
+		}
 		
 		$this->_reqEvent = new \Event(\Fwe::$base, $this->_reqVars->getReadFd(), \Event::READ | \Event::PERSIST, function() use($index) {
 			if(!($a = @socket_read($this->_reqVars->getReadFd(), 1))) return;

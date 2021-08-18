@@ -56,7 +56,7 @@
 	};
 	let ws = null;
 	const WS = function() { // WebSocket connect
-		ws = new WebSocket('ws://' + location.host + '/default/ws');
+		ws = new WebSocket('ws://' + location.host + '/default/ws' + (location.search == '' ? '?index=0' : location.search));
 		ws.onopen = function(e) {
 			append('Connected');
 			msgfrm.reconn.style.display = 'none';

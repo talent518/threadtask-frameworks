@@ -204,7 +204,8 @@ class RequestEvent {
 		
 		if($this->response->isWebSocket) {
 			$this->free(false);
-			\Fwe::$app->addWs($this->key, [$this->fd, $this->clientAddr, $this->clientPort]);
+			$index = $this->get['index'] ?? 0;
+			\Fwe::$app->addWs($index, $this->key, [$this->fd, $this->clientAddr, $this->clientPort]);
 		} elseif($this->isKeepAlive) {
 			$this->free(false);
 
