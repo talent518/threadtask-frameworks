@@ -55,6 +55,10 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 		$this->_isFd = $isFd;
 	}
 	
+	public function getKey() {
+		return $this->_key;
+	}
+	
 	public function getReadFd() {
 		if(!$this->_isFd) return false;
 		

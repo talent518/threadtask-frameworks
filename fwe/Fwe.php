@@ -366,11 +366,36 @@ abstract class Fwe {
 			static::$app = $app;
 			unset($app);
 
-			go(function() {
-				static::$app->boot();
+			$isMain = !defined('THREAD_TASK_NAME');
+			$ret = go(function() use($isMain) {
+				try {
+					static::$app->boot();
+					if($isMain && static::$app->isService()) {
+						echo "Service started\n";
+					}
+					return true;
+				} catch(\Throwable $ex) {
+					if($ex instanceof \GoExitException) {
+						$status = $ex->getStatus();
+						if(is_string($status)) {
+							echo "exit data: $status\n";
+						} elseif(is_int($status)) {
+							echo "exit code: $status\n";
+						}
+					} else {
+						echo "$ex\n";
+					}
+					return false;
+				}
 			});
 
-			static::$base->dispatch();
+			if($ret) static::$base->dispatch();
+			
+			if($isMain && static::$app->isService()) {
+				$sig = static::$app->exitSig();
+				task_wait($sig);
+				echo "Stopped: $sig\n";
+			}
 		} else {
 			printf("%s is not extends %s\n", get_class($app), Application::class);
 		}

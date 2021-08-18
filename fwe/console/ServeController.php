@@ -24,6 +24,8 @@ class ServeController extends Controller {
 			$pidPath = dirname($pidFile);
 			is_dir($pidPath) or mkdir($pidPath, 0755, true);
 			file_put_contents($pidFile, posix_getpid());
+		} else {
+			exit;
 		}
 	}
 

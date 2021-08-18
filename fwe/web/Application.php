@@ -23,7 +23,7 @@ class Application extends \fwe\base\Application {
 	protected $_statVar, $_wsVar;
 	
 	protected $_running = true;
-	protected $_exitSig = 0;
+	protected $_exitSig = SIGINT;
 	
 	protected $_sigEvent, $_statEvent;
 	public function init() {
@@ -46,14 +46,11 @@ class Application extends \fwe\base\Application {
 		$this->_sigEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() {
 			trigger_timeout();
 			
-			if(!$this->_running) {
+			if(!$this->_running && (empty($this->_reqEvents) || !defined('THREAD_TASK_NAME') || THREAD_TASK_NAME == 'ws')) {
 				\Fwe::$base->exit();
 				if(!defined('THREAD_TASK_NAME')) {
-					$sig = $this->_exitSig?:SIGINT;
-					task_wait($sig);
 					@socket_shutdown($this->_sock);
 					@socket_close($this->_sock);
-					echo "Stopped: $sig\n";
 				}
 			}
 		});
@@ -72,18 +69,19 @@ class Application extends \fwe\base\Application {
 		throw new \Exception('Execute timeout');
 	}
 	
-	public function strerror(string $msg, bool $isExit = true) {
-		$err = socket_last_error();
+	public function strerror(string $msg, bool $isThrow = true) {
+		$errno = socket_last_error();
+		$error = socket_strerror($errno);
 		socket_clear_error();
-		if($err === SOCKET_EINTR) return;
+		if($errno === SOCKET_EINTR) return;
 		
-		ob_start();
-		ob_implicit_flush(false);
-		debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-		$trace = ob_get_clean();
-		printf("[%s] %s(%d): %s\n%s", defined('THREAD_TASK_NAME') ? THREAD_TASK_NAME : 'main', $msg, $err, socket_strerror($err), $trace);
+		$e = new \Exception("$msg: $error", $errno);
 		
-		if($isExit) exit; else return true;
+		if($isThrow) {
+			throw $e;
+		} else {
+			echo "$e\n";
+		}
 	}
 	
 	/**
@@ -154,7 +152,6 @@ class Application extends \fwe\base\Application {
 		create_task(\Fwe::$name . ":ws", INFILE, []);
 		for($i = 0; $i < $this->maxThreads; $i++) {
 			$this->_reqVars[$i] = new TsVar("req:$i", 0, null, true);
-			$this->_statVar[$i] = 0;
 			create_task(\Fwe::$name . ":req:$i", INFILE, [$i]);
 		}
 		
@@ -236,6 +233,14 @@ class Application extends \fwe\base\Application {
 			}
 		}
 		return parent::getAction($route, $params);
+	}
+	
+	public function exitSig() {
+		return $this->_exitSig;
+	}
+	
+	public function isService() {
+		return true;
 	}
 	
 	public function isWeb() {

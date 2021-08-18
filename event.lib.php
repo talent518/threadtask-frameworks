@@ -8,6 +8,10 @@ namespace {
 	class Socket {
 	}
 	
+	class GoExitException extends Exception {
+		public function getStatus() {}
+	}
+	
 	class EventConfig {
 	    public function __construct() {}
 	    final public function __sleep() : array {}

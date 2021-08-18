@@ -93,6 +93,14 @@ abstract class Application extends Module {
 	public function afterAction(Action $action, array $params = []) {
 	}
 	
+	public function exitSig() {
+		return SIGINT;
+	}
+	
+	public function isService() {
+		return false;
+	}
+	
 	abstract public function isWeb();
 
 	abstract public function boot();
