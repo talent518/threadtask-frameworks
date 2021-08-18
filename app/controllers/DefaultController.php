@@ -4,6 +4,7 @@ namespace app\controllers;
 use fwe\base\Controller;
 use fwe\web\RequestEvent;
 use fwe\db\IEvent;
+use fwe\curl\Request;
 
 class DefaultController extends Controller {
 	private function getperms(int $mode, ?string &$type = null) {
@@ -209,5 +210,24 @@ class DefaultController extends Controller {
 		$response = $request->getResponse();
 		$response->setContentDisposition('FWE构架首页PHP代码.php', false);
 		$response->sendFile(INFILE);
+	}
+	
+	const CURL_COUNT = 5;
+	public function actionCurl(RequestEvent $request) {
+		$request->data = [];
+		for($i=0; $i<self::CURL_COUNT; $i++) {
+			$req = new Request('https://www.baidu.com/#'.$i);
+			$req->addHeader('index', $i);
+			curl()->make($req, function($res, $req) use($request) {
+				$res = $res->properties;
+				$req = $req->properties;
+				$request->data[] = compact('req', 'res');
+				if(count($request->data) == self::CURL_COUNT) {
+					$response = $request->getResponse();
+					$response->setContentType('application/json; charset=utf-8');
+					$response->end(json_encode($request->data, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
+				}
+			});
+		}
 	}
 }

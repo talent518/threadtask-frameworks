@@ -369,8 +369,8 @@ abstract class Fwe {
 			$isMain = !defined('THREAD_TASK_NAME');
 			$ret = go(function() use($isMain) {
 				try {
-					static::$app->boot();
-					if($isMain && static::$app->isService()) {
+					$ret = static::$app->boot();
+					if($isMain && static::$app->isService() && $ret) {
 						echo "Service started\n";
 					}
 					return true;

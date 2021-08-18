@@ -4,7 +4,7 @@ Fwe::setAlias('@runtime', ROOT . '/runtime');
 Fwe::setAlias('@web', ROOT . '/web');
 
 return [
-	'class' => 'fwe\event\Application',
+	'class' => 'fwe\curl\Application',
 	'id' => 'fwe',
 	'name' => 'FWE框架'
 ];

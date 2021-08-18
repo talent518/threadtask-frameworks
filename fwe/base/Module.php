@@ -3,6 +3,9 @@ namespace fwe\base;
 
 use fwe\traits\MethodProperty;
 
+/**
+ * @property-read string $route 控制器的路由
+ */
 class Module {
 	use MethodProperty;
 
@@ -140,7 +143,7 @@ class Module {
 	/**
 	 * 控制器对象缓存
 	 *
-	 * @var array
+	 * @var array|Controller
 	 */
 	public $controllerObjects = [];
 

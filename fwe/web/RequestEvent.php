@@ -76,6 +76,8 @@ class RequestEvent {
 	public $time;
 	protected $keepAlive;
 	
+	public $data;
+	
 	public function __construct(int $fd, string $addr, int $port, int $key, float $keepAlive) {
 		$this->fd = $fd;
 		$this->clientAddr = $addr;
@@ -160,7 +162,7 @@ class RequestEvent {
 	}
 	
 	protected $isFree = false;
-	protected function free(bool $isClose = true) {
+	public function free(bool $isClose = true) {
 		if($this->isFree) return;
 		$this->isFree = true;
 

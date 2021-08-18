@@ -4,6 +4,7 @@ namespace app\commands;
 use fwe\console\Controller;
 use fwe\db\MySQLConnection;
 use fwe\db\IEvent;
+use fwe\curl\Request;
 
 class DefaultController extends Controller {
 
@@ -133,6 +134,23 @@ class DefaultController extends Controller {
 			$db = redis()->pop();
 			var_dump($db->keys('*'), $db->commandInfo("keys", "info"));
 			$db->pool->push($db);
+		}
+	}
+	
+	const CURL_COUNT = 5;
+	public function actionCurl() {
+		$data = [];
+		for($i=0; $i<self::CURL_COUNT; $i++) {
+			$req = new Request('https://www.baidu.com/#'.$i);
+			$req->addHeader('index', $i);
+			curl()->make($req, function($res, $req) use(&$data) {
+				$res = $res->properties;
+				$req = $req->properties;
+				$data[] = compact('req', 'res');
+				if(count($data) == self::CURL_COUNT) {
+					var_export($data);
+				}
+			});
 		}
 	}
 }

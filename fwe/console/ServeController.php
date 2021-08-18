@@ -19,14 +19,14 @@ class ServeController extends Controller {
 		});
 		\Fwe::$app = \Fwe::createObject($config);
 		unset($config);
-		if(\Fwe::$app->boot()) {
+		$ret = \Fwe::$app->boot();
+		if($ret) {
 			$pidFile = \Fwe::getAlias('@app/runtime/' . $name . '.pid');
 			$pidPath = dirname($pidFile);
 			is_dir($pidPath) or mkdir($pidPath, 0755, true);
 			file_put_contents($pidFile, posix_getpid());
-		} else {
-			exit;
 		}
+		return $ret;
 	}
 
 	/**

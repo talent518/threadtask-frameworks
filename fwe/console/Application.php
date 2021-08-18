@@ -16,10 +16,6 @@ class Application extends \fwe\base\Application {
 		$this->defaultRoute = 'help';
 	}
 	
-	public function isWeb() {
-		return false;
-	}
-	
 	public function boot() {
 		$route = $_SERVER['argv'][1] ?? '';
 		if(strncmp($route, '--', 2)) {
@@ -40,7 +36,7 @@ class Application extends \fwe\base\Application {
 		try {
 			$action = $this->getAction($route, $params);
 			$method = $this->runActionMethod;
-			$action->$method($params);
+			return $action->$method($params);
 		} catch(RouteException $e) {
 			echo $e;
 		}

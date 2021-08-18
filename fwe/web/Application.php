@@ -20,7 +20,7 @@ class Application extends \fwe\base\Application {
 	/**
 	 * @var TsVar
 	 */
-	protected $_statVar, $_wsVar;
+	protected $_wsVar;
 	
 	protected $_running = true;
 	protected $_exitSig = SIGINT;
@@ -29,7 +29,6 @@ class Application extends \fwe\base\Application {
 	public function init() {
 		parent::init();
 		
-		$this->_statVar = new TsVar('__stat__');
 		$this->_wsVar = new TsVar('__ws__', 0, null, true);
 		
 		$handler = [$this, 'signal'];
@@ -46,7 +45,7 @@ class Application extends \fwe\base\Application {
 		$this->_sigEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() {
 			trigger_timeout();
 			
-			if(!$this->_running && (empty($this->_reqEvents) || !defined('THREAD_TASK_NAME') || THREAD_TASK_NAME == 'ws')) {
+			if(!$this->_running && (empty($this->_reqEvents) || !defined('THREAD_TASK_NAME') || !strncmp(THREAD_TASK_NAME, 'ws', 2) || (strpos(THREAD_TASK_NAME, ':req:') !== false && $this->isEmptyReq()))) {
 				\Fwe::$base->exit();
 				if(!defined('THREAD_TASK_NAME')) {
 					@socket_shutdown($this->_sock);
@@ -54,7 +53,23 @@ class Application extends \fwe\base\Application {
 				}
 			}
 		});
-		$this->_sigEvent->addTimer(0.1);
+		$this->_sigEvent->addTimer(0.25);
+	}
+	
+	public $maxIdleSeconds = 3.0;
+	protected function isEmptyReq() {
+		$count = 0;
+		
+		$time = microtime(true);
+		foreach($this->_reqEvents as $reqEvent) { /* @var $reqEvent RequestEvent */
+			if($reqEvent->isHTTP || $reqEvent->time + $this->maxIdleSeconds > $time) {
+				$count++;
+			} else {
+				$reqEvent->free();
+			}
+		}
+		
+		return $count === 0;
 	}
 	
 	public function signal(int $sig) {
@@ -119,10 +134,10 @@ class Application extends \fwe\base\Application {
 		
 		$n = $ns = $ne = 0;
 		$this->_statEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() use(&$statFile, &$n, &$ns, &$ne) {
-			$n2 = $this->_statVar['conns'];
+			$n2 = $this->stat('conns', 0);
 			$n3 = $this->_wsVar->count();
-			$n4 = $this->_statVar['success'];
-			$n5 = $this->_statVar['error'];
+			$n4 = $this->stat('success', 0);
+			$n5 = $this->stat('error', 0);
 			$n = $n2 - $n;
 			$ns = $n4 - $ns;
 			$ne = $n5 - $ne;
@@ -141,7 +156,7 @@ class Application extends \fwe\base\Application {
 			@socket_set_option($fd, SOL_SOCKET, SO_LINGER, ['l_onoff'=>1, 'l_linger'=>1]) or strerror('socket_set_option', false);
 			$fd = socket_export_fd($fd, true);
 			
-			$i = $this->_statVar->inc('conns') - 1;
+			$i = $this->stat('conns') - 1;
 			$reqVar = $this->_reqVars[$i % $this->maxThreads]; /* @var $reqVar TsVar */
 			$reqVar[$i] = [$fd, $addr, $port];
 
@@ -158,10 +173,6 @@ class Application extends \fwe\base\Application {
 		echo "Listened on {$this->host}:{$this->port}\n";
 		
 		return true;
-	}
-	
-	public function stat($key, $inc = 1) {
-		return $this->_statVar->inc($key, $inc);
 	}
 	
 	protected $_reqIndex = 0, $_reqEvent, $_reqEvents = [];

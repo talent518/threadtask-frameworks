@@ -14,3 +14,11 @@ function db(string $id = 'db') {
 function redis(string $id = 'redis') {
 	return \Fwe::$app->get($id);
 }
+
+/**
+ * @param string $id
+ * @return \fwe\curl\Boot
+ */
+function curl() {
+	return \Fwe::$app->get('curl');
+}

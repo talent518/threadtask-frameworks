@@ -7,4 +7,3 @@ include_once ROOT . '/fwe/Fwe.php';
 Fwe::setAlias('@app', APP_PATH);
 
 Fwe::boot();
-

@@ -30,12 +30,18 @@ abstract class Application extends Module {
 		parent::__construct($id);
 	}
 	
+	/**
+	 * @var TsVar
+	 */
+	protected $_statVar;
+	
 	public function init() {
 		\Fwe::$app = $this;
 		
 		parent::init();
 
 		$this->events = 0;
+		$this->_statVar = new TsVar('__stat__');
 		
 		foreach($this->bootstrap as $id) {
 			if($this->has($id)) $this->get($id);
@@ -93,6 +99,10 @@ abstract class Application extends Module {
 	public function afterAction(Action $action, array $params = []) {
 	}
 	
+	public function stat($key, int $inc = 1) {
+		return $inc == 0 ? $this->_statVar[$key] : $this->_statVar->inc($key, $inc);
+	}
+	
 	public function exitSig() {
 		return SIGINT;
 	}
@@ -101,7 +111,9 @@ abstract class Application extends Module {
 		return false;
 	}
 	
-	abstract public function isWeb();
+	public function isWeb() {
+		return false;
+	}
 
 	abstract public function boot();
 }
