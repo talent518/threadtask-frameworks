@@ -58,6 +58,11 @@ class Application extends \fwe\base\Application {
 							if($ret) {
 								foreach($this->_reqs as $key => $val) {
 									if($val['ch'] != $ret['handle']) continue;
+
+									if($ret['result'] != CURLE_OK) {
+										$err = curl_strerror($ret['result']);
+										$val['res']->setStatus($ret['result'], $err);
+									}
 									
 									curl_multi_remove_handle($this->_mh, $val['ch']);
 									curl_close($val['ch']);
