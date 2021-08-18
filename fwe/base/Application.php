@@ -15,6 +15,13 @@ abstract class Application extends Module {
 	public $id, $name;
 	public $events = 0; // EventBase中添加的事件数
 	
+	/**
+	 * 默认加载的组件或模块
+	 *
+	 * @var array $ids
+	 */
+	public $bootstrap = [];
+	
 	public function __construct(string $id, string $name) {
 		$this->id = $id;
 		$this->name = $name;
@@ -27,6 +34,11 @@ abstract class Application extends Module {
 		parent::init();
 
 		$this->events = 0;
+		
+		foreach($this->bootstrap as $id) {
+			if($this->has($id)) $this->get($id);
+			else $this->getModule($id);
+		}
 	}
 	
 	public function __isset($name) {
