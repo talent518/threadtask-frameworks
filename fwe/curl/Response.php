@@ -61,7 +61,9 @@ class Response {
 				$this->headers[$name] = $value;
 			}
 		} else {
-			list($this->protocol, $this->status, $this->statusText) = preg_split('/\s+/', $header, 3);
+			list($this->protocol, $status, $statusText) = preg_split('/\s+/', $header, 3);
+			$this->status = (int) $status;
+			$this->statusText = trim($statusText);
 		}
 
 		return strlen($header);

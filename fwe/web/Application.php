@@ -17,37 +17,23 @@ class Application extends \fwe\base\Application {
 	 */
 	public $port = 5000;
 	
-	protected $_running = true;
-	protected $_exitSig = SIGINT;
-	
-	protected $_sigEvent, $_statEvent;
 	public function init() {
 		parent::init();
 		
-		$handler = [$this, 'signal'];
-		
-		pcntl_async_signals(true);
-		pcntl_signal(SIGTERM, $handler, false);
-		pcntl_signal(SIGINT, $handler, false);
-		pcntl_signal(SIGUSR1, $handler, false);
-		pcntl_signal(SIGUSR2, $handler, false);
-		pcntl_signal(SIGALRM, [$this, 'signal_timeout'], false);
-		
-		pthread_sigmask(SIG_SETMASK, []);
-		
-		$this->_sigEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() {
-			trigger_timeout();
-			
-			$isExit = !defined('THREAD_TASK_NAME') || (strpos(THREAD_TASK_NAME, ':req:') !== false && $this->isEmptyReq());
-			if(!$this->_running && ($isExit || strpos(THREAD_TASK_NAME, ':ws:') !== false)) {
-				\Fwe::$base->exit();
-				if(!defined('THREAD_TASK_NAME')) {
-					@socket_shutdown($this->_sock);
-					@socket_close($this->_sock);
-				}
+		$this->signalEvent();
+	}
+
+	public function signalHandler() {
+		parent::signalHandler();
+
+		$isExit = !defined('THREAD_TASK_NAME') || (strpos(THREAD_TASK_NAME, ':req:') !== false && $this->isEmptyReq());
+		if(!$this->_running && ($isExit || strpos(THREAD_TASK_NAME, ':ws:') !== false)) {
+			\Fwe::$base->exit();
+			if(!defined('THREAD_TASK_NAME')) {
+				@socket_shutdown($this->_sock);
+				@socket_close($this->_sock);
 			}
-		});
-		$this->_sigEvent->addTimer(0.25);
+		}
 	}
 	
 	public $maxIdleSeconds = 3.0;
@@ -64,18 +50,6 @@ class Application extends \fwe\base\Application {
 		}
 		
 		return !$count;
-	}
-	
-	public function signal(int $sig) {
-		$this->_exitSig = $sig;
-		$this->_running = false;
-		
-		if(!defined('THREAD_TASK_NAME'))
-			task_set_run(false);
-	}
-
-	public function signal_timeout(int $sig) {
-		throw new \Exception('Execute timeout');
 	}
 	
 	public function strerror(string $msg, bool $isThrow = true) {
@@ -115,7 +89,8 @@ class Application extends \fwe\base\Application {
 	
 	public $isToFile = true;
 	
-	protected $_lstEvent;
+	protected $_statEvent, $_lstEvent;
+
 	public function listen() {
 		($this->_sock = @socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) or $this->strerror('socket_create');
 		@socket_set_option($this->_sock, SOL_SOCKET, SO_REUSEADDR, 1) or $this->strerror('socket_set_option', false);
@@ -266,10 +241,6 @@ class Application extends \fwe\base\Application {
 			}
 		}
 		return parent::getAction($route, $params);
-	}
-	
-	public function exitSig() {
-		return $this->_exitSig;
 	}
 	
 	public function isService() {

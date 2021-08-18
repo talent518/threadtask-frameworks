@@ -40,6 +40,8 @@ abstract class Application extends Module {
 		
 		parent::init();
 
+		pthread_sigmask(SIG_SETMASK, []);
+
 		$this->events = 0;
 		$this->_statVar = new TsVar('__stat__');
 		
@@ -99,12 +101,33 @@ abstract class Application extends Module {
 	public function afterAction(Action $action, array $params = []) {
 	}
 	
+	protected $_running = true;
+	protected $_exitSig = SIGINT;
+	protected $_sigEvent;
+	protected function signalEvent(float $timeout = 1.0) {
+		$this->_sigEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, [$this, 'signalHandler']);
+		$this->_sigEvent->addTimer($timeout);
+	}
+	
+	public function signalHandler() {
+		$set = [SIGTERM, SIGINT, SIGUSR1, SIGUSR2, SIGALRM];
+		$info = [];
+		$sig = pcntl_sigtimedwait($set, $info, 0, 1000);
+		if($sig > 0) {
+			$this->_exitSig = $sig;
+			$this->_running = false;
+			
+			if(!defined('THREAD_TASK_NAME'))
+				task_set_run(false);
+		}
+	}
+	
 	public function stat($key, int $inc = 1) {
 		return $inc == 0 ? $this->_statVar[$key] : $this->_statVar->inc($key, $inc);
 	}
 	
 	public function exitSig() {
-		return SIGINT;
+		return $this->_exitSig;
 	}
 	
 	public function isService() {

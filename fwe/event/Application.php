@@ -23,54 +23,28 @@ class Application extends \fwe\base\Application {
 	 */
 	protected $_statVar, $_wsVar;
 	
-	protected $_running = true;
-	protected $_exitSig = 0;
-	
-	protected $_statEvent;
 	public function init() {
 		parent::init();
 		
 		$this->_statVar = new TsVar('__stat__');
 		$this->_wsVar = new TsVar('__ws__', 0, null, true);
 		
-		$handler = [$this, 'signal'];
-		
-		pcntl_async_signals(true);
-		pcntl_signal(SIGTERM, $handler, false);
-		pcntl_signal(SIGINT, $handler, false);
-		pcntl_signal(SIGUSR1, $handler, false);
-		pcntl_signal(SIGUSR2, $handler, false);
-		pcntl_signal(SIGALRM, [$this, 'signal_timeout'], false);
-		
-		pthread_sigmask(SIG_SETMASK, []);
-		
-		$this->_sigEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() {
-			trigger_timeout();
-			
-			if(!$this->_running) {
-				\Fwe::$base->exit();
-				if(!defined('THREAD_TASK_NAME')) {
-					$sig = $this->_exitSig?:SIGINT;
-					task_wait($sig);
-					@socket_shutdown($this->_sock);
-					@socket_close($this->_sock);
-					echo "Stopped: $sig\n";
-				}
+		$this->signalEvent();
+	}
+
+	public function signalHandler() {
+		parent::signalHandler();
+
+		if(!$this->_running) {
+			\Fwe::$base->exit();
+			if(!defined('THREAD_TASK_NAME')) {
+				$sig = $this->_exitSig?:SIGINT;
+				task_wait($sig);
+				@socket_shutdown($this->_sock);
+				@socket_close($this->_sock);
+				echo "Stopped: $sig\n";
 			}
-		});
-		$this->_sigEvent->addTimer(0.1);
-	}
-	
-	public function signal(int $sig) {
-		$this->_exitSig = $sig;
-		$this->_running = false;
-		
-		if(!defined('THREAD_TASK_NAME'))
-			task_set_run(false);
-	}
-	
-	public function signal_timeout(int $sig) {
-		throw new \Exception('Execute timeout');
+		}
 	}
 	
 	public function strerror(string $msg, bool $isExit = true) {
@@ -102,7 +76,7 @@ class Application extends \fwe\base\Application {
 	 */
 	public $maxThreads = 4, $backlog = 128;
 	
-	protected $_sigEvent;
+	protected $_statEvent;
 	public function listen() {
 		($this->_sock = @socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) or $this->strerror('socket_create');
 		@socket_set_option($this->_sock, SOL_SOCKET, SO_REUSEADDR, 1) or $this->strerror('socket_set_option', false);
@@ -157,8 +131,21 @@ class Application extends \fwe\base\Application {
 			$this->stat('conns');
 			$headers = $req->getInputHeaders();
 			
+			switch($req->getCommand()) {
+				case \EventHttpRequest::CMD_GET: $method = 'GET'; break;
+				case \EventHttpRequest::CMD_POST: $method = 'POST'; break;
+				case \EventHttpRequest::CMD_HEAD: $method = 'HEAD'; break;
+				case \EventHttpRequest::CMD_PUT: $method = 'PUT'; break;
+				case \EventHttpRequest::CMD_DELETE: $method = 'DELETE'; break;
+				case \EventHttpRequest::CMD_OPTIONS: $method = 'OPTIONS'; break;
+				case \EventHttpRequest::CMD_TRACE: $method = 'TRACE'; break;
+				case \EventHttpRequest::CMD_CONNECT: $method = 'CONNECT'; break;
+				case \EventHttpRequest::CMD_PATCH: $method = 'PATCH'; break;
+				default: $method = 'NONE'; break;
+			}
+			
 			echo "=========================\n";
-			echo "Command: ", $req->getCommand(), PHP_EOL;
+			echo "Method: ", $method, PHP_EOL;
 			echo "Host: ", $req->getHost(), PHP_EOL;
 			echo "URI: ", $req->getUri(), PHP_EOL;
 			echo "Headers: ", var_export($headers, true), PHP_EOL;

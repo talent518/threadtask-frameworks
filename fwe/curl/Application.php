@@ -34,40 +34,11 @@ class Application extends \fwe\base\Application {
 		$this->_taskIndex = (int) array_shift(\Fwe::$names);
 		$this->_var = new TsVar("__curl{$this->_taskIndex}__", 0, null, true);
 		
-		$handler = [$this, 'signal'];
-
-		pcntl_async_signals(true);
-		pcntl_signal(SIGTERM, $handler, false);
-		pcntl_signal(SIGINT, $handler, false);
-		pcntl_signal(SIGUSR1, $handler, false);
-		pcntl_signal(SIGUSR2, $handler, false);
-		pcntl_signal(SIGALRM, [$this, 'signal_timeout'], false);
-		
-		pthread_sigmask(SIG_SETMASK, []);
-		
 		$this->_mh = curl_multi_init();
 
 		$this->loop();
 
 		\Fwe::$base->exit();
-	}
-	
-	protected $_exitSig = SIGINT;
-	public function exitSig() {
-		return $this->_exitSig;
-	}
-	
-	protected $_running = true;
-	public function signal(int $sig) {
-		$this->_exitSig = $sig;
-		$this->_running = false;
-		
-		if(!defined('THREAD_TASK_NAME'))
-			task_set_run(false);
-	}
-	
-	public function signal_timeout(int $sig) {
-		throw new \Exception('Execute timeout');
 	}
 	
 	protected $_count = 0;
@@ -109,9 +80,13 @@ class Application extends \fwe\base\Application {
 			$read = [$fd];
 			$write = $except = [];
 			$ret = @socket_select($read, $write, $except, $this->_count ? 0 : 1, 100); // 100us
-			if($ret === 0) continue;
+			if($ret === 0) {
+				$this->signalHandler();
+				continue;
+			}
 			if($ret === false) {
 				$this->write_all(-1, 'socket_select is return false');
+				$this->signalHandler();
 				continue;
 			}
 			
@@ -119,6 +94,8 @@ class Application extends \fwe\base\Application {
 			if($buf === false || ($n = strlen($buf)) == 0) return;
 			
 			for($i=0; $i<$n; $i++) $this->read();
+
+			$this->signalHandler();
 		}
 	}
 	
