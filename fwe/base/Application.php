@@ -31,6 +31,8 @@ abstract class Application extends Module {
 	}
 	
 	public function init() {
+		\Fwe::$app = $this;
+		
 		parent::init();
 
 		$this->events = 0;

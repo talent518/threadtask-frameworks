@@ -360,13 +360,20 @@ abstract class Fwe {
 			return include static::getAlias('@app/config/' . static::$name . '.php');
 		});
 		static::$base = new EventBase();
-		static::$app = static::createObject($config);
+		$app = static::createObject($config);
 		unset($config);
-		go(function() {
-			static::$app->boot();
-		});
-		static::$base->dispatch();
-		// static::$base->loop(EventBase::LOOP_ONCE);
+		if($app instanceof Application) {
+			static::$app = $app;
+			unset($app);
+
+			go(function() {
+				static::$app->boot();
+			});
+
+			static::$base->dispatch();
+		} else {
+			printf("%s is not extends %s\n", get_class($app), Application::class);
+		}
 	}
 }
 
