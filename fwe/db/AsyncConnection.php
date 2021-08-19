@@ -55,6 +55,8 @@ abstract class AsyncConnection {
 				$this->reset();
 				if($ret) {
 					$this->pool->push($this);
+				} else {
+					$this->pool->remove($this);
 				}
 			}
 		} else {
@@ -139,6 +141,11 @@ abstract class AsyncConnection {
 			echo new Exception("异步事件正在执行");
 			return false;
 		}
+	}
+	
+	public function cancel() {
+		$this->reset();
+		$this->pool->remove($this);
 	}
 	
 	abstract public function getFd();

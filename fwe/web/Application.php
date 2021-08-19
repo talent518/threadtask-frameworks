@@ -37,13 +37,24 @@ class Application extends \fwe\base\Application {
 	}
 	
 	public $maxIdleSeconds = 3.0;
+	public $maxRunSeconds = 30.0;
+	public $timeoutStatus = 408;
+	public $timeoutType = 'text/plain';
+	public $timeoutData = 'Request Time-out';
 	protected function isEmptyReq() {
 		$count = 0;
 		
 		$time = microtime(true);
 		foreach($this->_reqEvents as $reqEvent) { /* @var $reqEvent RequestEvent */
 			if($reqEvent->isHTTP || $reqEvent->time + $this->maxIdleSeconds > $time) {
-				$count++;
+				if($reqEvent->runTime === null || $reqEvent->runTime + $this->maxRunSeconds > $time) {
+					$count++;
+				} else {
+					$response = $reqEvent->getResponse();
+					$response->setStatus($this->timeoutStatus);
+					$response->setContentType($this->timeoutType);
+					$response->end($this->timeoutData);
+				}
 			} else {
 				$reqEvent->free();
 			}

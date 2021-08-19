@@ -193,17 +193,25 @@ class DefaultController extends Controller {
 	}
 	public function actionTables(RequestEvent $request) {
 		$t = microtime(true);
-		db()->pop()->asyncQuery("SHOW TABLES", ['style'=>IEvent::FETCH_COLUMN_ALL])->asyncQuery("SELECT TABLE_SCHEMA, (DATA_LENGTH+INDEX_LENGTH) as TABLE_SPACE FROM information_schema.TABLES GROUP BY TABLE_SCHEMA", ['style'=>IEvent::FETCH_ALL])->asyncQuery("SHOW GLOBAL VARIABLES LIKE '%timeout%'", ['type'=>IEvent::TYPE_OBJ, 'style'=>IEvent::FETCH_ALL])->goAsync(function($tables, $sleep, $variables) use($t, $request) {
+		$request->data = $db = db()->pop();
+		$db->asyncQuery("SHOW TABLES", ['style'=>IEvent::FETCH_COLUMN_ALL])->asyncQuery("SELECT TABLE_SCHEMA, (DATA_LENGTH+INDEX_LENGTH) as TABLE_SPACE FROM information_schema.TABLES GROUP BY TABLE_SCHEMA", ['style'=>IEvent::FETCH_ALL])->asyncQuery("SHOW GLOBAL VARIABLES LIKE '%timeout%'", ['type'=>IEvent::TYPE_OBJ, 'style'=>IEvent::FETCH_ALL])->goAsync(function($tables, $sleep, $variables) use($t, $request) {
 			$t = microtime(true) - $t;
 			$response = $request->getResponse();
 			$response->setContentType('text/plain; charset=utf-8');
 			$response->end(json_encode(compact('tables', 'sleep', 'variables', 't'), JSON_PRETTY_PRINT));
-		}, function($data) use($t) {
+			$request->data = null;
+		}, function($data) use($t, $request) {
 			$t = microtime(true) - $t;
 			$response = $request->getResponse();
 			$response->setContentType('text/plain; charset=utf-8');
 			$response->end(json_encode(compact('data', 't'), JSON_PRETTY_PRINT));
+			$request->data = null;
 			return false;
+		});
+		$request->onFree(function(RequestEvent $req) {
+			if(!$req->data) return;
+
+			$req->data->cancel();
 		});
 	}
 	public function actionAttach(RequestEvent $request) {
@@ -214,20 +222,45 @@ class DefaultController extends Controller {
 	
 	const CURL_COUNT = 5;
 	public function actionCurl(RequestEvent $request) {
-		$request->data = [];
+		$request->data = ['key'=>[],'val'=>[]];
 		for($i=0; $i<self::CURL_COUNT; $i++) {
 			$req = new Request('https://www.baidu.com/#'.$i);
 			$req->addHeader('index', $i);
 			curl()->make($req, function($res, $req) use($request) {
 				$res = $res->properties;
 				$req = $req->properties;
-				$request->data[] = compact('req', 'res');
-				if(count($request->data) == self::CURL_COUNT) {
+				$request->data['val'][] = compact('req', 'res');
+				if(count($request->data['val']) == self::CURL_COUNT) {
 					$response = $request->getResponse();
 					$response->setContentType('application/json; charset=utf-8');
 					$response->end(json_encode($request->data, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
+					$request->data = null;
 				}
 			});
+			$request->data['key'][] = $req->resKey;
 		}
+		$request->onFree(function(RequestEvent $req) {
+			if(!$req->data) return;
+			
+			foreach($req->data['key'] as $key) {
+				curl()->cancel($key);
+			}
+		});
+	}
+	
+	public function actionTimeout(RequestEvent $request, int $timeout = 5) {
+		\Fwe::$app->events++;
+		$request->data = $event = new \Event(\Fwe::$base, -1, \Event::TIMEOUT, function() use($request) {
+			$request->getResponse()->end('Timeout Completed');
+			$request->data = null;
+			\Fwe::$app->events--;
+		});
+		$event->addTimer($timeout);
+		$request->onFree(function(RequestEvent $request) {
+			if(!$request->data) return;
+			
+			\Fwe::$app->events--;
+			$request->data->delTimer();
+		});
 	}
 }

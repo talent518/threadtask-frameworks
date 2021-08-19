@@ -73,7 +73,7 @@ class RequestEvent {
 	 */
 	protected $key;
 	
-	public $time;
+	public $time, $runTime;
 	protected $keepAlive;
 	
 	public $data;
@@ -161,6 +161,12 @@ class RequestEvent {
 		}
 	}
 	
+	protected $onFrees = [];
+
+	public function onFree(callable $free) {
+		$this->onFrees[] = $free;
+	}
+	
 	protected $isFree = false;
 	public function free(bool $isClose = true) {
 		if($this->isFree) return;
@@ -170,12 +176,16 @@ class RequestEvent {
 
 		// echo __METHOD__ . ":{$this->key}\n";
 		
+		foreach($this->onFrees as $free) {
+			$free($this);
+		}
+		
 		if($isClose) $this->event->close();
 		$this->event->free();
 
 		\Fwe::$app->setReqEvent($this->key);
 
-		$this->event = $this->response = $this->action = null;
+		$this->event = $this->response = $this->action = $this->onFrees = $this->data = null;
 		$this->params = [];
 	}
 	
@@ -240,6 +250,7 @@ class RequestEvent {
 				$response = $this->getResponse();
 				$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
 				
+				$this->runTime = microtime(true);
 				$this->params += $this->get + $this->post;
 				$ret = $this->action->run($this->params);
 				$this->action->afterAction($this->params);

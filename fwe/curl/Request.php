@@ -25,7 +25,7 @@ class Request {
 	const FORMAT_JSON = 1;
 	const FORMAT_XML = 2;
 	
-	public $key;
+	public $key, $resKey;
 	
 	protected $method;
 	protected $url;

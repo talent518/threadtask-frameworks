@@ -66,6 +66,7 @@ class Boot {
 		$var = $this->_vars[$key % $this->maxThreads];
 
 		$req->key = $this->_var->getKey();
+		$req->resKey = $key;
 		$var[$key] = $req;
 		$this->_call[$key] = [$req, $call];
 		
@@ -92,5 +93,19 @@ class Boot {
 		unset($this->_call[$key]);
 		
 		$call($res, $req);
+	}
+	
+	public function cancel($key) {
+		if(!isset($this->_call[$key])) return;
+	
+		if(!--$this->_events) $this->_event->del();
+		
+		unset($this->_call[$req->resKey]);
+		
+		\Fwe::$app->events--;
+		\Fwe::$app->stat('curl:act', -1);
+		\Fwe::$app->stat('curl:res');
+		
+		$this->_vars[$key % $this->maxThreads][$key] = false;
 	}
 }

@@ -122,6 +122,15 @@ class Application extends \fwe\base\Application {
 	public function read() {
 		/* @var $req \fwe\curl\Request */
 		$req = $this->_var->shift(true, $key);
+		if(!($req instanceof Request)) {
+			if(isset($this->_reqs[$key])) {
+				$val = $this->_reqs[$key];
+				curl_multi_remove_handle($this->_mh, $val['ch']);
+				curl_close($val['ch']);
+				$this->_count--;
+			}
+			return;
+		}
 		if(!isset($this->_vars[$req->key])) {
 			$this->_vars[$req->key] = new TsVar($req->key, 0, null, true);
 		}
