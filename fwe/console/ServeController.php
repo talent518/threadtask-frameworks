@@ -24,7 +24,17 @@ class ServeController extends Controller {
 			$pidFile = \Fwe::getAlias('@app/runtime/' . $name . '.pid');
 			$pidPath = dirname($pidFile);
 			is_dir($pidPath) or mkdir($pidPath, 0755, true);
-			file_put_contents($pidFile, posix_getpid());
+			$pid = @file_get_contents($pidFile);
+			if($pid == posix_getpid()) {
+				echo "Service restart\n";
+			} else {
+				file_put_contents($pidFile, posix_getpid());
+				echo "Service started\n";
+			}
+			register_shutdown_function(function($file) {
+				@unlink($file);
+				echo "Service stopped\n";
+			}, $pidFile);
 		}
 		return $ret;
 	}
@@ -35,26 +45,7 @@ class ServeController extends Controller {
 	 * @param string $name
 	 */
 	public function actionStop(string $name = 'web') {
-		$pidFile = \Fwe::getAlias('@app/runtime/' . $name . '.pid');
-		if(! is_readable($pidFile)) {
-			echo "NO\n";
-			return;
-		}
-
-		$pid = file_get_contents($pidFile);
-		if($pid <= 0 || trim(file_get_contents("/proc/$pid/comm")) != 'threadtask') {
-			if(!is_dir("/proc/$pid/"))
-				@unlink($pidFile);
-			echo "NO: $pid\n";
-			return;
-		}
-
-		if(posix_kill($pid, SIGINT)) {
-			@unlink($pidFile);
-			echo "OK\n";
-		} else {
-			echo "ERR\n";
-		}
+		$this->kill($name, SIGINT);
 	}
 	
 	/**
@@ -63,21 +54,18 @@ class ServeController extends Controller {
 	 * @param string $name
 	 */
 	public function actionReload(string $name = 'web') {
+		$this->kill($name, SIGUSR1);
+	}
+
+	protected function kill(string $name, int $sig) {
 		$pidFile = \Fwe::getAlias('@app/runtime/' . $name . '.pid');
-		if(! is_readable($pidFile)) {
+
+		if(!is_readable($pidFile) || ($pid = file_get_contents($pidFile)) <= 0 || !($comm = @file_get_contents("/proc/$pid/comm")) || trim($comm) != 'threadtask') {
 			echo "NO\n";
 			return;
 		}
-
-		$pid = file_get_contents($pidFile);
-		if($pid <= 0 || trim(file_get_contents("/proc/$pid/comm")) !== 'threadtask') {
-			if(!is_dir("/proc/$pid/"))
-				@unlink($pidFile);
-			echo "NO: $pid\n";
-			return;
-		}
 		
-		if(posix_kill($pid, SIGUSR1))
+		if(posix_kill($pid, $sig))
 			echo "OK\n";
 		else
 			echo "ERR\n";

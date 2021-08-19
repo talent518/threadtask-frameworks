@@ -366,13 +366,9 @@ abstract class Fwe {
 			static::$app = $app;
 			unset($app);
 
-			$isMain = !defined('THREAD_TASK_NAME');
-			$ret = go(function() use($isMain) {
+			$ret = go(function() {
 				try {
-					$ret = static::$app->boot();
-					if($isMain && static::$app->isService() && $ret) {
-						echo "Service started\n";
-					}
+					static::$app->boot();
 					return true;
 				} catch(\Throwable $ex) {
 					if($ex instanceof \GoExitException) {
@@ -391,10 +387,9 @@ abstract class Fwe {
 
 			if($ret) static::$base->dispatch();
 			
-			if($isMain && static::$app->isService()) {
+			if(!defined('THREAD_TASK_NAME')) {
 				$sig = static::$app->exitSig();
 				task_wait($sig);
-				echo "Stopped: $sig\n";
 			}
 		} else {
 			printf("%s is not extends %s\n", get_class($app), Application::class);

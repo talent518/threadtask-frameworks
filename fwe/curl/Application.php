@@ -85,22 +85,16 @@ class Application extends \fwe\base\Application {
 			$read = [$fd];
 			$write = $except = [];
 			$ret = @socket_select($read, $write, $except, $this->_count ? 0 : 1, 100); // 100us
-			if($ret === 0) {
-				$this->signalHandler();
-				continue;
-			}
+			if($ret === 0) continue;
 			if($ret === false) {
 				$this->write_all(-1, 'socket_select is return false');
-				$this->signalHandler();
-				continue;
+				return;
 			}
 			
 			$buf = @socket_read($fd, 128);
 			if($buf === false || ($n = strlen($buf)) == 0) return;
 			
 			for($i=0; $i<$n; $i++) $this->read();
-
-			$this->signalHandler();
 		}
 	}
 	

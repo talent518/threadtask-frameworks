@@ -39,9 +39,12 @@ abstract class Application extends Module {
 		\Fwe::$app = $this;
 		
 		parent::init();
-
+		
 		pthread_sigmask(SIG_SETMASK, []);
-
+		pcntl_async_signals(true);
+		$set = [SIGTERM, SIGINT, SIGUSR1, SIGUSR2];
+		foreach($set as $sig) pcntl_signal($sig, [$this, 'signalHandler'], false);
+	
 		$this->events = 0;
 		$this->_statVar = new TsVar('__stat__');
 		
@@ -100,26 +103,32 @@ abstract class Application extends Module {
 
 	public function afterAction(Action $action, array $params = []) {
 	}
+
+	public $signalTimeout = 0.25;
+
+	protected $_sigEvent;
+	protected function signalEvent() {
+		$this->_sigEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() {
+			if(!$this->_running) $this->signalHandler($this->_exitSig);
+		});
+		$this->_sigEvent->addTimer($this->signalTimeout);
+	}
 	
 	protected $_running = true;
 	protected $_exitSig = SIGINT;
-	protected $_sigEvent;
-	protected function signalEvent(float $timeout = 1.0) {
-		$this->_sigEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, [$this, 'signalHandler']);
-		$this->_sigEvent->addTimer($timeout);
-	}
-	
-	public function signalHandler() {
-		$set = [SIGTERM, SIGINT, SIGUSR1, SIGUSR2, SIGALRM];
-		$info = [];
-		$sig = pcntl_sigtimedwait($set, $info, 0, 1000);
-		if($sig > 0) {
-			$this->_exitSig = $sig;
-			$this->_running = false;
-			
-			if(!defined('THREAD_TASK_NAME'))
-				task_set_run(false);
+	public function signalHandler(int $sig) {
+		if(!$this->_running) {
+			return;
 		}
+
+		// $name = (defined('THREAD_TASK_NAME') ? THREAD_TASK_NAME : 'main');
+		// echo "$name signal: $sig\n";
+
+		$this->_exitSig = $sig;
+		$this->_running = false;
+		
+		if(!defined('THREAD_TASK_NAME'))
+			task_set_run(false);
 	}
 	
 	public function stat($key, int $inc = 1) {

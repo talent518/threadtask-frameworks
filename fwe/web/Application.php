@@ -16,15 +16,15 @@ class Application extends \fwe\base\Application {
 	 * @var int
 	 */
 	public $port = 5000;
-	
+
 	public function init() {
 		parent::init();
 		
 		$this->signalEvent();
 	}
 
-	public function signalHandler() {
-		parent::signalHandler();
+	public function signalHandler(int $sig) {
+		parent::signalHandler($sig);
 
 		$isExit = !defined('THREAD_TASK_NAME') || (strpos(THREAD_TASK_NAME, ':req:') !== false && $this->isEmptyReq());
 		if(!$this->_running && ($isExit || strpos(THREAD_TASK_NAME, ':ws:') !== false)) {
