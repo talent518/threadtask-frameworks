@@ -35,13 +35,7 @@ class Application extends \fwe\base\Application {
 	public function signalHandler(int $sig) {
 		parent::signalHandler($sig);
 
-		if(!$this->_running) {
-			\Fwe::$base->exit();
-			if(!defined('THREAD_TASK_NAME')) {
-				@socket_shutdown($this->_sock);
-				@socket_close($this->_sock);
-			}
-		}
+		if(!$this->_running) \Fwe::$base->exit();
 	}
 	
 	public function strerror(string $msg, bool $isExit = true) {
