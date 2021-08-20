@@ -109,7 +109,10 @@ abstract class Application extends Module {
 	protected $_sigEvent;
 	protected function signalEvent() {
 		$this->_sigEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() {
-			if(!$this->_running) $this->signalHandler($this->_exitSig);
+			if(!$this->_running) {
+				$this->signalHandler($this->_exitSig);
+				$this->_sigEvent->delTimer();
+			}
 		});
 		$this->_sigEvent->addTimer($this->signalTimeout);
 	}
