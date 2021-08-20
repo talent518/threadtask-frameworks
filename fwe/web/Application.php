@@ -29,6 +29,10 @@ class Application extends \fwe\base\Application {
 		$isExit = !defined('THREAD_TASK_NAME') || (strpos(THREAD_TASK_NAME, ':req:') !== false && $this->isEmptyReq());
 		if(!$this->_running && ($isExit || strpos(THREAD_TASK_NAME, ':ws:') !== false)) {
 			\Fwe::$base->exit();
+			if(!defined('THREAD_TASK_NAME')) {
+				@socket_shutdown($this->_sock);
+				@socket_close($this->_sock);
+			}
 		}
 	}
 	
