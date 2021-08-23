@@ -38,8 +38,13 @@ class MySQLQueryEvent implements IEvent {
 	 * @var callable
 	 */
 	protected $_callback;
+	
+	/**
+	 * @var mixed
+	 */
+	protected $_keyBy, $_valueBy;
 
-	public function __construct(MySQLConnection $db, string $sql, int $type = IEvent::TYPE_ASSOC, int $style = IEvent::FETCH_ONE, int $col = 0, $key = null, ?callable $callback = null) {
+	public function __construct(MySQLConnection $db, string $sql, int $type = IEvent::TYPE_ASSOC, int $style = IEvent::FETCH_ONE, int $col = 0, $key = null, ?callable $callback = null, $keyBy = null, $valueBy = null) {
 		$this->_db = $db;
 		$this->_sql = $sql;
 		$this->_type = ($style === IEvent::FETCH_COLUMN || $style === IEvent::FETCH_COLUMN_ALL ? IEvent::TYPE_NUM : $type);
@@ -50,6 +55,10 @@ class MySQLQueryEvent implements IEvent {
 			$this->_data = [];
 		}
 		$this->_callback = $callback;
+		if($style === IEvent::FETCH_ALL) {
+			$this->_keyBy = $keyBy;
+			$this->_valueBy = $valueBy;
+		}
 	}
 	
 	public function getSql() {
@@ -67,17 +76,23 @@ class MySQLQueryEvent implements IEvent {
 	/**
 	 * @return mixed
 	 */
-	protected function fetchOne() {
+	protected function fetchOne(&$key = null) {
 		switch($this->_type) {
 			default:
 			case IEvent::TYPE_ASSOC:
 				$data = $this->_result->fetch_assoc();
+				if($this->_keyBy !== null) $key = $data[$this->_keyBy]??null;
+				if($this->_valueBy !== null) $data = $data[$this->_valueBy]??null;
 				break;
 			case IEvent::TYPE_NUM:
 				$data = $this->_result->fetch_array(MYSQLI_NUM);
+				if($this->_keyBy !== null) $key = $data[$this->_keyBy]??null;
+				if($this->_valueBy !== null) $data = $data[$this->_valueBy]??null;
 				break;
 			case IEvent::TYPE_OBJ:
 				$data = $this->_result->fetch_object();
+				if($this->_keyBy !== null) $key = $data->{$this->_keyBy}??null;
+				if($this->_valueBy !== null) $data = $data->{$this->_valueBy}??null;
 				break;
 		}
 		return $data;
@@ -98,8 +113,16 @@ class MySQLQueryEvent implements IEvent {
 				default:
 				case IEvent::FETCH_ALL: {
 					$n = $this->_result->num_rows;
-					for($i=0; $i<$n; $i++) {
-						$this->_data[] = $this->fetchOne();
+					if($this->_keyBy === null) {
+						for($i=0; $i<$n; $i++) {
+							$this->_data[] = $this->fetchOne();
+						}
+					} else {
+						$key = null;
+						for($i=0; $i<$n; $i++) {
+							$data = $this->fetchOne($key);
+							$this->_data[$key] = $data;
+						}
 					}
 					break;
 				}

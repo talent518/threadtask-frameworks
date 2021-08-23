@@ -27,7 +27,7 @@ class DefaultController extends Controller {
 	 */
 	public function actionQuery(string $table='clazz') {
 		$t = microtime(true);
-		db()->pop()->asyncQuery("SHOW TABLES", ['style'=>IEvent::FETCH_COLUMN_ALL])->asyncQuery("SHOW GLOBAL VARIABLES LIKE '%timeout%'", ['type'=>IEvent::TYPE_OBJ, 'style'=>IEvent::FETCH_ALL])->goAsync(function($tables, $variables) use($t) {
+		db()->pop()->asyncQuery("SHOW TABLES", ['style'=>IEvent::FETCH_COLUMN_ALL])->asyncQuery("SHOW GLOBAL VARIABLES LIKE '%timeout%'", ['keyBy'=>'Variable_name', 'valueBy' => 'Value', 'style'=>IEvent::FETCH_ALL])->goAsync(function($tables, $variables) use($t) {
 			$t = microtime(true) - $t;
 			var_dump(get_defined_vars());
 		}, function($data) use($t) {
@@ -58,19 +58,19 @@ class DefaultController extends Controller {
 	 */
 	public function actionPrepare(int $id = 0, string $table='clazz', int $newId=5, string $newName='Async Prepare', string $newDesc='Test Insert') {
 		$t = microtime(true);
-		db()->pop()->asyncPrepare("SELECT * FROM clazz WHERE cno>?", [$id], ['style'=>IEvent::FETCH_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->goAsync(function($select, $replace) use($t) {
+		db()->pop()->asyncPrepare("SELECT * FROM clazz WHERE cno>?", [$id], ['style'=>IEvent::FETCH_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->asyncPrepare("SELECT * FROM clazz WHERE cno>?", [$id], ['keyBy'=>'cname', 'valueBy' => 'cdesc', 'style'=>IEvent::FETCH_ALL])->goAsync(function($select, $replace, $clazz) use($t) {
 			$this->formatColor('DATA1: ', self::FG_GREEN);
 
 			$t = microtime(true) - $t;
 			var_dump(get_defined_vars());
-		}, function(MySQLConnection $db, $data, $e) use($t,$newId,$newName,$newDesc) {
+		}, function(MySQLConnection $db, $data, $e) use($t) {
 			$this->formatColor('ERR1: ', self::FG_RED);
 
 			$t = microtime(true) - $t;
 			var_dump(compact('data', 't'));
 
 			if($db->iUsed === null) $db = $db->pool->pop();
-			$db->reset()->asyncQuery("SHOW TABLES", ['style'=>IEvent::FETCH_COLUMN_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->goAsync(function($tables = null) {
+			$db->reset()->asyncQuery("SHOW TABLES", ['style'=>IEvent::FETCH_COLUMN_ALL])->goAsync(function($tables = null) {
 				$this->formatColor('DATA2: ', self::FG_GREEN);
 				var_dump($tables);
 			}, function($data, $e, $db) {

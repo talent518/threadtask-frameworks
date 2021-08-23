@@ -36,9 +36,10 @@ class MySQLConnection extends AsyncConnection {
 	 */
 	public $iUsed;
 	
-	public function __construct(string $host, int $port, string $username, string $password, string $database, MySQLPool $pool, ?string $socket = null, bool $isMaster = false) {
+	public function __construct(string $host, int $port, string $username, string $password, string $database, MySQLPool $pool, ?string $socket = null, bool $isMaster = false, string $charset = 'utf8') {
 		$this->pool = $pool;
 		$this->_mysqli = new \mysqli($host, $username, $password, $database, $port, $socket);
+		$this->_mysqli->set_charset($charset);
 		$this->_time = microtime(true);
 		$this->_isMaster = $isMaster;
 	}

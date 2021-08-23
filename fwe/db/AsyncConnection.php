@@ -27,7 +27,7 @@ abstract class AsyncConnection {
 	 */
 	public $eventKey = 0;
 	
-	protected function reset() {
+	public function reset() {
 		$this->eventKey = 0;
 		$this->_events = [];
 		$this->_data = [];
@@ -38,6 +38,7 @@ abstract class AsyncConnection {
 			$this->_event = null;
 			\Fwe::$app->events--;
 		}
+		return $this;
 	}
 	
 	protected function trigger(\Throwable $e = null) {
@@ -62,6 +63,7 @@ abstract class AsyncConnection {
 		} else {
 			err:
 			$ret = true;
+			$current = $this->_current;
 			try {
 				$ret = \Fwe::invoke($this->_callbacks[1], ['db'=>$this, 'data'=>$this->_data, 'e'=>$e, 'event'=>$this->_current]) !== false;
 			} catch(\Throwable $e) {
@@ -70,10 +72,8 @@ abstract class AsyncConnection {
 				if($ret) {
 					$this->reset();
 					$this->pool->push($this);
-				} else {
-					if(IEvent::FETCH_COLUMN_ALL) {
-						$this->_data[$this->_current->getKey()] = $this->_current->getData();
-					}
+				} else if($current === $this->_current) {
+					$this->_data[$this->_current->getKey()] = $this->_current->getData();
 					$this->send();
 				}
 			}

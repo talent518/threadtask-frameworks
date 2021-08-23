@@ -14,7 +14,7 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 		return $this->_stmt->num_rows;
 	}
 	
-	protected function clone(&$params, &$result) {
+	protected function clone(&$params, &$result, &$retkey = null) {
 		switch($this->_type) {
 			default:
 			case IEvent::TYPE_ASSOC:
@@ -22,18 +22,24 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 				foreach($result as $key=>$val) {
 					$data[$key] = $val;
 				}
+				if($this->_keyBy !== null) $retkey = $data[$this->_keyBy]??null;
+				if($this->_valueBy !== null) $data = $data[$this->_valueBy]??null;
 				break;
 			case IEvent::TYPE_NUM:
 				$data = [];
 				foreach($params as $val) {
 					$data[] = $val;
 				}
+				if($this->_keyBy !== null) $retkey = $data[$this->_keyBy]??null;
+				if($this->_valueBy !== null) $data = $data[$this->_valueBy]??null;
 				break;
 			case IEvent::TYPE_OBJ:
 				$data = new \stdClass();
 				foreach($result as $key=>$val) {
 					$data->$key = $val;
 				}
+				if($this->_keyBy !== null) $retkey = $data->{$this->_keyBy}??null;
+				if($this->_valueBy !== null) $data = $data->{$this->_valueBy}??null;
 				break;
 		}
 		return $data;
@@ -68,8 +74,16 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 				default:
 				case IEvent::FETCH_ALL: {
 					$this->_data = [];
-					while($this->_stmt->fetch()) {
-						$this->_data[] = $this->clone($params, $result);
+					if($this->_keyBy === null) {
+						while($this->_stmt->fetch()) {
+							$this->_data[] = $this->clone($params, $result);
+						}
+					} else {
+						$key = null;
+						while($this->_stmt->fetch()) {
+							$data = $this->clone($params, $result, $key);
+							$this->_data[$key] = $data;
+						}
 					}
 					break;
 				}
