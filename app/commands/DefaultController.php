@@ -153,4 +153,18 @@ class DefaultController extends Controller {
 			});
 		}
 	}
+	
+	public function actionDownload(string $url, string $file, bool $isAppend = false) {
+		$prec = null;
+		$req = new Request($url);
+		$req->addHeader('File', $file);
+		$req->save2File($file, $isAppend);
+		$req->setProgress(basename($file));
+		curl()->make($req, function($res, $req) {
+			$res = $res->properties;
+			$req = $req->properties;
+			echo "\n";
+			var_export(compact('req', 'res'));
+		});
+	}
 }

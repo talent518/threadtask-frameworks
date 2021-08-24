@@ -1,6 +1,8 @@
 <?php
 namespace fwe\curl;
 
+use fwe\utils\StringHelper;
+
 /**
  * @property-read array $properties
  *
@@ -136,6 +138,10 @@ class Request {
 		return $this;
 	}
 	
+	public function setOption(int $option, $value) {
+		$this->options[$option] = $value;
+	}
+	
 	protected $format = self::FORMAT_URL;
 	public function setFormat(int $format) {
 		$this->format = $format;
@@ -224,12 +230,54 @@ class Request {
 	
 	public $responseClass = Response::class;
 	
+	public function save2File(string $file, bool $isAppend = false) {
+		if($isAppend) {
+			$this->options[CURLOPT_RESUME_FROM] = (@filesize($file) ?: 0);
+		}
+		$this->responseClass = [
+			'class' => ResponseFile::class,
+			'file' => $file,
+			'isAppend' => $isAppend
+		];
+		return $this;
+	}
+
+	protected $progress;
+	protected $percent;
+	protected $pgTime;
+	protected $pgSize = 0;
+	public function setProgress(string $progress) {
+		$this->progress = $progress;
+		
+		return $this;
+	}
+	
+	public function progress($ch, int $dlTotal, int $dlBytes, int $upTotal, int $upBytes) {
+		if($dlTotal <= 0) return;
+		
+		$p = round($dlBytes * 100 / $dlTotal, 1);
+		if($p !== $this->percent) {
+			$t = microtime(true);
+			$bytes = ($dlBytes - $this->pgSize) / ($t - $this->time);
+			$this->time = $t;
+			$this->pgSize = $dlBytes;
+			$this->percent = $p;
+			printf("\033[2K%s %.1f%% %s/s\r", $this->progress, $p, StringHelper::formatBytes($bytes));
+		}
+	}
+	
 	final public function make() {
 		$ch = curl_init($this->url);
 		curl_setopt_array($ch, $this->options);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $this->headers);
 		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $this->method);
 		$this->makeBody($ch);
+		
+		if($this->progress) {
+			curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, [$this, 'progress']);
+			curl_setopt($ch, CURLOPT_NOPROGRESS , false);
+			$this->time = microtime(true);
+		}
 		
 		return $ch;
 	}
