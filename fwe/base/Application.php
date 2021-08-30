@@ -107,12 +107,13 @@ abstract class Application extends Module {
 	public $signalTimeout = 0.25;
 
 	protected $_sigEvent;
-	protected function signalEvent() {
-		$this->_sigEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() {
+	protected function signalEvent(?callable $call = null) {
+		$this->_sigEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() use($call) {
 			if(!$this->_running) {
 				$this->signalHandler($this->_exitSig);
 				$this->_sigEvent->delTimer();
 			}
+			if($call) $call();
 		});
 		$this->_sigEvent->addTimer($this->signalTimeout);
 	}

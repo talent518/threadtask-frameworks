@@ -7,6 +7,7 @@ class Application extends \fwe\base\Application {
 
 	public $controllerNamespace = 'app\commands';
 	public $runActionMethod = 'runWithEvent';
+	public $signalTimeout = 0.01;
 
 	public function init() {
 		parent::init();
@@ -14,6 +15,14 @@ class Application extends \fwe\base\Application {
 		$this->controllerMap['help'] = 'fwe\console\HelpController';
 		$this->controllerMap['serve'] = 'fwe\console\ServeController';
 		$this->defaultRoute = 'help';
+	}
+	
+	public function signalHandler(int $sig) {
+		parent::signalHandler($sig);
+		
+		if(!$this->_running && !defined('THREAD_TASK_NAME')) {
+			task_wait($this->_exitSig);
+		}
 	}
 	
 	public function boot() {
@@ -36,7 +45,11 @@ class Application extends \fwe\base\Application {
 		try {
 			$action = $this->getAction($route, $params);
 			$method = $this->runActionMethod;
-			return $action->$method($params);
+			$ret = $action->$method($params);
+			if($this->events > 0) $this->signalEvent(function() {
+				if($this->events <= 0) \Fwe::$base->exit();
+			});
+			return $ret;
 		} catch(RouteException $e) {
 			echo $e;
 		}

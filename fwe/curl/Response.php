@@ -10,6 +10,11 @@ namespace fwe\curl;
  * @property-read string $statusText
  * @property-read array $headers
  * @property-read string $data
+ * 
+ * @property-read integer $dlTotal
+ * @property-read integer $dlBytes
+ * @property-read integer $upTotal
+ * @property-read integer $upBytes
  */
 class Response {
 	protected $isHTTP;
@@ -73,5 +78,13 @@ class Response {
 		$this->data .= $data;
 
 		return strlen($data);
+	}
+	
+	protected $dlTotal, $dlBytes, $upTotal, $upBytes;
+	public function progressHandler($ch, int $dlTotal, int $dlBytes, int $upTotal, int $upBytes) {
+		$this->dlTotal = $dlTotal;
+		$this->dlBytes = $dlBytes;
+		$this->upTotal = $upTotal;
+		$this->upBytes = $upBytes;
 	}
 }

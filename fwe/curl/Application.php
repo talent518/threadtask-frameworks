@@ -86,16 +86,15 @@ class Application extends \fwe\base\Application {
 			$write = $except = [];
 			$ret = @socket_select($read, $write, $except, $this->_count ? 0 : 1, 100); // 100us
 			if($ret === 0) continue;
-			if($ret === false) {
-				$this->write_all(-1, 'socket_select is return false');
-				return;
-			}
+			if($ret === false) break;
 			
 			$buf = @socket_read($fd, 128);
 			if($buf === false || ($n = strlen($buf)) == 0) return;
 			
 			for($i=0; $i<$n; $i++) $this->read();
 		}
+		
+		$this->write_all(-2, 'stopped curl');
 	}
 	
 	protected function write_all(int $errno = 0, string $error = 'none') {
@@ -140,6 +139,9 @@ class Application extends \fwe\base\Application {
 		curl_setopt($ch, CURLOPT_HEADERFUNCTION, [$res, 'headerHandler']);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 0);
 		curl_setopt($ch, CURLOPT_WRITEFUNCTION, [$res, 'writeHandler']);
+		
+		curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, [$res, 'progressHandler']);
+		curl_setopt($ch, CURLOPT_NOPROGRESS , false);
 		
 		$ret = curl_multi_add_handle($this->_mh, $ch);
 		if($ret != CURLM_OK) {

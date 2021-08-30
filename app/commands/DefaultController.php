@@ -159,7 +159,6 @@ class DefaultController extends Controller {
 		$req = new Request($url);
 		$req->addHeader('File', $file);
 		$req->save2File($file, $isAppend);
-		$req->setProgress(basename($file));
 		curl()->make($req, function($res, $req) {
 			$res = $res->properties;
 			$req = $req->properties;
