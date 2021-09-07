@@ -138,6 +138,10 @@ class DefaultController extends Controller {
 	}
 	
 	const CURL_COUNT = 5;
+
+	/**
+	 * 异步curl请求: GET
+	 */
 	public function actionCurl() {
 		$data = [];
 		for($i=0; $i<self::CURL_COUNT; $i++) {
@@ -154,6 +158,9 @@ class DefaultController extends Controller {
 		}
 	}
 	
+	/**
+	 * 异步curl文件下载
+	 */
 	public function actionDownload(string $url, string $file, bool $isAppend = false) {
 		$prec = null;
 		$req = new Request($url);
