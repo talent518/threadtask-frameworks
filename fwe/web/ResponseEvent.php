@@ -221,7 +221,7 @@ class ResponseEvent {
 				if(!$this->rsize) {
 					$this->range++;
 					if($this->range < count($this->ranges)) {
-						$range = $ranges[$this->range];
+						$range = $this->ranges[$this->range];
 						$buf .= "\r\n" . $range[2];
 						$this->size -= strlen($range[2]);
 						$this->rsize = $range[1] - $range[0] + 1;

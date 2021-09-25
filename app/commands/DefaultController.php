@@ -162,7 +162,6 @@ class DefaultController extends Controller {
 	 * 异步curl文件下载
 	 */
 	public function actionDownload(string $url, string $file, bool $isAppend = false) {
-		$prec = null;
 		$req = new Request($url);
 		$req->addHeader('File', $file);
 		$req->save2File($file, $isAppend);

@@ -109,7 +109,7 @@ class DefaultController extends Controller {
 		}
 
 		if(isset($request->get['json'])) {
-			$response->setContentType('application/json; charset=utf-8');
+			$request->getResponse()->setContentType('application/json; charset=utf-8');
 			return json_encode($files, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
 		}
 

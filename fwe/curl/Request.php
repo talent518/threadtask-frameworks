@@ -181,7 +181,6 @@ class Request {
 			default:
 				return http_build_query($this->data);
 			case self::FORMAT_JSON:
-				curl_setopt($ch, CURLOPT_CON, $value);
 				return json_encode($this->data, JSON_PRETTY_PRINT);
 			case self::FORMAT_XML:
 				$xml = new \SimpleXMLElement("<?xml version=\"1.0\"?><root></root>");
