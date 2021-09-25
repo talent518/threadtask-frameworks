@@ -307,6 +307,7 @@ abstract class StringHelper {
 	 */
 	public static function formatBytes($size) {
 		if(!is_numeric($size)) {
+			$matches = [];
 			if(preg_match('/^(\d+(\.\d+)?)([KMGT]?)B?$/i', $size, $matches)) {
 				return $matches[1] * pow(1024, $matches[3] ? strpos('KMGT', strtoupper($matches[3]))+1 : 0);
 			} else {

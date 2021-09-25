@@ -165,6 +165,7 @@ class HelpController extends Controller {
 					}
 				}
 				foreach($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+					$matches = [];
 					if(preg_match('/^action([A-Z][A-Za-z0-9]*)$/', $method->getName(), $matches)) {
 						$id2 = trim(preg_replace_callback('/[A-Z]/', function ($matches) {
 							return '-' . strtolower($matches[0]);

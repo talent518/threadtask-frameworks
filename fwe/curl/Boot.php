@@ -87,6 +87,7 @@ class Boot {
 		\Fwe::$app->stat('curl:act', -1);
 		\Fwe::$app->stat('curl:res');
 
+		$key = null;
 		$res = $this->_var->shift(true, $key);
 
 		list($req, $call) = $this->_call[$key];
@@ -100,7 +101,7 @@ class Boot {
 	
 		if(!--$this->_events) $this->_event->del();
 		
-		unset($this->_call[$req->resKey]);
+		unset($this->_call[$key]);
 		
 		\Fwe::$app->events--;
 		\Fwe::$app->stat('curl:act', -1);

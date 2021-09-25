@@ -322,6 +322,7 @@ class RedisConnection extends AsyncConnection {
 		$isAsync = $this->_isAsync;
 		$this->_isAsync = false;
 		
+		$errorNumber = $errorDescription = null;
 		$this->_socket = @stream_socket_client(
 			$this->connectionString,
 			$errorNumber,

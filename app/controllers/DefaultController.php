@@ -72,6 +72,7 @@ class DefaultController extends Controller {
 			while(($f=readdir($dh)) !== false) {
 				if($f === '.' || $f === '..') continue;
 				
+				$type = null;
 				$st = stat($path . '/' . $f);
 				$files[] = [
 					'name' => $f,

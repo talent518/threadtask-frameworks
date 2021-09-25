@@ -107,6 +107,7 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 	}
 
 	public function send() {
+		$types = null;
 		$this->_db->bindParam($this->param, $types);
 		
 		$this->_stmt = $this->_db->prepare($this->_sql);

@@ -576,6 +576,7 @@ class RequestEvent {
 	public function getHeadArgs($head): array {
 		@list($arg0, $args) = preg_split('/;\s*/', $head, 2);
 		$ret = [$arg0];
+		$matches = [];
 		$n = preg_match_all('/([^\=]+)\=("([^"]*)"|\'([^\']*)\'|([^;]*));?\s*/', $args, $matches);
 		for($i=0; $i<$n; $i++) {
 			$ret[$matches[1][$i]] = implode('', [$matches[3][$i], $matches[4][$i], $matches[5][$i]]);

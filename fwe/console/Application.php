@@ -36,6 +36,7 @@ class Application extends \fwe\base\Application {
 		$params = [];
 		for(; $i < $_SERVER['argc']; $i ++) {
 			$param = $_SERVER['argv'][$i];
+			$matches = [];
 			if(preg_match('/^--([^\=]+)\=?(.*)$/', $param, $matches)) {
 				$params[$matches[1]] = $matches[2];
 			} else {

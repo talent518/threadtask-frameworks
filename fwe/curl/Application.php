@@ -113,6 +113,7 @@ class Application extends \fwe\base\Application {
 
 	protected $_reqs = [];
 	public function read() {
+		$key = null;
 		/* @var $req \fwe\curl\Request */
 		$req = $this->_var->shift(true, $key);
 		if(!($req instanceof Request)) {

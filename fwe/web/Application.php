@@ -138,6 +138,7 @@ class Application extends \fwe\base\Application {
 		$this->_statEvent->addTimer(1);
 		
 		$this->_lstEvent = new \Event(\Fwe::$base, $this->_fd, \Event::READ | \Event::PERSIST, function() {
+			$addr = $port = null;
 			$fd = @socket_accept_ex($this->_fd, $addr, $port);
 			if(!$fd) return;
 
@@ -186,6 +187,7 @@ class Application extends \fwe\base\Application {
 				return;
 			}
 			
+			$key = null;
 			list($fd, $addr, $port) = $this->_wsVar->shift(true, $key);
 
 			$this->_reqEvents[$key] = \Fwe::createObject(WsEvent::class, compact('fd', 'addr', 'port', 'key'));
@@ -240,6 +242,7 @@ class Application extends \fwe\base\Application {
 				return;
 			}
 			
+			$key = null;
 			list($fd, $addr, $port) = $this->_reqVars->shift(true, $key);
 			
 			$keepAlive = microtime(true) + $this->keepAlive;
@@ -273,6 +276,7 @@ class Application extends \fwe\base\Application {
 		$params = [];
 		for($i = 1; $i < $_SERVER['argc']; $i ++) {
 			$param = $_SERVER['argv'][$i];
+			$matches = [];
 			if(preg_match('/^--([^\=]+)\=?(.*)$/', $param, $matches)) {
 				$params[$matches[1]] = $matches[2];
 			} else {

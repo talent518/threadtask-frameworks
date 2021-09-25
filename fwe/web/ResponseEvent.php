@@ -349,6 +349,7 @@ class ResponseEvent {
 				range:
 				$ranges = [];
 				$range = $this->request->headers['Range'];
+				$matches = [];
 				$n = preg_match_all('/(bytes=)?([0-9]+)\-([0-9]*),?\s*/i', $this->request->headers['Range'], $matches);
 
 				if($n && implode('', $matches[0]) === $range) {
