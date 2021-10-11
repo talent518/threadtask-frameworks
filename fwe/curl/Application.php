@@ -43,6 +43,8 @@ class Application extends \fwe\base\Application {
 	
 	protected $_count = 0;
 	protected function loop() {
+		if(!task_get_run()) return;
+
 		$fd = $this->_var->getReadFd();
 
 		while($this->_running || $this->_count) {
