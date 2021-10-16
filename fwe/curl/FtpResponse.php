@@ -5,13 +5,20 @@ use fwe\utils\StringHelper;
 
 /**
  * @property-read string $file
- * @property-read boolean $isAppend
  * @property-read integer $size
+ * @property-read boolean $isAppend
+ * 
+ * @property-read integer $dlTotal
+ * @property-read integer $dlBytes
+ * @property-read integer $upTotal
+ * @property-read integer $upBytes
+ *
  * @property-read integer $percent
  * @property-read integer $pgTime
  * @property-read integer $pgSize
  */
-class ResponseFile extends Response {
+class FtpResponse extends IResponse {
+	
 	/**
 	 * @var string
 	 */
@@ -37,19 +44,24 @@ class ResponseFile extends Response {
 		$this->isAppend = $isAppend;
 		$this->fp = @fopen($file, $isAppend ? 'a' : 'w');
 		$this->size = $size;
-
+		
 		$this->pgTime = microtime(true);
 	}
 	
 	public function writeHandler($ch, $data) {
 		return $this->fp ? fwrite($this->fp, $data) : 0;
 	}
-
+	
+	protected $dlTotal, $dlBytes, $upTotal, $upBytes;
+	
 	protected $percent;
 	protected $pgTime;
 	protected $pgSize = 0;
 	public function progressHandler($ch, int $dlTotal, int $dlBytes, int $upTotal, int $upBytes) {
-		parent::progressHandler($ch, $dlTotal, $dlBytes, $upTotal, $upBytes);
+		$this->dlTotal = $dlTotal;
+		$this->dlBytes = $dlBytes;
+		$this->upTotal = $upTotal;
+		$this->upBytes = $upBytes;
 
 		if($dlTotal <= 0) return;
 		
@@ -71,4 +83,3 @@ class ResponseFile extends Response {
 		$this->fp = null;
 	}
 }
-

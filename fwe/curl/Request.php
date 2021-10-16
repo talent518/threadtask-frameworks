@@ -2,10 +2,7 @@
 namespace fwe\curl;
 
 /**
- * @property-read array $properties
- *
  * @property-read string $method
- * @property-read string $url
  * @property-read array $headers
  * @property-read integer $type
  * @property-read string|array $data
@@ -15,7 +12,7 @@ namespace fwe\curl;
  * @property-read array $options
  * @property-read integer $format
  */
-class Request {
+class Request extends IRequest {
 	const TYPE_NONE = 0;
 	const TYPE_DATA = 1;
 	const TYPE_FORM = 2;
@@ -25,26 +22,16 @@ class Request {
 	const FORMAT_JSON = 1;
 	const FORMAT_XML = 2;
 	
-	public $key, $resKey;
-	
 	protected $method;
-	protected $url;
 	protected $headers;
 
 	protected $type = self::TYPE_NONE;
 	
 	public function __construct(string $url, string $method = 'GET', array $headers = []) {
-		$this->url = $url;
+		parent::__construct($url);
+
 		$this->method = $method;
 		$this->headers = $headers;
-	}
-	
-	public function __get($name) {
-		if($name === 'properties') {
-			return get_object_vars($this);
-		} else {
-			return $this->$name;
-		}
 	}
 	
 	public function addHeader(string $name, string $value) {
@@ -126,15 +113,6 @@ class Request {
 		CURLOPT_FOLLOWLOCATION => true,
 		CURLOPT_MAXREDIRS => 3,
 	];
-
-	public function setOptions(array $options) {
-		unset($options[CURLOPT_VERBOSE], $options[CURLOPT_HEADER], $options[CURLOPT_RETURNTRANSFER]);
-		unset($options[CURLOPT_STDERR], $options[CURLOPT_FILE], $options[CURLOPT_INFILE], $options[CURLOPT_WRITEHEADER]);
-
-		$this->options = $options;
-		
-		return $this;
-	}
 	
 	public function setOption(int $option, $value) {
 		$this->options[$option] = $value;
@@ -227,14 +205,15 @@ class Request {
 	
 	public $responseClass = Response::class;
 	
-	public function save2File(string $file, bool $isAppend = false) {
+	public function save2File(string $file, bool $isAppend = false, string $class = ResponseFile::class) {
 		if($isAppend) {
 			$this->options[CURLOPT_RESUME_FROM] = $size = (@filesize($file) ?: 0);
+			if($size === 0) $isAppend = false;
 		} else {
 			$size = 0;
 		}
 		$this->responseClass = [
-			'class' => ResponseFile::class,
+			'class' => $class,
 			'file' => $file,
 			'size' => $size,
 			'isAppend' => $isAppend
@@ -242,12 +221,22 @@ class Request {
 		return $this;
 	}
 	
-	final public function make() {
+	public function make(&$res) {
 		$ch = curl_init($this->url);
 		curl_setopt_array($ch, $this->options);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $this->headers);
 		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $this->method);
 		$this->makeBody($ch);
+		
+		$res = \Fwe::createObject($this->responseClass);
+		
+		curl_setopt($ch, CURLOPT_HEADER, 0);
+		curl_setopt($ch, CURLOPT_HEADERFUNCTION, [$res, 'headerHandler']);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 0);
+		curl_setopt($ch, CURLOPT_WRITEFUNCTION, [$res, 'writeHandler']);
+		
+		curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, [$res, 'progressHandler']);
+		curl_setopt($ch, CURLOPT_NOPROGRESS , false);
 		
 		return $ch;
 	}

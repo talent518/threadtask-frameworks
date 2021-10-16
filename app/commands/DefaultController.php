@@ -2,9 +2,10 @@
 namespace app\commands;
 
 use fwe\console\Controller;
-use fwe\db\MySQLConnection;
-use fwe\db\IEvent;
+use fwe\curl\FtpRequest;
 use fwe\curl\Request;
+use fwe\db\IEvent;
+use fwe\db\MySQLConnection;
 
 class DefaultController extends Controller {
 
@@ -162,8 +163,14 @@ class DefaultController extends Controller {
 	 * 异步curl文件下载
 	 */
 	public function actionDownload(string $url, string $file, bool $isAppend = false) {
-		$req = new Request($url);
-		$req->addHeader('File', $file);
+		if(preg_match('/^https?:\/\//i', $url)) {
+			$req = new Request($url);
+			$req->addHeader('File', $file);
+		} elseif(preg_match('/^ftps?:\/\//i', $url)) {
+			$req = new FtpRequest($url);
+		} else {
+			exit("not support protocol: $url\n");
+		}
 		$req->save2File($file, $isAppend);
 		curl()->make($req, function($res, $req) {
 			$res = $res->properties;

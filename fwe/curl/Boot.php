@@ -55,7 +55,7 @@ class Boot {
 	
 	private $_events = 0;
 	private $_call = [];
-	public function make(Request $req, callable $call) {
+	public function make(IRequest $req, callable $call) {
 		if(!$this->_events++) $this->_event->add();
 		
 		\Fwe::$app->events++;

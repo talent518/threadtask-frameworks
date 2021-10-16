@@ -113,9 +113,9 @@ class Application extends \fwe\base\Application {
 	protected $_reqs = [];
 	public function read() {
 		$key = null;
-		/* @var $req \fwe\curl\Request */
+		/* @var $req \fwe\curl\IRequest */
 		$req = $this->_var->shift(true, $key);
-		if(!($req instanceof Request)) {
+		if(!($req instanceof IRequest)) {
 			if(isset($this->_reqs[$key])) {
 				$val = $this->_reqs[$key];
 				curl_multi_remove_handle($this->_mh, $val['ch']);
@@ -128,20 +128,9 @@ class Application extends \fwe\base\Application {
 			$this->_vars[$req->key] = new TsVar($req->key, 0, null, true);
 		}
 		$var = $this->_vars[$req->key];
-		$ch = $req->make();
-		
-		$protocol = substr($req->url, strpos($req->url, '://'));
 
-		/* @var $res \fwe\curl\Response */
-		$res = \Fwe::createObject($req->responseClass, compact('protocol'));
-		
-		curl_setopt($ch, CURLOPT_HEADER, 0);
-		curl_setopt($ch, CURLOPT_HEADERFUNCTION, [$res, 'headerHandler']);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 0);
-		curl_setopt($ch, CURLOPT_WRITEFUNCTION, [$res, 'writeHandler']);
-		
-		curl_setopt($ch, CURLOPT_PROGRESSFUNCTION, [$res, 'progressHandler']);
-		curl_setopt($ch, CURLOPT_NOPROGRESS , false);
+		$res = null; /* @var $res \fwe\curl\IResponse */
+		$ch = $req->make($res);
 		
 		$ret = curl_multi_add_handle($this->_mh, $ch);
 		if($ret != CURLM_OK) {
@@ -156,10 +145,10 @@ class Application extends \fwe\base\Application {
 		}
 		
 		$this->_count ++;
-		$this->_reqs[$key] = compact('req', 'var', 'ch', 'protocol', 'res');
+		$this->_reqs[$key] = compact('req', 'var', 'ch', 'res');
 	}
 	
-	protected function write($var, $key, Response $res) {
+	protected function write($var, $key, $res) {
 		$var[$key] = $res;
 		
 		$var->write();

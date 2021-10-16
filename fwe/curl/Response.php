@@ -2,12 +2,7 @@
 namespace fwe\curl;
 
 /**
- * @property-read array $properties
- *
- * @property-read boolean $isHTTP
  * @property-read string $protocol
- * @property-read string $status
- * @property-read string $statusText
  * @property-read array $headers
  * @property-read string $data
  * 
@@ -16,9 +11,7 @@ namespace fwe\curl;
  * @property-read integer $upTotal
  * @property-read integer $upBytes
  */
-class Response {
-	protected $isHTTP;
-
+class Response extends IResponse {
 	protected $protocol;
 	protected $status;
 	protected $statusText;
@@ -26,23 +19,6 @@ class Response {
 	protected $headers = [];
 
 	protected $data;
-	
-	public function __construct(string $protocol) {
-		$this->isHTTP = preg_match('/^https?$/i', $protocol) > 0;
-	}
-	
-	public function __get($name) {
-		if($name === 'properties') {
-			return get_object_vars($this);
-		} else {
-			return $this->$name;
-		}
-	}
-	
-	public function setStatus(int $status, string $statusText) {
-		$this->status = $status;
-		$this->statusText = $statusText;
-	}
 	
 	/**
 	 * @param resource $ch
