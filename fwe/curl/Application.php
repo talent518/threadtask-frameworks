@@ -45,8 +45,6 @@ class Application extends \fwe\base\Application {
 	protected function loop() {
 		if(!task_get_run()) return;
 
-		$fd = $this->_var->getReadFd();
-
 		while($this->_running || $this->_count) {
 			if($this->_count) {
 				$active = 0;
@@ -84,14 +82,13 @@ class Application extends \fwe\base\Application {
 						break;
 				}
 			}
-			$read = [$fd];
+			$read = [$this->_var->getReadFd()];
 			$write = $except = [];
 			$ret = @socket_select($read, $write, $except, $this->_count ? 0 : 1, 100); // 100us
 			if($ret === 0) continue;
 			if($ret === false) break;
 			
-			$buf = @socket_read($fd, 128);
-			if($buf === false || ($n = strlen($buf)) == 0) return;
+			if(($n = $this->_var->read(128)) === false) return;
 			
 			for($i=0; $i<$n; $i++) $this->read();
 		}
@@ -165,6 +162,6 @@ class Application extends \fwe\base\Application {
 	protected function write($var, $key, Response $res) {
 		$var[$key] = $res;
 		
-		@socket_write($var->getWriteFd(), 'a', 1);
+		$var->write();
 	}
 }

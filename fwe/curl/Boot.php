@@ -31,7 +31,6 @@ class Boot {
 	 */
 	protected $_var;
 
-	
 	protected static $isCreate = true;
 	public function init() {
 		for($i=0; $i<$this->maxThreads; $i++) {
@@ -51,7 +50,7 @@ class Boot {
 			}
 		}
 
-		$this->_event = new \Event(\Fwe::$base, $this->_var->getReadFd(), \Event::READ | \Event::PERSIST, [$this, 'read']);
+		$this->_event = $this->_var->newReadEvent([$this, 'read']);
 	}
 	
 	private $_events = 0;
@@ -70,15 +69,11 @@ class Boot {
 		$var[$key] = $req;
 		$this->_call[$key] = [$req, $call];
 		
-		@socket_write($var->getWriteFd(), 'a', 1);
+		$var->write();
 	}
 	
 	public function read() {
-		if(!($a = @socket_read($this->_var->getReadFd(), 1))) return;
-		if($a !== 'a') {
-			\Fwe::$base->exit();
-			return;
-		}
+		if(!$this->_var->read()) return;
 		
 		if(!--$this->_events) $this->_event->del();
 

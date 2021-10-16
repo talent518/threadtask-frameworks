@@ -142,14 +142,14 @@ class Application extends \fwe\base\Application {
 			$fd = @socket_accept_ex($this->_fd, $addr, $port);
 			if(!$fd) return;
 
-			@socket_set_option($fd, SOL_SOCKET, SO_LINGER, ['l_onoff'=>1, 'l_linger'=>1]) or strerror('socket_set_option', false);
+			@socket_set_option($fd, SOL_SOCKET, SO_LINGER, ['l_onoff'=>1, 'l_linger'=>1]) or $this->strerror('socket_set_option', false);
 			$fd = socket_export_fd($fd, true);
 			
 			$i = $this->stat('conns') - 1;
 			$reqVar = $this->_reqVars[$i % $this->maxThreads]; /* @var $reqVar TsVar */
 			$reqVar[$i] = [$fd, $addr, $port];
 
-			@socket_write($reqVar->getWriteFd(), 'a', 1);
+			$reqVar->write();
 		});
 		$this->_lstEvent->add();
 		
@@ -180,12 +180,8 @@ class Application extends \fwe\base\Application {
 		$this->_reqIndex = $index;
 		$this->_wsVar = new TsVar("__ws{$index}__", 0, null, true);
 
-		$this->_reqEvent = new \Event(\Fwe::$base, $this->_wsVar->getReadFd(), \Event::READ | \Event::PERSIST, function() {
-			if(!($a = @socket_read($this->_wsVar->getReadFd(), 1))) return;
-			if($a !== 'a') {
-				\Fwe::$base->exit();
-				return;
-			}
+		$this->_reqEvent = $this->_wsVar->newReadEvent(function() {
+			if(!$this->_wsVar->read()) return;
 			
 			$key = null;
 			list($fd, $addr, $port) = $this->_wsVar->shift(true, $key);
@@ -207,7 +203,7 @@ class Application extends \fwe\base\Application {
 
 		$wsVar = $this->_wsVars[$index];
 		$wsVar[$key] = $args;
-		@socket_write($wsVar->getWriteFd(), 'a', 1);
+		$wsVar->write();
 	}
 	
 	public function sendWs($data) {
@@ -235,12 +231,8 @@ class Application extends \fwe\base\Application {
 			$this->_wsVars[$i] = new TsVar("__ws{$i}__", 0, null, true);
 		}
 		
-		$this->_reqEvent = new \Event(\Fwe::$base, $this->_reqVars->getReadFd(), \Event::READ | \Event::PERSIST, function() use($index) {
-			if(!($a = @socket_read($this->_reqVars->getReadFd(), 1))) return;
-			if($a !== 'a') {
-				\Fwe::$base->exit();
-				return;
-			}
+		$this->_reqEvent = $this->_reqVars->newReadEvent(function() use($index) {
+			if(!$this->_reqVars->read()) return;
 			
 			$key = null;
 			list($fd, $addr, $port) = $this->_reqVars->shift(true, $key);

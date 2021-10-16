@@ -58,6 +58,17 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 	public function getKey() {
 		return $this->_key;
 	}
+
+	protected function strerror(string $msg) {
+		$errno = socket_last_error();
+		$error = socket_strerror($errno);
+		socket_clear_error();
+		if($errno === SOCKET_EINTR) return;
+		
+		$e = new \Exception("$msg: $error", $errno);
+		
+		echo "$e\n";
+	}
 	
 	public function getReadFd() {
 		if(!$this->_isFd) return false;
@@ -69,6 +80,28 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 		return $this->_readFd;
 	}
 	
+	public function newReadEvent(callable $call, int $what = \Event::READ | \Event::PERSIST) {
+		return new \Event(\Fwe::$base, $this->getReadFd(), $what, $call);
+	}
+	
+	public function read(int $len = 1, string $data = 'a') {
+		if($len <= 0) {
+			$e = new \Exception('read length cannot less then 1');
+			echo "$e\n";
+			return false;
+		}
+		if(!($buf = @socket_read($this->getReadFd(), $len))) {
+			$this->strerror('socket_read');
+			return false;
+		}
+		$len = strlen($buf);
+		if($buf !== str_repeat($data, $len)) {
+			\Fwe::$base->exit();
+			return false;
+		}
+		return $len;
+	}
+	
 	public function getWriteFd() {
 		if(!$this->_isFd) return false;
 		
@@ -77,6 +110,19 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 		}
 		
 		return $this->_writeFd;
+	}
+	
+	public function write(int $len = 1, string $data = 'a') {
+		if($len <= 0) {
+			$e = new \Exception('write length cannot less then 1');
+			echo "$e\n";
+			return false;
+		}
+		if(@socket_write($this->getWriteFd(), str_repeat($data, $len), $len) !== $len) {
+			$this->strerror('socket_write');
+			return false;
+		}
+		return true;
 	}
 
 	public function getParent() {
