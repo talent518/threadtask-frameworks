@@ -33,6 +33,8 @@ class ResponseFile extends Response {
 	protected $size;
 	
 	public function __construct(string $file, bool $isAppend, int $size = 0) {
+		parent::__construct();
+
 		$this->file = $file;
 		$this->isAppend = $isAppend;
 		$this->fp = @fopen($file, $isAppend ? 'a' : 'w');
@@ -62,7 +64,7 @@ class ResponseFile extends Response {
 			$this->pgTime += $t;
 			$this->pgSize = $dlBytes;
 			$this->percent = $p;
-			printf("\033[2K%s %.1f%% %s/s\r", basename($this->file), $p, StringHelper::formatBytes($bytes));
+			printf("\033[2K%s %s/%s %.1f%% %s/s\r", basename($this->file), StringHelper::formatBytes($dlBytes), StringHelper::formatBytes($dlTotal), $p, StringHelper::formatBytes($bytes));
 		}
 	}
 	
