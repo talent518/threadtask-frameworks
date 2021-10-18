@@ -7,16 +7,16 @@ namespace fwe\curl;
  * @property-read float $beginTime
  * @property-read float $endTime
  * @property-read float $wakeupTime
- * @property-read string $status
- * @property-read string $statusText
+ * @property-read integer $errno
+ * @property-read string $error
  */
 class IResponse {
 	protected $beginTime;
 	protected $endTime;
 	protected $wakeupTime;
 
-	protected $status;
-	protected $statusText;
+	protected $errno;
+	protected $error;
 
 	public function __construct() {
 		$this->beginTime = microtime(true);
@@ -34,10 +34,10 @@ class IResponse {
 		}
 	}
 	
-	public function setStatus(int $status, string $statusText) {
+	public function setError(int $errno, string $error) {
 		$this->endTime = microtime(true);
-		$this->status = $status;
-		$this->statusText = $statusText;
+		$this->errno = $errno;
+		$this->error = $error;
 	}
 }
 

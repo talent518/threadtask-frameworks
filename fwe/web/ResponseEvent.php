@@ -86,9 +86,11 @@ class ResponseEvent {
 		
 		if($bodyLen >= 0) {
 			$this->headers['Content-Length'] = $bodyLen;
+			unset($this->headers['Transfer-Encoding']);
 		} else {
 			$this->headers['Transfer-Encoding'] = 'chunked';
 			$this->isChunked = true;
+			unset($this->headers['Content-Length']);
 		}
 		
 		$this->headers['Date'] = gmdate('D, d-M-Y H:i:s T');

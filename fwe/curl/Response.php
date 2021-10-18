@@ -3,6 +3,8 @@ namespace fwe\curl;
 
 /**
  * @property-read string $protocol
+ * @property-read integer $status
+ * @property-read string $statusText
  * @property-read array $headers
  * @property-read string $data
  * 
@@ -15,9 +17,7 @@ class Response extends IResponse {
 	protected $protocol;
 	protected $status;
 	protected $statusText;
-
 	protected $headers = [];
-
 	protected $data;
 	
 	/**

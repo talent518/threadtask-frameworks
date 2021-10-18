@@ -60,10 +60,10 @@ class Application extends \fwe\base\Application {
 									if($val['ch'] != $ret['handle']) continue;
 
 									if($ret['result'] === CURLE_OK) {
-										$val['res']->setStatus(0, 'OK');
+										$val['res']->setError(0, 'OK');
 									} else {
 										$err = curl_strerror($ret['result']);
-										$val['res']->setStatus($ret['result'], $err);
+										$val['res']->setError($ret['result'], $err);
 									}
 									
 									curl_multi_remove_handle($this->_mh, $val['ch']);
@@ -100,7 +100,7 @@ class Application extends \fwe\base\Application {
 	
 	protected function write_all(int $errno = 0, string $error = 'OK') {
 		foreach($this->_reqs as $key => $val) {
-			$val['res']->setStatus($errno, $error);
+			$val['res']->setError($errno, $error);
 			curl_multi_remove_handle($this->_mh, $val['ch']);
 			curl_close($val['ch']);
 			$this->write($val['var'], $key, $val['res']);
@@ -139,7 +139,7 @@ class Application extends \fwe\base\Application {
 			echo "$ex\n";
 
 			curl_close($ch);
-			$res->setStatus($ret, $err);
+			$res->setError($ret, $err);
 			$this->write($var, $key, $res);
 			return;
 		}
