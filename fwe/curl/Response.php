@@ -25,7 +25,7 @@ class Response extends IResponse {
 	 * @param string $header
 	 */
 	public function headerHandler($ch, $header) {
-		if($this->protocol) {
+		if($this->protocol && !preg_match('/^HTTP\/\d(\.\d)?\s+\d+\s+/i', $header)) {
 			if(strchr($header, ':') === false) return strlen($header);
 			
 			list($name, $value) = preg_split('/\:\s*/', $header, 2);
@@ -45,6 +45,7 @@ class Response extends IResponse {
 			list($this->protocol, $status, $statusText) = preg_split('/\s+/', $header, 3);
 			$this->status = (int) $status;
 			$this->statusText = trim($statusText);
+			$this->headers = [];
 		}
 
 		return strlen($header);
