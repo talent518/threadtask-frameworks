@@ -6,6 +6,11 @@ use fwe\base\TsVar;
 class Application extends \fwe\base\Application {
 
 	/**
+	 * @var boolean
+	 */
+	public $verbose = false;
+
+	/**
 	 * @var TsVar
 	 */
 	protected $_var;
@@ -131,6 +136,8 @@ class Application extends \fwe\base\Application {
 
 		$res = null; /* @var $res \fwe\curl\IResponse */
 		$ch = $req->make($res);
+
+		curl_setopt($ch, CURLOPT_VERBOSE, $this->verbose);
 		
 		$ret = curl_multi_add_handle($this->_mh, $ch);
 		if($ret != CURLM_OK) {

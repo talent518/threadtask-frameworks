@@ -9,6 +9,7 @@ class FtpRequest extends IRequest {
 	
 	protected $options = [
 		CURLOPT_TRANSFERTEXT => false,
+		CURLOPT_TFTP_NO_OPTIONS => true,
 	];
 	
 	public function setOption(int $option, $value) {

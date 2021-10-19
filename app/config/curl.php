@@ -6,5 +6,6 @@ Fwe::setAlias('@web', ROOT . '/web');
 return [
 	'class' => 'fwe\curl\Application',
 	'id' => 'fwe',
-	'name' => 'FWE框架'
+	'name' => 'FWE框架',
+	'verbose' => (getenv("VERBOSE") ? true : false),
 ];
