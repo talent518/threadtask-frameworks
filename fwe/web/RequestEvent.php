@@ -180,7 +180,10 @@ class RequestEvent {
 			$free($this);
 		}
 		
-		if($isClose) $this->event->close();
+		if($isClose) {
+			\Fwe::$app->decConn();
+			$this->event->close();
+		}
 		$this->event->free();
 
 		\Fwe::$app->setReqEvent($this->key);
@@ -213,6 +216,7 @@ class RequestEvent {
 		\Fwe::$app->stat($this->response->status < 400 ? 'success' : 'error');
 		
 		if($this->response->isWebSocket) {
+			\Fwe::$app->decConn();
 			$this->free(false);
 			$index = $this->get['index'] ?? 0;
 			\Fwe::$app->addWs($index, $this->key, [$this->fd, $this->clientAddr, $this->clientPort]);

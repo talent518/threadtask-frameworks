@@ -105,6 +105,11 @@ class Application extends \fwe\base\Application {
 	
 	public $isToFile = true;
 	
+	/**
+	 * @var TsVar
+	 */
+	protected $_connStatVar;
+
 	protected $_statEvent, $_lstEvent;
 
 	public function listen() {
@@ -114,11 +119,13 @@ class Application extends \fwe\base\Application {
 		@socket_listen($this->_sock, $this->backlog) or $this->strerror('socket_listen');
 		
 		$this->_fd = socket_export_fd($this->_sock);
+		$this->_connStatVar = new TsVar("conn:stat");
 		
 		$statFile = \Fwe::getAlias('@app/runtime/stat.log');
+		$connFile = \Fwe::getAlias('@app/runtime/conn.log');
 		
 		$n = $ns = $ne = 0;
-		$this->_statEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() use(&$statFile, &$n, &$ns, &$ne) {
+		$this->_statEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() use(&$statFile, &$connFile, &$n, &$ns, &$ne) {
 			$n2 = $this->stat('conns', 0);
 			$n3 = 0;
 			for($i = 0; $i < $this->maxWsGroups; $i++) {
@@ -131,6 +138,8 @@ class Application extends \fwe\base\Application {
 			$ne = $n5 - $ne;
 			$time = date('Y-m-d H:i:s');
 			file_put_contents($statFile, "[$time] $n connects, $n3 accepts, $ns successes, $ne errors\n", FILE_APPEND);
+			$conns = implode(' ', $this->_connStatVar->all());
+			file_put_contents($connFile, "$conns\n", FILE_APPEND);
 			$n = $n2;
 			$ns = $n4;
 			$ne = $n5;
@@ -145,9 +154,13 @@ class Application extends \fwe\base\Application {
 			@socket_set_option($fd, SOL_SOCKET, SO_LINGER, ['l_onoff'=>1, 'l_linger'=>1]) or $this->strerror('socket_set_option', false);
 			$fd = socket_export_fd($fd, true);
 			
-			$i = $this->stat('conns') - 1;
-			$reqVar = $this->_reqVars[$i % $this->maxThreads]; /* @var $reqVar TsVar */
-			$reqVar[$i] = [$fd, $addr, $port];
+			$key = $this->stat('conns');
+
+			$i = null;
+			$v = $this->_connStatVar->minmax($i);
+			$this->_connStatVar->inc($i, 1);
+			$reqVar = $this->_reqVars[$i]; /* @var $reqVar TsVar */
+			$reqVar[$key] = [$fd, $addr, $port];
 
 			$reqVar->write();
 		});
@@ -160,6 +173,7 @@ class Application extends \fwe\base\Application {
 
 		for($i = 0; $i < $this->maxThreads; $i++) {
 			$this->_reqVars[$i] = new TsVar("req:$i", 0, null, true);
+			$this->_connStatVar[$i] = 0;
 			create_task(\Fwe::$name . ":req:$i", INFILE, [$i]);
 		}
 		
@@ -217,6 +231,10 @@ class Application extends \fwe\base\Application {
 		else unset($this->_reqEvents[$key]);
 	}
 
+	public function decConn() {
+		$this->_connStatVar->inc($this->_reqIndex, -1);
+	}
+
 	/**
 	 * @var array|TsVar
 	 */
@@ -226,6 +244,7 @@ class Application extends \fwe\base\Application {
 	public function req(int $index) {
 		$this->_reqIndex = $index;
 		$this->_reqVars = new TsVar("req:$index", 0, null, true);
+		$this->_connStatVar = new TsVar("conn:stat");
 
 		for($i = 0; $i < $this->maxWsGroups; $i++) {
 			$this->_wsVars[$i] = new TsVar("__ws{$i}__", 0, null, true);
