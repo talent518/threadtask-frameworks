@@ -144,6 +144,11 @@ class Application extends \fwe\base\Application {
 
 		$res = null; /* @var $res \fwe\curl\IResponse */
 		$ch = $req->make($res);
+
+		if($this->verbose) {
+			$name =\Fwe::$config->get('__app__');
+			curl_setopt($ch, CURLOPT_STDERR, fopen(\Fwe::getAlias("@app/runtime/curl-$name-$key.log"), 'w'));
+		}
 		
 		$ret = curl_multi_add_handle($this->_mh, $ch);
 		if($ret != CURLM_OK) {

@@ -43,6 +43,10 @@ class Boot {
 		} else {
 			$this->_var = new TsVar('curl:main', 0, null, true);
 
+			$name = \Fwe::$name;
+			\Fwe::$config->set('__app__', $name);
+			foreach(glob(\Fwe::getAlias("@app/runtime/curl-$name-*.log")) as $filename) @unlink($filename);
+
 			if(static::$isCreate) {
 				static::$isCreate = false;
 				for($i=0; $i<$this->maxThreads; $i++) {
