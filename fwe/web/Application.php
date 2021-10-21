@@ -108,7 +108,7 @@ class Application extends \fwe\base\Application {
 	/**
 	 * @var TsVar
 	 */
-	protected $_connStatVar;
+	protected $_connStatVar, $_curlStatVar;
 
 	protected $_statEvent, $_lstEvent;
 
@@ -120,12 +120,14 @@ class Application extends \fwe\base\Application {
 		
 		$this->_fd = socket_export_fd($this->_sock);
 		$this->_connStatVar = new TsVar("conn:stat");
+		$this->_curlStatVar = new TsVar("curl:stat");
 		
 		$statFile = \Fwe::getAlias('@app/runtime/stat.log');
 		$connFile = \Fwe::getAlias('@app/runtime/conn.log');
+		$curlFile = \Fwe::getAlias('@app/runtime/curl.log');
 		
 		$n = $ns = $ne = 0;
-		$this->_statEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() use(&$statFile, &$connFile, &$n, &$ns, &$ne) {
+		$this->_statEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() use(&$statFile, &$connFile, &$curlFile, &$n, &$ns, &$ne) {
 			$n2 = $this->stat('conns', 0);
 			$n3 = 0;
 			for($i = 0; $i < $this->maxWsGroups; $i++) {
@@ -140,6 +142,8 @@ class Application extends \fwe\base\Application {
 			file_put_contents($statFile, "[$time] $n connects, $n3 accepts, $ns successes, $ne errors\n", FILE_APPEND);
 			$conns = implode(' ', $this->_connStatVar->all());
 			file_put_contents($connFile, "$conns\n", FILE_APPEND);
+			$curls = implode(' ', $this->_curlStatVar->all());
+			file_put_contents($curlFile, "$curls\n", FILE_APPEND);
 			$n = $n2;
 			$ns = $n4;
 			$ne = $n5;

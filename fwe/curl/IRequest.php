@@ -23,6 +23,8 @@ abstract class IRequest {
 			return $this->$name;
 		}
 	}
+
+	abstract public function setOption(int $option, $value);
 	
 	abstract public function save2File(string $file, bool $isAppend = false, string $class = '');
 

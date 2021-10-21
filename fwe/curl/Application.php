@@ -6,6 +6,11 @@ use fwe\base\TsVar;
 class Application extends \fwe\base\Application {
 
 	/**
+	 * @var integer
+	 */
+	public $timeout = 30;
+
+	/**
 	 * @var boolean
 	 */
 	public $verbose = false;
@@ -134,10 +139,11 @@ class Application extends \fwe\base\Application {
 		}
 		$var = $this->_vars[$req->key];
 
+		$req->setOption(CURLOPT_TIMEOUT, $this->timeout);
+		$req->setOption(CURLOPT_VERBOSE, $this->verbose);
+
 		$res = null; /* @var $res \fwe\curl\IResponse */
 		$ch = $req->make($res);
-
-		curl_setopt($ch, CURLOPT_VERBOSE, $this->verbose);
 		
 		$ret = curl_multi_add_handle($this->_mh, $ch);
 		if($ret != CURLM_OK) {

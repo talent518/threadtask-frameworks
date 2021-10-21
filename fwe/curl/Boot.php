@@ -10,7 +10,7 @@ class Boot {
 	 * 
 	 * @var integer
 	 */
-	public $maxThreads = 1;
+	public $maxThreads = 2;
 
 	/**
 	 * send request
@@ -29,10 +29,11 @@ class Boot {
 	 * 
 	 * @var TsVar
 	 */
-	protected $_var;
+	protected $_var, $_stat;
 
 	protected static $isCreate = true;
 	public function init() {
+		$this->_stat = new TsVar('curl:stat');
 		for($i=0; $i<$this->maxThreads; $i++) {
 			$this->_vars[$i] = new TsVar("__curl{$i}__", 0, null, true);
 		}
@@ -45,6 +46,7 @@ class Boot {
 			if(static::$isCreate) {
 				static::$isCreate = false;
 				for($i=0; $i<$this->maxThreads; $i++) {
+					$this->_stat[$i] = 0;
 					create_task("curl:$i", INFILE, [$i]);
 				}
 			}
@@ -53,8 +55,8 @@ class Boot {
 		$this->_event = $this->_var->newReadEvent([$this, 'read']);
 	}
 	
-	private $_events = 0;
-	private $_call = [];
+	protected $_events = 0;
+	protected $_call = [];
 	public function make(IRequest $req, callable $call) {
 		if(!$this->_events++) $this->_event->add();
 		
@@ -62,12 +64,15 @@ class Boot {
 		
 		\Fwe::$app->stat('curl:act');
 		$key = \Fwe::$app->stat('curl:req') - 1;
-		$var = $this->_vars[$key % $this->maxThreads];
+		$i = null;
+		$this->_stat->minmax($i);
+		$this->_stat->inc($i, 1);
+		$var = $this->_vars[$i];
 
 		$req->key = $this->_var->getKey();
 		$req->resKey = $key;
 		$var[$key] = $req;
-		$this->_call[$key] = [$req, $call];
+		$this->_call[$key] = [$req, $call, $i];
 		
 		$var->write();
 	}
@@ -85,8 +90,9 @@ class Boot {
 		$key = null;
 		$res = $this->_var->shift(true, $key);
 
-		list($req, $call) = $this->_call[$key];
+		list($req, $call, $i) = $this->_call[$key];
 		unset($this->_call[$key]);
+		$this->_stat->inc($i, -1);
 		
 		$call($res, $req);
 	}
@@ -96,12 +102,14 @@ class Boot {
 	
 		if(!--$this->_events) $this->_event->del();
 		
+		$i = $this->_call[$key][2];
 		unset($this->_call[$key]);
+		$this->_stat->inc($i, -1);
 		
 		\Fwe::$app->events--;
 		\Fwe::$app->stat('curl:act', -1);
 		\Fwe::$app->stat('curl:res');
 		
-		$this->_vars[$key % $this->maxThreads][$key] = false;
+		$this->_vars[$i][$key] = false;
 	}
 }
