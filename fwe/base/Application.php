@@ -142,6 +142,10 @@ abstract class Application extends Module {
 	public function exitSig() {
 		return $this->_exitSig;
 	}
+
+	public function isRunning() {
+		return $this->_running;
+	}
 	
 	public function isService() {
 		return false;
