@@ -161,7 +161,7 @@ class Application extends \fwe\base\Application {
 			$key = $this->stat('conns');
 
 			$i = null;
-			$v = $this->_connStatVar->minmax($i);
+			$this->_connStatVar->minmax($i);
 			$this->_connStatVar->inc($i, 1);
 			$reqVar = $this->_reqVars[$i]; /* @var $reqVar TsVar */
 			$reqVar[$key] = [$fd, $addr, $port];
@@ -202,9 +202,9 @@ class Application extends \fwe\base\Application {
 			if(!$this->_wsVar->read()) return;
 			
 			$key = null;
-			list($fd, $addr, $port) = $this->_wsVar->shift(true, $key);
+			list($fd, $addr, $port, $doClass) = $this->_wsVar->shift(true, $key);
 
-			$this->_reqEvents[$key] = \Fwe::createObject(WsEvent::class, compact('fd', 'addr', 'port', 'key'));
+			$this->_reqEvents[$key] = \Fwe::createObject(WsEvent::class, compact('fd', 'addr', 'port', 'key', 'doClass'));
 		});
 		$this->_reqEvent->add();
 		

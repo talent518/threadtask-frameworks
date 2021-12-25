@@ -139,12 +139,13 @@ class RequestEvent {
 		]);
 	}
 	
-	public function webSocket() {
-		if(!isset($this->headers['Upgrade'], $this->headers['Sec-WebSocket-Key'], $this->headers['Sec-WebSocket-Version']) || empty($this->headers['Sec-WebSocket-Key']) || $this->headers['Upgrade'] !== 'websocket') {
+	public function webSocket($class = null) {
+		$isClass = ($class !== null && !is_subclass_of($class['class'] ?? $class, IWsEvent::class));
+		if(!isset($this->headers['Upgrade'], $this->headers['Sec-WebSocket-Key'], $this->headers['Sec-WebSocket-Version']) || empty($this->headers['Sec-WebSocket-Key']) || $this->headers['Upgrade'] !== 'websocket' || $isClass) {
 			$response = $this->getResponse(404, 'Not Found');
 			$response->setContentType('text/plain; charset=utf-8');
 			$response->headers['Connection'] = 'close';
-			$response->end("WebSocket Error\n");
+			$response->end($isClass ? "class $class is not implements " . IWsEvent::class : "WebSocket Error\n");
 			$this->isKeepAlive = false;
 		} else {
 			$host = $this->headers['Host'] ?? '127.0.0.1:5000';
@@ -157,6 +158,7 @@ class RequestEvent {
 			$response->headers['Sec-WebSocket-Version'] = $this->headers['Sec-WebSocket-Version'];
 			$response->headers['Sec-WebSocket-Accept'] = $secAccept;
 			$response->isWebSocket = true;
+			$response->wsClass = $class;
 			$response->end();
 		}
 	}
@@ -216,10 +218,11 @@ class RequestEvent {
 		\Fwe::$app->stat($this->response->status < 400 ? 'success' : 'error');
 		
 		if($this->response->isWebSocket) {
+			$class = $this->response->wsClass;
 			\Fwe::$app->decConn();
 			$this->free(false);
 			$index = $this->get['index'] ?? 0;
-			\Fwe::$app->addWs($index, $this->key, [$this->fd, $this->clientAddr, $this->clientPort]);
+			\Fwe::$app->addWs($index, $this->key, [$this->fd, $this->clientAddr, $this->clientPort, $class]);
 		} elseif($this->isKeepAlive) {
 			$this->free(false);
 

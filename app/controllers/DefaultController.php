@@ -5,6 +5,7 @@ use fwe\base\Controller;
 use fwe\web\RequestEvent;
 use fwe\db\IEvent;
 use fwe\curl\Request;
+use app\ws\Demo;
 
 class DefaultController extends Controller {
 	private function getperms(int $mode, ?string &$type = null) {
@@ -180,6 +181,9 @@ class DefaultController extends Controller {
 	}
 	public function actionWs(RequestEvent $request) {
 		$request->webSocket();
+	}
+	public function actionWsDemo(RequestEvent $request) {
+		$request->webSocket(Demo::class);
 	}
 	public function actionInfo(RequestEvent $request, bool $isChunk = true) {
 		$response = $request->getResponse();

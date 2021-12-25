@@ -16,8 +16,15 @@ class WsEvent {
 	 * @var integer
 	 */
 	protected $key;
+	
+	/**
+	 * do action class
+	 * 
+	 * @var IWsEvent
+	 */
+	protected $doObj;
 
-	public function __construct(int $fd, string $addr, int $port, int $key) {
+	public function __construct(int $fd, string $addr, int $port, int $key, $doClass) {
 		$this->fd = $fd;
 		$this->clientAddr = $addr;
 		$this->clientPort = $port;
@@ -26,9 +33,12 @@ class WsEvent {
 		$this->event = new \EventBufferEvent(\Fwe::$base, $this->fd, \EventBufferEvent::OPT_CLOSE_ON_FREE, [$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler'], $this->key);
 		\Fwe::$app->events++;
 		
-		$msg = $this->mask("Connected {$addr}:{$port}");
-		$this->event->write($msg);
-		\Fwe::$app->sendWs($msg);
+		$this->doObj = $doClass ? \Fwe::createObject($doClass, ['wsEvent' => $this]) : null;
+		if(!$this->doObj) {
+			$msg = $this->mask("Connected {$addr}:{$port}");
+			$this->event->write($msg);
+			\Fwe::$app->sendWs($msg);
+		}
 
 		// echo __METHOD__ . ":{$this->key}\n";
 	}
@@ -49,6 +59,11 @@ class WsEvent {
 		\Fwe::$app->events--;
 
 		// echo __METHOD__ . ":{$this->key}\n";
+
+		if($this->doObj) {
+			$this->doObj->free();
+			$this->doObj = null;
+		}
 		
 		$this->event->free();
 		$this->event = null;
@@ -182,7 +197,11 @@ class WsEvent {
 		\Fwe::$app->stat('success');
 
 		// send message
-		\Fwe::$app->sendWs($this->mask($buf));
+		if($this->doObj) {
+			$this->doObj->read($buf);
+		} else {
+			\Fwe::$app->sendWs($this->mask($buf));
+		}
 
 	next:
 		if($this->buffer !== null) {
@@ -204,5 +223,9 @@ class WsEvent {
 	
 	public function send($data) {
 		return $this->event->write($data);
+	}
+	
+	public function sendMask(string $txt, int $ctl = 0x81) {
+		return $this->send($this->mask($txt, $ctl));
 	}
 }

@@ -12,6 +12,7 @@ class ResponseEvent {
 	public $isChunked = false;
 	public $isEnd = false;
 	public $isWebSocket = false;
+	public $wsClass = null;
 
 	/**
 	 * @var RequestEvent
