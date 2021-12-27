@@ -18,6 +18,11 @@ class WsEvent {
 	protected $key;
 	
 	/**
+	 * @var string
+	 */
+	public $doClass;
+	
+	/**
 	 * do action class
 	 * 
 	 * @var IWsEvent
@@ -29,6 +34,7 @@ class WsEvent {
 		$this->clientAddr = $addr;
 		$this->clientPort = $port;
 		$this->key = $key;
+		$this->doClass = $doClass;
 
 		$this->event = new \EventBufferEvent(\Fwe::$base, $this->fd, \EventBufferEvent::OPT_CLOSE_ON_FREE, [$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler'], $this->key);
 		\Fwe::$app->events++;
@@ -176,7 +182,9 @@ class WsEvent {
 					$error = 'OK';
 				}
 				\Fwe::$app->setReqEvent($this->key);
-				\Fwe::$app->sendWs($this->mask("Disconnected {$this->clientAddr}:{$this->clientPort} Error($errno): $error"));
+				if(!$this->doObj) {
+					\Fwe::$app->sendWs($this->mask("Disconnected {$this->clientAddr}:{$this->clientPort} Error($errno): $error"));
+				}
 				goto close;
 				break;
 			case 0x9: // ping

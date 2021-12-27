@@ -224,9 +224,15 @@ class Application extends \fwe\base\Application {
 		$wsVar->write();
 	}
 	
-	public function sendWs($data) {
+	public function sendWs($data, $doClass = false) {
 		foreach($this->_reqEvents as $ev) {
-			$ev->send($data);
+			if($doClass) {
+				if(is_subclass_of($ev->doClass, $doClass)) {
+					$ev->send($data);
+				}
+			} elseif(!$ev->doClass) {
+				$ev->send($data);
+			}
 		}
 	}
 	
