@@ -30,7 +30,7 @@ class ResponseFile extends Response {
 	/**
 	 * @var integer
 	 */
-	protected $size;
+	protected $size, $fileSize;
 	
 	public function __construct(string $file, bool $isAppend, int $size = 0) {
 		parent::__construct();
@@ -39,12 +39,18 @@ class ResponseFile extends Response {
 		$this->isAppend = $isAppend;
 		$this->fp = @fopen($file, $isAppend ? 'a' : 'w');
 		$this->size = $size;
+		$this->fileSize = $size;
 
 		$this->pgTime = microtime(true);
 	}
 	
 	public function writeHandler($ch, $data) {
-		return $this->fp ? fwrite($this->fp, $data) : 0;
+		if(!$this->fp) return 0;
+		
+		$ret = fwrite($this->fp, $data);
+		$this->fileSize += $ret;
+
+		return $ret;
 	}
 
 	protected $percent;

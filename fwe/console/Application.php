@@ -22,6 +22,7 @@ class Application extends \fwe\base\Application {
 		
 		if(!$this->_running && !defined('THREAD_TASK_NAME')) {
 			task_wait($this->_exitSig);
+			\Fwe::$base->exit();
 		}
 	}
 	
@@ -47,7 +48,7 @@ class Application extends \fwe\base\Application {
 			$action = $this->getAction($route, $params);
 			$method = $this->runActionMethod;
 			$ret = $action->$method($params);
-			if($this->events > 0) $this->signalEvent(function() {
+			if($this->events > 0) $this->signalEvent(function() use($ret) {
 				if($this->events <= 0) \Fwe::$base->exit();
 			});
 			return $ret;

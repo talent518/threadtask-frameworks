@@ -1,11 +1,13 @@
 <?php
 namespace app\commands;
 
+use fwe\base\ITask;
 use fwe\console\Controller;
 use fwe\curl\FtpRequest;
 use fwe\curl\Request;
 use fwe\db\IEvent;
 use fwe\db\MySQLConnection;
+use fwe\utils\StringHelper;
 
 class DefaultController extends Controller {
 
@@ -179,4 +181,81 @@ class DefaultController extends Controller {
 			var_export(compact('req', 'res'));
 		});
 	}
+	
+	/**
+	 * 并行下载https://ftp.gnu.org/pub/gnu/下的所有文件
+	 */
+	public function actionGnu(int $max = 5) {
+		$path = \Fwe::getAlias('@app/runtime/gnu');
+		
+		$task = new class($max, $path) extends ITask {
+			private $path;
+			public function __construct(int $max, string $path) {
+				parent::__construct($max);
+
+				$this->path = $path;
+				$this->mkdir($path);
+			}
+
+			private function mkdir($path) {
+				return is_dir($path) || mkdir($path, 0755, true);
+			}
+
+			public function run($arg) {
+				printf("\033[2KRuns: %d\r", $this->run);
+
+				if(is_array($arg)) {
+					list($url, $file, $isFile) = $arg;
+					$req = new Request($url);
+					if($isFile) {
+						$req->save2File($this->path . '/' . $file, true);
+						$method = 'gnuDown';
+					} else {
+						$req->args = $file;
+						$method = 'gnuList';
+					}
+				} else {
+					$req = new Request($arg);
+					$method = 'gnuList';
+				}
+				curl()->make($req, [$this, $method]);
+			}
+
+			public function gnuList($res, $req) {
+				$this->shift();
+				
+				if($res->errno) return;
+
+				$doc = new \DOMDocument();
+				$doc->loadHTML($res->data);
+				$links = $doc->getElementsByTagName('a');
+				foreach($links as $link) {
+					if(!$link->hasAttributes()) continue;
+					$attr = $link->attributes->getNamedItem('href');
+					if(!$attr) continue;
+					$href = $attr->value;
+					if($href === '..' || preg_match('/^(\?|\/|#|https?:\/\/|ftp:\/\/)/', $href)) continue;
+
+					$url = $req->url . $href;
+					$file = $req->args . $href;
+					if(substr($href, -1) === '/') {
+						$this->mkdir($this->path . '/' . $file);
+						$this->push([$url, $file, false]);
+					} else {
+						$this->push([$url, $file, true]);
+					}
+				}
+
+				printf("\033[2KRuns: %d, URL: %s, errno: %d, error: %s\n", $this->run, $req->url, $res->errno, $res->error);
+			}
+			
+			public function gnuDown($res, $req) {
+				$this->shift();
+
+				printf("\033[2KRuns: %d, URL: %s, Size: %s, errno: %d, error: %s\n", $this->run, $req->url, StringHelper::formatBytes($res->fileSize), $res->errno, $res->error);
+			}
+		};
+		$task->push('https://ftp.gnu.org/pub/gnu/');
+	}
+
 }

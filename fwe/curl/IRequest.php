@@ -8,7 +8,7 @@ namespace fwe\curl;
  */
 abstract class IRequest {
 	
-	public $key, $resKey;
+	public $key, $resKey, $args;
 
 	protected $url;
 

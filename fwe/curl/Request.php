@@ -34,6 +34,10 @@ class Request extends IRequest {
 		$this->headers = $headers;
 	}
 	
+	public function getHeader(string $name, ?string $defVal = null) {
+		return $this->headers[$name] ?? $defVal;
+	}
+	
 	public function addHeader(string $name, string $value) {
 		if(isset($this->headers[$name])) {
 			if(is_array($this->headers[$name])) {
