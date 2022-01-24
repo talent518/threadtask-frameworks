@@ -223,8 +223,6 @@ class DefaultController extends Controller {
 
 			public function gnuList($res, $req) {
 				$this->shift();
-				
-				if($res->errno) return;
 
 				$doc = new \DOMDocument();
 				$doc->loadHTML($res->data);

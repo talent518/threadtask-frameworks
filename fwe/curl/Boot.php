@@ -98,7 +98,11 @@ class Boot {
 		unset($this->_call[$key]);
 		$this->_stat->inc($i, -1);
 		
-		$call($res, $req);
+		try {
+			$call($res, $req);
+		} catch(\Throwable $ex) {
+			echo "$ex\n";
+		}
 	}
 	
 	public function cancel($key) {
