@@ -17,27 +17,29 @@ class Application extends \fwe\base\Application {
 	 */
 	public $port = 5000;
 
+	protected $_isReq = false;
+
 	public function init() {
 		parent::init();
 		
-		$this->signalEvent();
+		$this->signalEvent(function() {
+			if($this->_isReq) {
+				$this->isEmptyReq();
+			}
+		});
 	}
 
 	public function signalHandler(int $sig) {
 		parent::signalHandler($sig);
 
-		$isExit = !defined('THREAD_TASK_NAME') || (strpos(THREAD_TASK_NAME, ':req:') !== false && $this->isEmptyReq());
-		if(!$this->_running && ($isExit || strpos(THREAD_TASK_NAME, ':ws:') !== false)) {
+		if($this->_sock) {
+			@socket_shutdown($this->_sock, 2);
+			@socket_close($this->_sock);
+			$this->_sock = null;
+		}
+
+		if(!$this->_isReq || $this->isEmptyReq()) {
 			\Fwe::$base->exit();
-			if(!defined('THREAD_TASK_NAME')) {
-				task_wait($this->_exitSig);
-				
-				if($this->_sock) {
-					@socket_shutdown($this->_sock, 2);
-					@socket_close($this->_sock);
-					$this->_sock = null;
-				}
-			}
 		}
 	}
 	
@@ -51,7 +53,9 @@ class Application extends \fwe\base\Application {
 		
 		$time = microtime(true);
 		foreach($this->_reqEvents as $reqEvent) { /* @var $reqEvent RequestEvent */
-			if($reqEvent->isHTTP || $reqEvent->time + $this->maxIdleSeconds > $time) {
+			if(!$this->_running && !$reqEvent->isHTTP) {
+				$reqEvent->free();
+			} elseif($reqEvent->isHTTP || $reqEvent->time + $this->maxIdleSeconds > $time) {
 				if($reqEvent->runTime === null || $reqEvent->runTime + $this->maxRunSeconds > $time) {
 					$count++;
 				} else {
@@ -252,6 +256,7 @@ class Application extends \fwe\base\Application {
 
 	public $keepAlive = 10;
 	public function req(int $index) {
+		$this->_isReq = true;
 		$this->_reqIndex = $index;
 		$this->_reqVars = new TsVar("req:$index", 0, null, true);
 		$this->_connStatVar = new TsVar("conn:stat");

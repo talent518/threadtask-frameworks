@@ -254,6 +254,7 @@ class DefaultController extends Controller {
 			}
 		};
 		$task->push('https://ftp.gnu.org/pub/gnu/');
+		return false;
 	}
 
 }

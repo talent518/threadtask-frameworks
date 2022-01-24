@@ -206,7 +206,11 @@ class WsEvent {
 
 		// send message
 		if($this->doObj) {
-			$this->doObj->read($buf);
+			try {
+				$this->doObj->read($buf);
+			} catch(\Throwable $ex) {
+				echo "$ex\n";
+			}
 		} else {
 			\Fwe::$app->sendWs($this->mask($buf));
 		}

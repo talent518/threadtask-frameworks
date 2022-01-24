@@ -8,6 +8,7 @@ class Application extends \fwe\base\Application {
 	public $controllerNamespace = 'app\commands';
 	public $runActionMethod = 'runWithEvent';
 	public $signalTimeout = 0.01;
+	public $isExitNow = false;
 
 	public function init() {
 		parent::init();
@@ -20,12 +21,11 @@ class Application extends \fwe\base\Application {
 	public function signalHandler(int $sig) {
 		parent::signalHandler($sig);
 		
-		if(!$this->_running && !defined('THREAD_TASK_NAME')) {
-			task_wait($this->_exitSig);
+		if(!$this->_running && $this->isExitNow) {
 			\Fwe::$base->exit();
 		}
 	}
-	
+
 	public function boot() {
 		$route = $_SERVER['argv'][1] ?? '';
 		if(strncmp($route, '--', 2)) {
@@ -48,6 +48,9 @@ class Application extends \fwe\base\Application {
 			$action = $this->getAction($route, $params);
 			$method = $this->runActionMethod;
 			$ret = $action->$method($params);
+			if($ret === false) {
+				$this->isExitNow = true;
+			}
 			if($this->events > 0) $this->signalEvent(function() use($ret) {
 				if($this->events <= 0) \Fwe::$base->exit();
 			});
