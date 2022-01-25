@@ -185,19 +185,19 @@ class DefaultController extends Controller {
 	/**
 	 * 并行下载https://ftp.gnu.org/pub/gnu/下的所有文件
 	 */
-	public function actionGnu(int $max = 5) {
-		$path = \Fwe::getAlias('@app/runtime/gnu');
-		
-		$task = new class($max, $path) extends ITask {
+	public function actionGnu(string $url = 'https://ftp.gnu.org/pub/gnu/', string $path = '@app/runtime/gnu', int $max = 5, int $tries = 5) {
+		$task = new class($max, $tries, $path) extends ITask {
+			private $tries;
 			private $path;
-			public function __construct(int $max, string $path) {
+			public function __construct(int $max, int $tries, string $path) {
 				parent::__construct($max);
 
-				$this->path = $path;
-				$this->mkdir($path);
+				$this->tries = $tries;
+				$this->path = \Fwe::getAlias($path);
+				$this->mkdir($this->path);
 			}
 
-			private function mkdir($path) {
+			private function mkdir(string $path) {
 				return is_dir($path) || mkdir($path, 0755, true);
 			}
 
@@ -209,6 +209,7 @@ class DefaultController extends Controller {
 					$req = new Request($url);
 					if($isFile) {
 						$req->save2File($this->path . '/' . $file, true);
+						$req->args = 0;
 						$method = 'gnuDown';
 					} else {
 						$req->args = $file;
@@ -222,6 +223,21 @@ class DefaultController extends Controller {
 			}
 
 			public function gnuList($res, $req) {
+				if(is_array($req->args)) {
+					list($prefix, $tries) = $req->args;
+				} else {
+					$prefix = $req->args;
+					$tries = 0;
+				}
+
+				printf("\033[2KRuns: %d, Tries: %d, URL: %s, errno: %d, error: %s\n", $this->run, $tries, $req->url, $res->errno, $res->error);
+				
+				if($res->errno && (++ $tries) < $this->tries) {
+					$req->args = [$prefix, $tries];
+					curl()->make($req, [$this, 'gnuList']);
+					return;
+				}
+				
 				$this->shift();
 
 				$doc = new \DOMDocument();
@@ -232,10 +248,10 @@ class DefaultController extends Controller {
 					$attr = $link->attributes->getNamedItem('href');
 					if(!$attr) continue;
 					$href = $attr->value;
-					if($href === '..' || preg_match('/^(\?|\/|#|https?:\/\/|ftp:\/\/)/', $href)) continue;
+					if(strpos($href, '..') !== false || preg_match('/^(\?|\/|#|https?:\/\/|ftp:\/\/)/', $href)) continue;
 
 					$url = $req->url . $href;
-					$file = $req->args . $href;
+					$file = $prefix . $href;
 					if(substr($href, -1) === '/') {
 						$this->mkdir($this->path . '/' . $file);
 						$this->push([$url, $file, false]);
@@ -243,17 +259,19 @@ class DefaultController extends Controller {
 						$this->push([$url, $file, true]);
 					}
 				}
-
-				printf("\033[2KRuns: %d, URL: %s, errno: %d, error: %s\n", $this->run, $req->url, $res->errno, $res->error);
 			}
 			
 			public function gnuDown($res, $req) {
-				$this->shift();
+				printf("\033[2KRuns: %d, Tries: %d, URL: %s, Size: %s, errno: %d, error: %s\n", $this->run, $req->args, $req->url, StringHelper::formatBytes($res->fileSize), $res->errno, $res->error);
 
-				printf("\033[2KRuns: %d, URL: %s, Size: %s, errno: %d, error: %s\n", $this->run, $req->url, StringHelper::formatBytes($res->fileSize), $res->errno, $res->error);
+				if($res->errno && (++ $req->args) < $this->tries) {
+					curl()->make($req, [$this, 'gnuDown']);
+				} else {
+					$this->shift();
+				}
 			}
 		};
-		$task->push('https://ftp.gnu.org/pub/gnu/');
+		$task->push($url);
 		return false;
 	}
 
