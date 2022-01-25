@@ -232,7 +232,7 @@ class DefaultController extends Controller {
 
 				printf("\033[2KRuns: %d, Tries: %d, URL: %s, errno: %d, error: %s\n", $this->run, $tries, $req->url, $res->errno, $res->error);
 				
-				if($res->errno && (++ $tries) < $this->tries) {
+				if($res->errno && (++ $tries) <= $this->tries) {
 					$req->args = [$prefix, $tries];
 					curl()->make($req, [$this, 'gnuList']);
 					return;
@@ -251,7 +251,7 @@ class DefaultController extends Controller {
 					if(strpos($href, '..') !== false || preg_match('/^(\?|\/|#|https?:\/\/|ftp:\/\/)/', $href)) continue;
 
 					$url = $req->url . $href;
-					$file = $prefix . $href;
+					$file = $prefix . urldecode($href);
 					if(substr($href, -1) === '/') {
 						$this->mkdir($this->path . '/' . $file);
 						$this->push([$url, $file, false]);
@@ -264,7 +264,7 @@ class DefaultController extends Controller {
 			public function gnuDown($res, $req) {
 				printf("\033[2KRuns: %d, Tries: %d, URL: %s, Size: %s, errno: %d, error: %s\n", $this->run, $req->args, $req->url, StringHelper::formatBytes($res->fileSize), $res->errno, $res->error);
 
-				if($res->errno && (++ $req->args) < $this->tries) {
+				if($res->errno && (++ $req->args) <= $this->tries) {
 					curl()->make($req, [$this, 'gnuDown']);
 				} else {
 					$this->shift();
