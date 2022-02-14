@@ -118,8 +118,10 @@ class Request extends IRequest {
 		CURLOPT_MAXREDIRS => 3,
 	];
 	
-	public function setOption(int $option, $value) {
-		$this->options[$option] = $value;
+	public function setOption(int $option, $value, bool $isReplace = false) {
+		if($isReplace || !array_key_exists($option, $this->options)) {
+			$this->options[$option] = $value;
+		}
 	}
 	
 	protected $format = self::FORMAT_URL;

@@ -210,6 +210,7 @@ class DefaultController extends Controller {
 					if($isFile) {
 						$req->save2File($this->path . '/' . $file, true);
 						$req->args = 0;
+						$req->setOption(CURLOPT_TIMEOUT, 0);
 						$method = 'gnuDown';
 					} else {
 						$req->args = $file;
@@ -264,7 +265,10 @@ class DefaultController extends Controller {
 			public function gnuDown($res, $req) {
 				printf("\033[2KRuns: %d, Tries: %d, URL: %s, Size: %s, Status: %d, errno: %d, error: %s\n", $this->run, $req->args, $req->url, StringHelper::formatBytes($res->fileSize), $res->status, $res->errno, $res->error);
 
-				if($res->errno && (++ $req->args) <= $this->tries) {
+				if(($res->errno || $res->status === 416) && (++ $req->args) <= $this->tries) {
+					if($res->status === 416) {
+						$req->save2File($res->file);
+					}
 					curl()->make($req, [$this, 'gnuDown']);
 				} else {
 					$this->shift();

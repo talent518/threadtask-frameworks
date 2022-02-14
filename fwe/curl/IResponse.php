@@ -10,7 +10,7 @@ namespace fwe\curl;
  * @property-read integer $errno
  * @property-read string $error
  */
-class IResponse {
+abstract class IResponse {
 	protected $beginTime;
 	protected $endTime;
 	protected $wakeupTime;
@@ -39,5 +39,11 @@ class IResponse {
 		$this->errno = $errno;
 		$this->error = $error;
 	}
+
+	abstract public function headerHandler($ch, $header);
+
+	abstract public function writeHandler($ch, $data);
+
+	abstract public function progressHandler($ch, int $dlTotal, int $dlBytes, int $upTotal, int $upBytes);
 }
 

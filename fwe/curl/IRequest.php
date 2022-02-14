@@ -24,7 +24,7 @@ abstract class IRequest {
 		}
 	}
 
-	abstract public function setOption(int $option, $value);
+	abstract public function setOption(int $option, $value, bool $isReplace = false);
 	
 	abstract public function save2File(string $file, bool $isAppend = false, string $class = '');
 

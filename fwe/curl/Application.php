@@ -128,6 +128,7 @@ class Application extends \fwe\base\Application {
 		if(!($req instanceof IRequest)) {
 			if(isset($this->_reqs[$key])) {
 				$val = $this->_reqs[$key];
+				unset($this->_reqs[$key]);
 				curl_multi_remove_handle($this->_mh, $val['ch']);
 				curl_close($val['ch']);
 				$this->_count--;
@@ -144,6 +145,13 @@ class Application extends \fwe\base\Application {
 
 		$res = null; /* @var $res \fwe\curl\IResponse */
 		$ch = $req->make($res);
+
+		if(!($res instanceof IResponse)) {
+			curl_close($ch);
+			printf("class %s is not instanceof %s\n", get_class($res), IResponse::class);
+			$this->write($var, $key, $res);
+			return;
+		}
 
 		if($this->verbose) {
 			$name =\Fwe::$config->get('__app__');
