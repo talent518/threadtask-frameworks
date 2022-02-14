@@ -67,6 +67,7 @@ class ResponseEvent {
 		    case 413: $this->statusText = 'Request Entity Too Large'; break;
 		    case 414: $this->statusText = 'Request-URI Too Large'; break;
 		    case 415: $this->statusText = 'Unsupported Media Type'; break;
+		    case 416: $this->statusText = 'Requested Range Not Satisfiable'; break;
 		    case 500: $this->statusText = 'Internal Server Error'; break;
 		    case 501: $this->statusText = 'Not Implemented'; break;
 		    case 502: $this->statusText = 'Bad Gateway'; break;

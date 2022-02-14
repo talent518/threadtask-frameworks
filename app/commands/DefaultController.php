@@ -230,7 +230,7 @@ class DefaultController extends Controller {
 					$tries = 0;
 				}
 
-				printf("\033[2KRuns: %d, Tries: %d, URL: %s, errno: %d, error: %s\n", $this->run, $tries, $req->url, $res->errno, $res->error);
+				printf("\033[2KRuns: %d, Tries: %d, URL: %s, Status: %d, errno: %d, error: %s\n", $this->run, $tries, $req->url, $res->status, $res->errno, $res->error);
 				
 				if($res->errno && (++ $tries) <= $this->tries) {
 					$req->args = [$prefix, $tries];
@@ -262,7 +262,7 @@ class DefaultController extends Controller {
 			}
 			
 			public function gnuDown($res, $req) {
-				printf("\033[2KRuns: %d, Tries: %d, URL: %s, Size: %s, errno: %d, error: %s\n", $this->run, $req->args, $req->url, StringHelper::formatBytes($res->fileSize), $res->errno, $res->error);
+				printf("\033[2KRuns: %d, Tries: %d, URL: %s, Size: %s, Status: %d, errno: %d, error: %s\n", $this->run, $req->args, $req->url, StringHelper::formatBytes($res->fileSize), $res->status, $res->errno, $res->error);
 
 				if($res->errno && (++ $req->args) <= $this->tries) {
 					curl()->make($req, [$this, 'gnuDown']);
