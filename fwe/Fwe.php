@@ -356,14 +356,13 @@ abstract class Fwe {
 			static::$name = 'main';
 			static::$names = [];
 		}
-		$config = static::$config->getOrSet(static::$name, function () {
-			return include static::getAlias('@app/config/' . static::$name . '.php');
-		});
-		static::$base = new EventBase();
 
-		static::createObject($config)->boot();
+		static::$base = new EventBase();
+		static::createObject(static::$config->getOrSet(static::$name, function () {
+			return include static::getAlias('@app/config/' . static::$name . '.php');
+		}))->boot();
 		static::$base->dispatch();
-			
+
 		if(!defined('THREAD_TASK_NAME')) {
 			$sig = static::$app->exitSig();
 			task_wait($sig);

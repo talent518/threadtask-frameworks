@@ -3,7 +3,7 @@ return [
 	'class' => 'fwe\web\Application',
 	'id' => 'fwe',
 	'name' => 'FWE框架',
-	'bootstrap' => ['curl'],
+	'bootstrap' => [],
 	'components' => [
 		'db' => require __DIR__ . '/db.php',
 		'redis' => require __DIR__ . '/redis.php',

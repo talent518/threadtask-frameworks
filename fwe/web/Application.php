@@ -143,7 +143,8 @@ class Application extends \fwe\base\Application {
 			$ns = $n4 - $ns;
 			$ne = $n5 - $ne;
 			$time = date('Y-m-d H:i:s');
-			file_put_contents($statFile, "[$time] $n connects, $n3 accepts, $ns successes, $ne errors\n", FILE_APPEND);
+			$rc = $this->stat('realConns', 0);
+			file_put_contents($statFile, "[$time] $rc current connects, $n connects/second, $n3 accepts, $ns successes, $ne errors\n", FILE_APPEND);
 			$conns = implode(' ', $this->_connStatVar->all());
 			file_put_contents($connFile, "$conns\n", FILE_APPEND);
 			$curls = implode(' ', $this->_curlStatVar->all());
@@ -154,7 +155,8 @@ class Application extends \fwe\base\Application {
 		});
 		$this->_statEvent->addTimer(1);
 		
-		$this->_lstEvent = new \Event(\Fwe::$base, $this->_fd, \Event::READ | \Event::PERSIST, function() {
+		$reqTasks = [];
+		$this->_lstEvent = new \Event(\Fwe::$base, $this->_fd, \Event::READ | \Event::PERSIST, function() use(&$reqTasks) {
 			$addr = $port = null;
 			$fd = @socket_accept_ex($this->_fd, $addr, $port);
 			if(!$fd) return;
@@ -162,6 +164,7 @@ class Application extends \fwe\base\Application {
 			@socket_set_option($fd, SOL_SOCKET, SO_LINGER, ['l_onoff'=>1, 'l_linger'=>1]) or $this->strerror('socket_set_option', false);
 			$fd = socket_export_fd($fd, true);
 			
+			$this->stat('realConns');
 			$key = $this->stat('conns');
 
 			$i = null;
@@ -171,18 +174,21 @@ class Application extends \fwe\base\Application {
 			$reqVar[$key] = [$fd, $addr, $port];
 
 			$reqVar->write();
+			
+			if(empty($reqTasks[$i])) {
+				$reqTasks[$i] = 1;
+				create_task(\Fwe::$name . ":req:$i", INFILE, [$i]);
+			}
 		});
 		$this->_lstEvent->add();
 		
 		for($i = 0; $i < $this->maxWsGroups; $i++) {
 			$this->_wsVars[$i] = new TsVar("__ws{$i}__", 0, null, true);
-			create_task(\Fwe::$name . ":ws:$i", INFILE, [$i]);
 		}
 
 		for($i = 0; $i < $this->maxThreads; $i++) {
 			$this->_reqVars[$i] = new TsVar("req:$i", 0, null, true);
 			$this->_connStatVar[$i] = 0;
-			create_task(\Fwe::$name . ":req:$i", INFILE, [$i]);
 		}
 		
 		echo "Listened on {$this->host}:{$this->port}\n";
@@ -219,9 +225,18 @@ class Application extends \fwe\base\Application {
 		$this->_statEvent->addTimer($this->wsPingDelay);
 	}
 	
+	protected $_wsTasks = [];
 	public function addWs(int $index, $key, array $args) {
 		if($index >= $this->maxWsGroups) $index = $this->maxWsGroups - 1;
 		elseif($index < 0) $index = 0;
+		
+		if(empty($this->_wsTasks[$index])) {
+			$this->_wsTasks[$index] = 1;
+			$name = \Fwe::$name . ":ws:$index";
+			\Fwe::$config->getOrSet($name, function() use($name, $index) {
+				return create_task($name, INFILE, [$index]);
+			});
+		}
 
 		$wsVar = $this->_wsVars[$index];
 		$wsVar[$key] = $args;
@@ -247,6 +262,7 @@ class Application extends \fwe\base\Application {
 
 	public function decConn() {
 		$this->_connStatVar->inc($this->_reqIndex, -1);
+		$this->stat('realConns', -1);
 	}
 
 	/**

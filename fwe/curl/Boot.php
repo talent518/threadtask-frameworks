@@ -31,7 +31,6 @@ class Boot {
 	 */
 	protected $_var, $_stat;
 
-	protected static $isCreate = true;
 	public function init() {
 		$this->_stat = new TsVar('curl:stat');
 		for($i=0; $i<$this->maxThreads; $i++) {
@@ -46,15 +45,15 @@ class Boot {
 			$name = \Fwe::$name;
 			\Fwe::$config->set('__app__', $name);
 			foreach(glob(\Fwe::getAlias("@app/runtime/curl-$name-*.log")) as $filename) @unlink($filename);
-
-			if(static::$isCreate) {
-				static::$isCreate = false;
-				for($i=0; $i<$this->maxThreads; $i++) {
-					$this->_stat[$i] = 0;
-					create_task("curl:$i", INFILE, [$i]);
-				}
-			}
 		}
+
+		\Fwe::$config->getOrSet(__CLASS__, function() {
+			for($i=0; $i<$this->maxThreads; $i++) {
+				$this->_stat[$i] = 0;
+				create_task("curl:$i", INFILE, [$i]);
+			}
+			return true;
+		});
 
 		$this->_event = $this->_var->newReadEvent([$this, 'read']);
 	}
