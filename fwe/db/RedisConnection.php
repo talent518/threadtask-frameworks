@@ -354,9 +354,12 @@ class RedisConnection extends AsyncConnection {
 	}
 	
 	/**
-	 * @return \fwe\db\RedisConnection
+	 * @return RedisConnection
 	 */
 	public function beginAsync() {
+		if($this->_readEvent) {
+			return $this;
+		}
 		$this->_isAsync = true;
 		$this->_events = [];
 		return $this;
@@ -367,9 +370,13 @@ class RedisConnection extends AsyncConnection {
 	}
 	
 	public function goAsync(callable $success, callable $error, float $timeout = -1) {
-		$this->_isAsync = false;
-		$this->open();
-		return parent::goAsync($success, $error, $timeout);
+		if($this->_isAsync) {
+			$this->_isAsync = false;
+			$this->open();
+			return parent::goAsync($success, $error, $timeout);
+		} else {
+			return false;
+		}
 	}
 	
 	public function __call(string $name, array $params) {
@@ -384,14 +391,17 @@ class RedisConnection extends AsyncConnection {
 			$db = $this;
 			$this->_events[] = \Fwe::createObject(RedisEvent::class, compact('db', 'name', 'params', 'command'));
 			return $this;
+		} elseif($this->_readEvent) {
+			$this->sendCommandInternal($command, $params);
 		} else {
 			$this->sendCommandInternal($command, $params);
-			return $this->parseResponse($params);
+			return $this->multiParseResponse($params);
 		}
 	}
 
 	/**
 	 * 发送原始命令字符串到Redis服务器
+	 * 
 	 * @throws SocketException 在连接错误抛出
 	 */
 	public function sendCommandInternal(string $command, array $params) {
@@ -407,6 +417,32 @@ class RedisConnection extends AsyncConnection {
 	}
 	
 	/**
+	 * 读取并分析多个响应结果
+	 * 
+	 * @param array $params
+	 * @return mixed
+	 * @throws Exception on error
+	 * @throws SocketException
+	 */
+	public function multiParseResponse($params) {
+		if(strpos($params[0], 'SUBSCRIBE') !== false) {
+			$count = count($params) - 1;
+			if($count <= 1) {
+				return $this->parseResponse($params);
+			}
+			$rets = [];
+			for($i=0; $i<$count; $i++) {
+				$rets[] = $this->parseResponse($params);
+			}
+			return $rets;
+		} else {
+			return $this->parseResponse($params);
+		}
+	}
+	
+	/**
+	 * 读取并分析响应结果
+	 * 
 	 * @param array $params
 	 * @return mixed
 	 * @throws Exception on error
@@ -456,5 +492,58 @@ class RedisConnection extends AsyncConnection {
 			default:
 				throw new Exception('Received illegal data from redis: ' . $line . "\nRedis command was: " . implode(' ', $params));
 		}
+	}
+	
+	/**
+	 * @var \Event
+	 */
+	protected $_readEvent;
+	
+	/**
+	 * 删除读取事件
+	 */
+	public function delReadEvent() {
+		if($this->_readEvent) {
+			$this->_readEvent->del();
+			$this->_readEvent = null;
+			\Fwe::$app->events--;
+		}
+	}
+	
+	/**
+	 * 绑定读取事件
+	 * 
+	 * @param callable $success
+	 * @param callable $error
+	 * @param float $timeout
+	 */
+	public function bindReadEvent(callable $success, ?callable $error = null, float $timeout = 10.0) {
+		$this->delReadEvent();
+		$this->_readEvent = new \Event(\Fwe::$base, $this->getFd(), \Event::READ | \Event::PERSIST, function($fd, int $what) use($success, $error) {
+			try {
+				if($what === \Event::TIMEOUT) {
+					$this->ping();
+					return;
+				} else {
+					do {
+						$ret = $success($this->parseResponse(['readEvent']));
+						$read = [$this->getFd()];
+						$write = $except = null;
+					} while($ret !== false && stream_select($read, $write, $except, 0));
+				}
+			} catch(\Throwable $e) {
+				if($error) {
+					$ret = $error($e);
+				} else {
+					$ret = false;
+					echo "$e\n";
+				}
+			}
+			if($ret === false) {
+				$this->delReadEvent();
+			}
+		});
+		$this->_readEvent->add($timeout);
+		\Fwe::$app->events++;
 	}
 }

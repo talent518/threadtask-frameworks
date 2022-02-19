@@ -37,7 +37,7 @@ class RedisEvent implements IEvent {
 	}
 	
 	public function recv() {
-		$this->_data = $this->_db->parseResponse($this->_params);
+		$this->_data = $this->_db->multiParseResponse($this->_params);
 	}
 
 }

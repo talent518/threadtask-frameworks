@@ -140,6 +140,20 @@ class DefaultController extends Controller {
 		}
 	}
 	
+	/**
+	 * Redis订阅
+	 */
+	public function actionPsubscribe() {
+		$db = redis()->pop();
+		var_dump($db->psubscribe("__keyspace@{$db->database}__:*", "__keyevent@{$db->database}__:*"));
+		$db->bindReadEvent(function($arg) {
+			$t = microtime(true);
+			echo "$t\n";
+			var_dump($arg);
+		});
+		return false;
+	}
+	
 	const CURL_COUNT = 5;
 
 	/**
