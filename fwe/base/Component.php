@@ -20,8 +20,6 @@ class Component {
 	 */
 	private $_objects = [];
 	
-	public $params = [];
-
 	/**
 	 * 根据组件名判断组件配置或对象是否存在
 	 * 
@@ -39,11 +37,11 @@ class Component {
 	 * @param bool $isMake
 	 * @return object
 	 */
-	public function get(string $id, bool $isMake = true) {
+	public function get(string $id, bool $isMake = true, array $params = []) {
 		if(isset($this->_objects[$id])) {
 			return $this->_objects[$id];
 		} else if($isMake && isset($this->_defines[$id])) {
-			return $this->_objects[$id] = \Fwe::createObject($this->_defines[$id], $this->params + ['id'=>$id]);
+			return $this->_objects[$id] = \Fwe::createObject($this->_defines[$id], ['id'=>$id] + $params);
 		}
 	}
 

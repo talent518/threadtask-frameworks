@@ -15,7 +15,7 @@ abstract class Fwe {
 	/**
 	 * 注册目录别名
 	 *
-	 * @var array|TsVar
+	 * @var array
 	 * @see getAlias()
 	 * @see setAlias()
 	 */
@@ -138,9 +138,9 @@ abstract class Fwe {
 
 	/**
 	 *
-	 * @var TsVar
+	 * @var array
 	 */
-	public static $classMap;
+	public static $classMap = [];
 
 	/**
 	 * 类的自动加载
@@ -169,9 +169,9 @@ abstract class Fwe {
 
 	/**
 	 *
-	 * @var TsVar
+	 * @var array
 	 */
-	public static $classAlias;
+	public static $classAlias = [];
 
 	/**
 	 * 创建对象的入口
@@ -334,7 +334,7 @@ abstract class Fwe {
 	public static $config;
 	
 	/**
-	 * @var EventBase
+	 * @var \EventBase
 	 */
 	public static $base;
 
@@ -360,50 +360,18 @@ abstract class Fwe {
 			return include static::getAlias('@app/config/' . static::$name . '.php');
 		});
 		static::$base = new EventBase();
-		$app = static::createObject($config);
-		unset($config);
-		if($app instanceof Application) {
-			static::$app = $app;
-			unset($app);
 
-			$ret = go(function() {
-				try {
-					static::$app->boot();
-					return true;
-				} catch(\Throwable $ex) {
-					if($ex instanceof \GoExitException) {
-						$status = $ex->getStatus();
-						if(is_string($status)) {
-							echo "exit data: $status\n";
-						} elseif(is_int($status)) {
-							echo "exit code: $status\n";
-						}
-					} else {
-						echo "$ex\n";
-					}
-					return false;
-				}
-			});
-
-			if($ret) static::$base->dispatch();
+		static::createObject($config)->boot();
+		static::$base->dispatch();
 			
-			if(!defined('THREAD_TASK_NAME')) {
-				$sig = static::$app->exitSig();
-				task_wait($sig);
-			}
-		} else {
-			printf("%s is not extends %s\n", get_class($app), Application::class);
+		if(!defined('THREAD_TASK_NAME')) {
+			$sig = static::$app->exitSig();
+			task_wait($sig);
 		}
 	}
 }
 
 spl_autoload_register('Fwe::autoload', true, true);
-Fwe::$aliases = new TsVar('__aliases');
-Fwe::$aliases->getOrSet('@fwe', function () {
-	return __DIR__;
-});
-Fwe::$classMap = new TsVar('__classMap');
-Fwe::$classAlias = new TsVar('__classAlias');
 Fwe::$config = new TsVar('__config');
 
 include_once __DIR__ . '/functions.php';

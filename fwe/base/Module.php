@@ -47,18 +47,17 @@ class Module {
 	 *
 	 * @var Component
 	 */
-	private $_modules;
+	protected $_modules;
 	
 	/**
 	 * @var string
 	 */
-	private $_route;
+	protected $_route;
 
 	public function __construct(string $id, Module $module = null) {
 		$this->id = $id;
 		$this->module = $module;
 		$this->_modules = \Fwe::createObject(Component::class);
-		$this->_modules->params['module'] = $this;
 
 		if($this->module !== null) $this->_route = "{$this->module->route}{$this->id}/";
 	}
@@ -97,7 +96,7 @@ class Module {
 	 * @return object
 	 */
 	public function getModule(string $id, bool $isMake = true) {
-		return $this->_modules->get($id, $isMake);
+		return $this->_modules->get($id, $isMake, ['module' => $this]);
 	}
 
 	/**

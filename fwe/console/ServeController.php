@@ -1,7 +1,16 @@
 <?php
 namespace fwe\console;
 
+use fwe\base\Action;
+
 class ServeController extends Controller {
+	
+	public function afterAction(Action $action, array $params = []) {
+		$this->module->controllerObjects = [];
+		$this->module = null;
+		$this->actionObjects = [];
+		\Fwe::$config->remove('main');
+	}
 
 	/**
 	 * 启动Web服务器
@@ -17,9 +26,8 @@ class ServeController extends Controller {
 			$cfg['backlog'] = $backlog;
 			return $cfg;
 		});
-		\Fwe::$app = \Fwe::createObject($config);
+		$ret = \Fwe::createObject($config)->boot();
 		unset($config);
-		$ret = \Fwe::$app->boot();
 		if($ret) {
 			$pidFile = \Fwe::getAlias('@app/runtime/' . $name . '.pid');
 			$pidPath = dirname($pidFile);
@@ -31,10 +39,10 @@ class ServeController extends Controller {
 				file_put_contents($pidFile, posix_getpid());
 				echo "Service started\n";
 			}
-			register_shutdown_function(function($file) {
+			register_shutdown_function((function($file) {
 				@unlink($file);
 				echo "Service stopped\n";
-			}, $pidFile);
+			})->bindTo(null), $pidFile);
 		}
 		return $ret;
 	}

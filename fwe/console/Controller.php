@@ -44,6 +44,7 @@ class Controller extends \fwe\base\Controller {
 	public $isColor;
 
 	public function init() {
+		parent::init();
 		$this->isColor = DIRECTORY_SEPARATOR === '\\' ? getenv('ANSICON') !== false || getenv('ConEmuANSI') === 'ON' : function_exists('posix_isatty') && @posix_isatty(STDOUT);
 	}
 	

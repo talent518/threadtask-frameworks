@@ -11,7 +11,7 @@ class StaticAction implements IAction {
 	public $prefix, $path, $file;
 
 	public function beforeAction(array $params = []): bool {
-		return true;
+		return $this->params['request']->bodylen === 0;
 	}
 
 	public function afterAction(array $params = []) {

@@ -3,7 +3,6 @@
 namespace fwe\base;
 
 interface IAction {
-
 	public function getRoute();
 
 	public function beforeAction(array $params = []): bool;

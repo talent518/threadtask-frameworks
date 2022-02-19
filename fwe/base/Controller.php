@@ -34,11 +34,6 @@ class Controller {
 	 * @var array
 	 */
 	public $actionObjects = [];
-	
-	/**
-	 * @var string
-	 */
-	public $actionID;
 
 	private $_route;
 
@@ -50,10 +45,6 @@ class Controller {
 
 	public function init() {
 		$this->module->controllerObjects[$this->id] = $this;
-	}
-	
-	public function action(): ?IAction {
-		return $this->actionID ? ($this->actionObjects[$this->actionID] ?? null) : null;
 	}
 
 	public function getRoute() {
