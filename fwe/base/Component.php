@@ -26,8 +26,12 @@ class Component {
 	 * @param string $id
 	 * @return boolean
 	 */
-	public function has(string $id) {
-		return isset($this->_defines[$id]) || isset($this->_objects[$id]);
+	public function has(string $id, bool $isObject = false) {
+		if($isObject) {
+			return isset($this->_objects[$id]);
+		} else {
+			return isset($this->_defines[$id]);
+		}
 	}
 
 	/**
@@ -35,13 +39,22 @@ class Component {
 	 * 
 	 * @param string $id
 	 * @param bool $isMake
+	 * @param array $params
 	 * @return object
 	 */
 	public function get(string $id, bool $isMake = true, array $params = []) {
-		if(isset($this->_objects[$id])) {
+		if(isset($this->_defines[$id])) {
+			if($isMake) {
+				if(isset($this->_objects[$id])) {
+					return $this->_objects[$id];
+				} else {
+					return $this->_objects[$id] = \Fwe::createObject($this->_defines[$id], ['id'=>$id] + $params);
+				}
+			} else {
+				return $this->_defines[$id];
+			}
+		} elseif(isset($this->_objects[$id])) {
 			return $this->_objects[$id];
-		} else if($isMake && isset($this->_defines[$id])) {
-			return $this->_objects[$id] = \Fwe::createObject($this->_defines[$id], ['id'=>$id] + $params);
 		}
 	}
 
@@ -52,7 +65,7 @@ class Component {
 	 * @param mixed $value
 	 * @param bool $isFull
 	 */
-	public function set(string $id, $value, bool $isFull = true) {
+	public function set(string $id, $value, bool $isFull = false) {
 		if(is_object($value)) {
 			$this->_objects[$id] = $value;
 		} elseif($isFull) {

@@ -9,11 +9,11 @@ class MySQLPool implements IPool {
 
 	public $port = 3306;
 
-	public $username;
+	public $username = 'root';
 
-	public $password;
+	public $password = '';
 
-	public $database;
+	public $database = 'test';
 	
 	public $socket;
 	

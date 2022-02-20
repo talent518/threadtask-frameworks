@@ -1,6 +1,11 @@
 <?php
 namespace fwe\base;
 
+use fwe\curl\Boot;
+use fwe\db\MySQLPool;
+use fwe\db\RedisPool;
+use fwe\validators\Validator;
+
 /**
  * 应用基类
  * 
@@ -28,6 +33,13 @@ abstract class Application extends Module {
 		$this->extendObject = \Fwe::createObject(Component::class);
 		
 		parent::__construct($id);
+
+		$this->setComponents([
+			'curl' => Boot::class,
+			'db' => MySQLPool::class,
+			'redis' => RedisPool::class,
+			'validator' => Validator::class,
+		]);
 	}
 	
 	/**

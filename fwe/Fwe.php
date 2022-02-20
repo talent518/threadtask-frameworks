@@ -159,7 +159,7 @@ abstract class Fwe {
 			if($classFile === false || ! is_file($classFile)) {
 				return;
 			}
-			static::$classMap[$className] = $classFile;
+			// static::$classMap[$className] = $classFile;
 		} else {
 			return;
 		}
@@ -321,6 +321,15 @@ abstract class Fwe {
 		}
 
 		return $args;
+	}
+
+	/**
+	 * 获取对象的public属性
+	 * 
+	 * @return array
+	 */
+	public static function getVars(object $obj) {
+		return get_object_vars($obj);
 	}
 
 	/**
