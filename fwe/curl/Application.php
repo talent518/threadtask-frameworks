@@ -36,7 +36,7 @@ class Application extends \fwe\base\Application {
 	protected $_taskIndex;
 	
 	/**
-	 * @var resource
+	 * @var resource|\CurlMultiHandle
 	 */
 	protected $_mh;
 	
@@ -155,13 +155,13 @@ class Application extends \fwe\base\Application {
 
 		if($this->verbose) {
 			$name =\Fwe::$config->get('__app__');
-			curl_setopt($ch, CURLOPT_STDERR, fopen(\Fwe::getAlias("@app/runtime/curl-$name-$key.log"), 'w'));
+			curl_setopt($ch, CURLOPT_STDERR, fopen(\Fwe::getAlias("@app/runtime/curl-$name-$key.log"), 'ab'));
 		}
 		
 		$ret = curl_multi_add_handle($this->_mh, $ch);
 		if($ret != CURLM_OK) {
 			$err = curl_multi_strerror($ret);
-			$ex = \Exception($err, $ret);
+			$ex = new \Exception($err, $ret);
 			echo "$ex\n";
 
 			curl_close($ch);

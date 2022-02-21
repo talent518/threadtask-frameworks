@@ -21,6 +21,7 @@ class Request extends IRequest {
 	const FORMAT_URL = 0;
 	const FORMAT_JSON = 1;
 	const FORMAT_XML = 2;
+	const FORMAT_RAW = 3;
 	
 	protected $method;
 	protected $headers;
@@ -30,7 +31,7 @@ class Request extends IRequest {
 	public function __construct(string $url, string $method = 'GET', array $headers = []) {
 		parent::__construct($url);
 
-		$this->method = $method;
+		$this->method = strtoupper($method);
 		$this->headers = $headers;
 	}
 	
@@ -178,7 +179,7 @@ class Request extends IRequest {
 	}
 	
 	/**
-	 * @param resource $ch cURL 句柄
+	 * @param \CurlHandle|resource $ch
 	 */
 	protected function makeBody($ch) {
 		switch($this->type) {
@@ -235,7 +236,11 @@ class Request extends IRequest {
 		$this->makeBody($ch);
 		
 		$res = \Fwe::createObject($this->responseClass);
-		
+
+		if($this->method === 'HEAD') {
+			curl_setopt($ch, CURLOPT_NOBODY, true);
+		}
+
 		curl_setopt($ch, CURLOPT_HEADER, 0);
 		curl_setopt($ch, CURLOPT_HEADERFUNCTION, [$res, 'headerHandler']);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 0);

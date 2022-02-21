@@ -13,11 +13,11 @@ abstract class IValidator {
 
     abstract public function validate(Model $model, bool $isPerOne = false, bool $isOnly = false);
 
-	protected function isSkipOnEmpty($value) {
+	public function isSkipOnEmpty($value) {
 		return $this->skipOnEmpty && $this->isEmpty($value);
 	}
 
-	protected function isEmpty($value) {
+	public function isEmpty($value) {
 		return $value === null || (is_string($value) && $value === '');
 	}
 }

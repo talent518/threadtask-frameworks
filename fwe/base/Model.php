@@ -145,7 +145,7 @@ abstract class Model {
 	/**
 	 * @var callable|int
 	 */
-	public function validate(bool $isPerOne = false, bool $isOnly = false) {
+	public function validate(callable $ok, bool $isPerOne = false, bool $isOnly = false) {
 		$this->errors = [];
 
 		$ret = 0;
@@ -154,11 +154,8 @@ abstract class Model {
 		/** @var \fwe\validators\IValidator $validator */
 		foreach($this->validators as $validator) {
 			$n = $validator->validate($this, $isPerOne, $isOnly);
-			if(is_callable($n)) {
+			if($n instanceof \Closure) {
 				$calls[] = $n;
-				if($isOnly) {
-					break;
-				}
 			} else {
 				$ret += $n;
 				if($isOnly && $n) {
@@ -167,32 +164,38 @@ abstract class Model {
 			}
 		}
 
-		if(empty($calls)) {
-			return $ret;
-		} elseif($isOnly && $ret) {
-			return $ret;
+		if(empty($calls) || ($ret && $isOnly)) {
+			if($ok) {
+				call_user_func($ok, $ret);
+			} else {
+				return $ret;
+			}
 		} else {
-			$next = function(callable $next, callable $ok) use(&$calls, &$ret, $isOnly) {
-				$call = array_shift($calls);
-				if(empty($calls)) {
-					$call(function($n) use($ok,$ret) {
-						$ok($n + $ret);
-					});
-				} else {
-					$call(function($n) use($next, $ok, &$ret, $isOnly) {
-						$ret += $n;
-						if($n && $isOnly) {
-							$ok($ret);
-						} else {
-							$next($next, $ok);
-						}
-					});
-				}
-				$call();
-			};
-			return function(callable $ok) use($next) {
-				$next($next, $ok);
-			};
+			$call = (function(callable $ok) use($calls, $ret, $isOnly) {
+				$next = function(callable $ok) use(&$calls) {
+					$call = array_shift($calls);
+					if($call) {
+						$call($ok);
+					} else {
+						call_user_func($ok, 0);
+					}
+				};
+				$res = function(int $n) use(&$calls, &$ret, $isOnly, $next, $ok) {
+					$ret += $n;
+					if(($n && $isOnly) || empty($calls)) {
+						call_user_func($ok, $ret);
+					} else {
+						$next($this);
+					}
+				};
+				$next($res->bindTo($res));
+			})->bindTo(null);
+
+			if($ok) {
+				$call($ok);
+			} else {
+				return $call;
+			}
 		}
 	}
 }

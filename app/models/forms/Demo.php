@@ -2,6 +2,8 @@
 namespace app\models\forms;
 
 use fwe\base\Model;
+use fwe\curl\Request;
+use fwe\validators\IValidator;
 
 class Demo extends Model {
 
@@ -14,18 +16,43 @@ class Demo extends Model {
 	public $repasswd;
 	public $repasswd2;
 	public $age;
+	public $url;
 
 	public function getRules() {
+		$method = function(IValidator $validator, bool $isPerOne, bool $isOnly, array $attributes) {
+			if($validator->isSkipOnEmpty($this->url)) {
+				return 0;
+			} else {
+                $vars = compact('isPerOne', 'isOnly', 'attributes');
+                return function (callable $ok) use ($vars) {
+                    echo "Closure\n";
+                    var_dump($vars);
+                    curl()->make(new Request($this->url, 'HEAD'), function ($res) use ($ok) {
+                        if ($res->errno === 0 && $res->status === 200) {
+                            $ok(0);
+                        } else {
+                            $this->addError('url', "url: {$this->url}, errno: {$res->errno}, error: {$res->error}, status: {$res->status}");
+                            $ok(1);
+                        }
+                    });
+                };
+            }
+		};
 		return [
 			['email, message', 'required'],
 			['subject, unsafe', 'safe', 'scene' => 'anonymous'],
 			['subject, reply', 'required', 'scene' => 'realname'],
+			['email', 'email'],
+			['reply', 'fullemail'],
 			['password', 'safe'],
 			['repasswd', 'compare', 'compareAttribute' => 'password'],
 			['repasswd2', 'compare', 'compareValue' => function(){return $this->password;}],
 			['unsafe', 'compare', 'compareValue' => '0'],
 			['age', 'required'],
 			['age', 'compare', 'operator' => '>=', 'compareValue' => 1, 'isNumeric' => true],
+			['url', 'url'],
+			['url', 'method', 'method' => $method],
+			['url', 'method', 'method' => 'validUrl'],
 		];
 	}
 
@@ -41,5 +68,19 @@ class Demo extends Model {
 			'repasswd2' => '再次确认密码',
 			'age' => '年龄',
 		];
+	}
+
+	public function validUrl(IValidator $validator, bool $isPerOne, bool $isOnly, array $attributes) {
+		if($validator->isSkipOnEmpty($this->url)) {
+			return 0;
+		} else {
+			$vars = compact('isPerOne', 'isOnly', 'attributes');
+
+			return function(callable $ok) use ($vars) {
+                echo "Method\n";
+                var_dump($vars);
+                $ok(0);
+            };
+        }
 	}
 }

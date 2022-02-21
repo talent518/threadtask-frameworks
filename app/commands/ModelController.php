@@ -13,41 +13,77 @@ class ModelController extends Controller {
         $this->formatColor("anonymous scene validator\n", static::FG_RED);
         $model = new FormDemo();
         $model->setScene('anonymous');
-        if($model->validate(true)) {
-            $this->formatColor("errors: isPerOne\n", static::FG_BLUE);
-            var_dump($model->getErrors());
-        }
-        if($model->validate(false, true)) {
-            $this->formatColor("errors: isOnly\n", static::FG_BLUE);
-            var_dump($model->getErrors());
-        }
-        if($model->validate(true, true)) {
-            $this->formatColor("errors: isPerOne isOnly\n", static::FG_BLUE);
-            var_dump($model->getErrors());
-        }
+        $model->validate(function(int $n) use($model, $__params__) {
+            if ($n) {
+                ob_start();
+                ob_implicit_flush(false);
+    
+                $this->formatColor("errors: isPerOne\n", static::FG_BLUE);
+                var_dump($model->getErrors());
 
-        $model->attributes = $__params__;
-        $this->formatColor("attributes\n", static::FG_BLUE);
-        var_dump($model->attributes);
+                $str = ob_get_clean();
+            } else {
+                $str = null;
+            }
+            $model->validate(function(int $n) use($model, $__params__, $str) {
+                if($n) {
+                    ob_start();
+                    ob_implicit_flush(false);
+
+                    $this->formatColor("errors: isOnly\n", static::FG_BLUE);
+                    var_dump($model->getErrors());
+
+                    $str .= ob_get_clean();
+                }
+                $model->validate(function(int $n) use($model, $__params__, $str) {
+                    ob_start();
+                    ob_implicit_flush(false);
+
+                    if($n) {
+                        $this->formatColor("errors: isPerOne isOnly\n", static::FG_BLUE);
+                        var_dump($model->getErrors());
+                    }
+
+
+                    $model->attributes = $__params__;
+                    $this->formatColor("attributes\n", static::FG_BLUE);
+                    var_dump($model->attributes);
+
+                    echo $str . ob_get_clean();
+                }, true, true);
+            }, false, true);
+        }, true);
 
         /////////////////////////////////////
 
-        $this->formatColor("\nrealname scene validator\n", static::FG_RED);
         $model = new FormDemo();
         $model->setScene('realname');
-        if($model->validate()) {
-            $this->formatColor("errors\n", static::FG_BLUE);
-            var_dump($model->getErrors());
-        }
+        $model->validate(function($n) use($model, $__params__) {
+            ob_start();
+            ob_implicit_flush(false);
 
-        $model->attributes = $__params__;
-        $this->formatColor("attributes\n", static::FG_BLUE);
-        var_dump($model->attributes);
+            $this->formatColor("\nrealname scene validator\n", static::FG_RED);
+            if ($n) {
+                $this->formatColor("errors\n", static::FG_BLUE);
+                var_dump($model->getErrors());
+            }
+            
+            $model->attributes = $__params__;
+            $this->formatColor("attributes\n", static::FG_BLUE);
+            var_dump($model->attributes);
 
-        if($model->validate()) {
-            $this->formatColor("errors\n", static::FG_BLUE);
-            var_dump($model->getErrors());
-        }
+            $str = ob_get_clean();
+    
+            $model->validate(function($n) use($model, $str) {
+                if($n == 0) return;
+
+                ob_start();
+                ob_implicit_flush(false);
+                $this->formatColor("errors\n", static::FG_BLUE);
+                var_dump($model->getErrors());
+                echo $str . ob_get_clean();
+            });
+        });
 	}
 
 }

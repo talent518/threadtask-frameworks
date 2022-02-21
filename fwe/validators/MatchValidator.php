@@ -17,11 +17,6 @@ class MatchValidator extends IValidator {
 	}
 
 	public function validate(Model $model, bool $isPerOne = false, bool $isOnly = false) {
-		if($this->range instanceof \Closure) {
-			$range = call_user_func($this->range);
-		} else {
-			$range = $this->range;
-		}
 		$ret = 0;
 		foreach($this->attributes as $attr) {
 			$value = $model->{$attr};
