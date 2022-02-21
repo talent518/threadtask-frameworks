@@ -21,11 +21,48 @@ class Validator {
 		$this->setValidators([
 			'required' => RequiredValidator::class,
 			'safe' => SafeValidator::class,
+			'compare' => CompareValidator::class,
+			'boolean' => [
+				'class' => InValidator::class,
+				'range' => ['1', '0'],
+			],
+			'in' => InValidator::class,
+			'match' => MatchValidator::class,
+			'double' => [
+				'class' => MatchValidator::class,
+				'pattern' => '/^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$/',
+			],
+			'integer' => [
+				'class' => MatchValidator::class,
+				'pattern' => '/^[+-]?\d+$/',
+			],
+			'url' => [
+				'class' => MatchValidator::class,
+				'pattern' => '/^https?:\/\/(([A-Z0-9][A-Z0-9_-]*)(\.[A-Z0-9][A-Z0-9_-]*)+)(?::\d{1,5})?(?:$|[?\/#])/i',
+			],
+			'ipv4' => [
+				'class' => MatchValidator::class,
+				'pattern' => '/^(?:(?:2(?:[0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9])\.){3}(?:(?:2([0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9]))$/',
+			],
+			'ipv6' => [
+				'class' => MatchValidator::class,
+				'pattern' => '/^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$/',
+			],
+			'email' => [
+				'class' => MatchValidator::class,
+				'pattern' => '/^[a-zA-Z0-9!#$%&\'*+\\/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&\'*+\\/=?^_`{|}~-]+)*@(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$/',
+			],
+			'fullemail' => [
+				'class' => MatchValidator::class,
+				'pattern' => '/^[^@]*<[a-zA-Z0-9!#$%&\'*+\\/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&\'*+\\/=?^_`{|}~-]+)*@(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?>$/',
+			],
 		]);
 	}
 
 	public function getValidator(string $id) {
-		return $this->component->get($id, false);
+		$ret = $this->component->get($id, false);
+		if($ret) return $ret;
+		else trigger_error("$id 验证器不存在", E_USER_ERROR);
 	}
 
 	public function getValidators() {
@@ -77,7 +114,7 @@ class Validator {
 				}
 			}
 
-			if(empty($rule['scene'])) {
+			if($scene === null || $scene === '' || empty($rule['scene'])) {
 				$rets[] = \Fwe::createObject($this->getValidator($id), $rule);
 			} else {
 				$scenes = is_array($rule['scene']) ? $rule['scene'] : preg_split('/[^0-9a-zA-Z_]+/', $rule['scene'], -1, PREG_SPLIT_NO_EMPTY);

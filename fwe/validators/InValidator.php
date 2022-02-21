@@ -1,24 +1,30 @@
 <?php
 namespace fwe\validators;
 
-use Exception;
 use fwe\base\Model;
 
-class RequiredValidator extends IValidator {
+class InValidator extends IValidator {
+	public $range;
+	public $not = false;
 
 	public function init() {
 		if(!$this->message) {
-			$this->message = '{attribute} 不能为空';
+			$this->message = '{attribute} 的值无效';
 		}
 	}
 
 	public function validate(Model $model, bool $isPerOne = false, bool $isOnly = false) {
+		if($this->range instanceof \Closure) {
+			$range = call_user_func($this->range);
+		} else {
+			$range = $this->range;
+		}
 		$ret = 0;
 		foreach($this->attributes as $attr) {
 			$value = $model->{$attr};
-			if($isPerOne && $model->hasError($attr)) {
+			if(($isPerOne && $model->hasError($attr)) || $this->isSkipOnEmpty($value) || $this->inArray($value, $range)) {
 				continue;
-			} elseif($this->isEmpty($value)) {
+			} else {
 				$ret ++;
 				$label = $model->getLabel($attr);
 				$error = strtr($this->message, [
@@ -35,6 +41,16 @@ class RequiredValidator extends IValidator {
 			}
 		}
 		return $ret;
+	}
+
+	protected function inArray($value, array $range) {
+		$ret = in_array($value, $range);
+
+		if($this->not) {
+			return !$ret;
+		} else {
+			return $ret;
+		}
 	}
 
 }

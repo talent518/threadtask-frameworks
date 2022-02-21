@@ -114,9 +114,14 @@ class Component {
 	 * 根据组件名移除组件配置和对象
 	 * 
 	 * @param string $id
+	 * @param bool $isObject
 	 */
-	public function remove(string $id) {
-		unset($this->_objects[$id], $this->_defines[$id]);
+	public function remove(string $id, bool $isObject = false) {
+		if($isObject) {
+			unset($this->_objects[$id]);
+		} else {
+			unset($this->_defines[$id]);
+		}
 	}
 	
 	/**

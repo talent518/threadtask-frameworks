@@ -43,6 +43,11 @@ class ModelController extends Controller {
         $model->attributes = $__params__;
         $this->formatColor("attributes\n", static::FG_BLUE);
         var_dump($model->attributes);
-    }
+
+        if($model->validate()) {
+            $this->formatColor("errors\n", static::FG_BLUE);
+            var_dump($model->getErrors());
+        }
+	}
 
 }

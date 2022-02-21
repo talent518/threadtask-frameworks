@@ -69,14 +69,18 @@ abstract class Model {
 
 	abstract public function getRules();
 
-	abstract public function getLabels();
+	abstract protected function getLabels();
 
 	protected $labels;
-	public function getLabel(string $attr) {
+	public function getLabel(?string $attr) {
 		if($this->labels === null) {
 			$this->labels = $this->getLabels();
 		}
-		return $this->labels[$attr] ?? $attr;
+		if($attr === null || $attr === '') {
+			return $this->labels;
+		} else {
+			return $this->labels[$attr] ?? $attr;
+		}
 	}
 
 	public function getSafeAttributes(bool $isKey = true) {
