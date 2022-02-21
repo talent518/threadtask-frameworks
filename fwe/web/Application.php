@@ -158,7 +158,7 @@ class Application extends \fwe\base\Application {
 		$reqTasks = [];
 		$this->_lstEvent = new \Event(\Fwe::$base, $this->_fd, \Event::READ | \Event::PERSIST, function() use(&$reqTasks) {
 			$addr = $port = null;
-			$fd = @socket_accept_ex($this->_fd, $addr, $port);
+			$fd = socket_accept_ex($this->_fd, $addr, $port);
 			if(!$fd) return;
 
 			@socket_set_option($fd, SOL_SOCKET, SO_LINGER, ['l_onoff'=>1, 'l_linger'=>1]) or $this->strerror('socket_set_option', false);

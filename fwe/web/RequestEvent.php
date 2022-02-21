@@ -238,11 +238,27 @@ class RequestEvent {
 			$this->free();
 		}
 	}
+
+	protected function beforeAction() {
+		$this->params = ['request'=>$this] + $this->get + $this->cookies;
+		$this->action = \Fwe::$app->getAction($this->path, $this->params);
+		if(!$this->action->beforeAction($this->params)) {
+			throw new RouteException($this->path, "Not Acceptable");
+		}
+	}
+
+	protected function runAction() {
+		$this->runTime = microtime(true);
+		$this->params += $this->get + $this->post;
+		$ret = $this->action->run($this->params);
+		$this->action->afterAction($this->params);
+
+		return $ret;
+	}
 	
 	public function readHandler($bev, $arg) {
 		// echo __METHOD__ . ":{$this->key}\n";
 		$ret = null;
-		$events = \Fwe::$app->events;
 		try {
 			$ret = $this->read();
 			if($ret === false) return;
@@ -254,14 +270,10 @@ class RequestEvent {
 			$this->isKeepAlive = ($this->isKeepAlive && microtime(true) < $this->keepAlive);
 			
 			if($ret) {
+				$events = \Fwe::$app->events;
 				$response = $this->getResponse();
 				$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
-				
-				$this->runTime = microtime(true);
-				$this->params += $this->get + $this->post;
-				$ret = $this->action->run($this->params);
-				$this->action->afterAction($this->params);
-
+				$ret = $this->runAction($response);
 				if(is_string($ret)) $response->end($ret);
 				elseif(!$response->isHeadSent() && $events == \Fwe::$app->events) {
 					echo "Not Content in the route({$this->key}): '{$this->action->route}'\n";
@@ -401,16 +413,6 @@ class RequestEvent {
 							}
 						}
 						
-						$this->params = ['request'=>$this] + $this->get + $this->cookies;
-						$this->action = \Fwe::$app->getAction($this->path, $this->params);
-						if(!$this->action->beforeAction($this->params)) {
-							throw new RouteException($this->path, "Not Acceptable");
-						}
-						
-						if(isset($this->headers['Expect']) && $this->headers['Expect'] === '100-continue') {
-							if(!$this->send("{$this->protocol} 100 Continue\r\n\r\n")) return null;
-						}
-						
 						switch($this->bodytype) {
 							case 'application/x-www-form-urlencoded':
 								$this->bodymode = self::BODY_MODE_URL_ENCODED;
@@ -427,6 +429,12 @@ class RequestEvent {
 								break;
 							default:
 								break;
+						}
+						
+						if($this->beforeAction()) return false;
+						
+						if(isset($this->headers['Expect']) && $this->headers['Expect'] === '100-continue') {
+							if(!$this->send("{$this->protocol} 100 Continue\r\n\r\n")) return null;
 						}
 					} else {
 						@list($name, $value) = preg_split('/:\s*/', substr($buf, $i, $pos-$i), 2);
