@@ -372,11 +372,20 @@ class RedisConnection extends AsyncConnection {
 	public function goAsync(callable $success, callable $error, float $timeout = -1) {
 		if($this->_isAsync) {
 			$this->_isAsync = false;
+			$this->_syncKey = null;
 			$this->open();
 			return parent::goAsync($success, $error, $timeout);
 		} else {
 			return false;
 		}
+	}
+
+	protected $_syncKey;
+	public function setAsyncKey(string $name) {
+		if($this->_isAsync) {
+			$this->_syncKey = $name;
+		}
+		return $this;
 	}
 	
 	public function __call(string $name, array $params) {
@@ -388,8 +397,10 @@ class RedisConnection extends AsyncConnection {
 		}
 		
 		if($this->_isAsync) {
+			$key = $this->_syncKey;
+			$this->_syncKey = null;
 			$db = $this;
-			$this->_events[] = \Fwe::createObject(RedisEvent::class, compact('db', 'name', 'params', 'command'));
+			$this->_events[] = \Fwe::createObject(RedisEvent::class, compact('db', 'name', 'params', 'command', 'key'));
 			return $this;
 		} elseif($this->_readEvent) {
 			$this->sendCommandInternal($command, $params);

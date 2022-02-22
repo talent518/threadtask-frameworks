@@ -11,13 +11,13 @@ class RedisEvent implements IEvent {
 	protected $_key;
 	protected $_data;
 
-	public function __construct(RedisConnection $db, string $name, string $command, array $params) {
+	public function __construct(RedisConnection $db, string $name, string $command, array $params, ?string $key) {
 		$this->_db = $db;
 		$this->_name = $name;
 		$this->_command = $command;
 		$this->_params = $params;
 		
-		$this->_key = $db->eventKey++;
+		$this->_key = $key === null ? $db->eventKey++ : $key;
 	}
 	
 	public function getSql() {

@@ -126,7 +126,7 @@ class DefaultController extends Controller {
 	 */
 	public function actionRedis(bool $isAsync = false) {
 		if($isAsync) {
-			redis()->pop()->beginAsync()->keys('*')->commandInfo("keys", "info")->goAsync(function($keys, $commands) {
+			redis()->pop()->beginAsync()->setAsyncKey('keys')->keys('*')->setAsyncKey('cmdInfo')->commandInfo("keys", "info")->get('inc')->incrby('inc', 1)->goAsync(function($data, $keys, $cmdInfo, $get, $incr) {
 				$this->formatColor('CALL: ', self::FG_BLUE);
 				var_dump(get_defined_vars());
 			}, function($data) {
