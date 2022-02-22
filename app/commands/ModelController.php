@@ -3,6 +3,7 @@ namespace app\commands;
 
 use fwe\console\Controller;
 use app\models\forms\Demo as FormDemo;
+use app\models\db\Demo as MySQLDemo;
 
 class ModelController extends Controller {
 
@@ -85,5 +86,16 @@ class ModelController extends Controller {
             });
         });
 	}
+
+    public function actionMysql(array $__params__) {
+        $model = new MySQLDemo();
+        $model->scene = 'new';
+        $model->attributes = $__params__;
+        var_dump($model->attributes);
+        if($model->validate(null)) {
+            $this->formatColor("errors\n", static::FG_BLUE);
+            var_dump($model->getErrors());
+        }
+    }
 
 }
