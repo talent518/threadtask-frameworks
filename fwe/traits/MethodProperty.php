@@ -14,6 +14,19 @@ trait MethodProperty {
 
 	protected $extendObject;
 
+    protected function hasProperty(string $name) {
+		return false;
+	}
+
+	protected function getProperty(string $name) {
+	}
+
+	protected function setProperty(string $name, $value) {
+	}
+
+	protected function delProperty(string $name) {
+	}
+
 	/**
 	 * 读取不存在的属性时自动调用的方法
 	 * 
@@ -27,6 +40,8 @@ trait MethodProperty {
 			return $this->$getter();
 		} elseif(method_exists($this, 'set' . $name)) {
 			throw new Exception('正在读取只写属性：' . get_class($this) . '::' . $name);
+		} elseif($this->hasProperty($name)) {
+			return $this->getProperty($name);
 		} elseif(is_object(($this->extendObject))) {
 			return $this->extendObject->$name;
 		} else {
@@ -47,6 +62,8 @@ trait MethodProperty {
 			$this->$setter($value);
 		} elseif(method_exists($this, 'get' . $name)) {
 			throw new Exception('正在设置只读属性：' . get_class($this) . '::' . $name);
+		} elseif($this->hasProperty($name)) {
+			return $this->setProperty($name, $value);
 		} elseif(is_object(($this->extendObject))) {
 			$this->extendObject->$name = $value;
 		} else {
@@ -64,10 +81,13 @@ trait MethodProperty {
 		$getter = 'get' . $name;
 		if(method_exists($this, $getter)) {
 			return $this->$getter() !== null;
+		} elseif($this->hasProperty($name)) {
+			return $this->getProperty($name) !== null;
 		} elseif(is_object(($this->extendObject))) {
 			return isset($this->extendObject->$name);
-		}
-		return false;
+		} else {
+            throw new Exception('正在判断未知属性：' . get_class($this) . '::' . $name);
+        }
 	}
 
 	/**
@@ -82,8 +102,12 @@ trait MethodProperty {
 			$this->$setter(null);
 		} elseif(method_exists($this, 'get' . $name)) {
 			throw new Exception('正在取消只读属性：' . get_class($this) . '::' . $name);
+		} elseif($this->hasProperty($name)) {
+			$this->delProperty($name);
 		} elseif(is_object(($this->extendObject))) {
 			unset($this->extendObject->$name);
+		} else {
+			throw new Exception('正在取消未知属性：' . get_class($this) . '::' . $name);
 		}
 	}
 
@@ -96,12 +120,8 @@ trait MethodProperty {
 	 * @return \fwe\traits\MethodProperty|mixed
 	 */
 	public function __call(string $name, array $params) {
-		if(strlen($name) > 3 && ! strncmp($name, 'set', 3)) {
-			$name = lcfirst(substr($name, 3));
-			$this->$name = array_shift($params);
-			return $this;
-		} elseif(is_object(($this->extendObject))) {
-			return $this->extendObject->$name(...$params);
+		if(is_object(($this->extendObject))) {
+			return call_user_func_array([$this->extendObject, $name], $params);
 		} else {
 			throw new Exception('正在调用未知方法：' . get_class($this) . "::$name()");
 		}

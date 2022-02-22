@@ -71,43 +71,34 @@ class Component {
 		} elseif($isFull) {
 			unset($this->_objects[$id]);
 			$this->_defines[$id] = $value;
-		} elseif(isset($this->_objects[$id]) && is_array($value) && (! isset($value['class']) || $value['class'] === get_class($this->_objects[$id]))) {
-			$obj = $this->_objects[$id];
-			foreach($value as $key => $val) {
-				$obj->$key = $val;
-			}
-			if(isset($this->_defines[$id])) {
-				goto merge;
-			} else {
-				if(! isset($value['class'])) {
-					$value['class'] = get_class($this->_objects[$id]);
-				}
-				$this->_defines[$id] = $value;
-			}
-		} elseif(isset($this->_defines[$id])) {
-			unset($this->_objects[$id]);
-			merge:
-			if(is_array($this->_defines[$id])) {
-				if(is_array($value)) {
-					if($value['class'] === $this->_defines[$id]['class']) {
-						$this->_defines[$id] = array_merge($this->_defines[$id], $value);
-					} else {
-						$this->_defines[$id] = $value;
-					}
-				} else {
-					$this->_defines[$id]['class'] = $value;
-				}
-			} else {
-				if(is_array($value) && ! isset($value['class'])) {
-					$value['class'] = $this->_defines[$id];
-				}
-
-				$this->_defines[$id] = $value;
-			}
 		} else {
-			unset($this->_objects[$id]);
-			$this->_defines[$id] = $value;
-		}
+			if(is_string($value)) {
+				$value = ['class' => $value];
+			} elseif(!is_array($value) || (!isset($value['class']) && !isset($this->_defines[$id]))) {
+				$vars = var_export($value, true);
+				throw new Exception("\$value必须是字符串或数组(必须有class键): {$vars}");
+			}
+
+			if(!isset($this->_defines[$id]) || (isset($value['class']) && $value['class'] !== $this->_defines[$id]['class'])) {
+				unset($this->_objects[$id]);
+				$this->_defines[$id] = $value;
+			} else {
+				$this->_defines[$id] = array_merge($this->_defines[$id], $value);
+
+				if (isset($this->_objects[$id])) {
+                    $obj = $this->_objects[$id];
+                    if (get_class($obj) === $this->_defines[$id]['class']) {
+                        foreach ($value as $key => $val) {
+                            if ($key !== 'class') {
+                                $obj->$key = $val;
+                            }
+                        }
+                    } else {
+						unset($this->_objects[$id]);
+					}
+                }
+			}
+        }
 	}
 
 	/**

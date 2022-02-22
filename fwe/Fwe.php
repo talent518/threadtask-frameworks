@@ -219,6 +219,8 @@ abstract class Fwe {
 				$object->$prop = $value;
 			}
 
+			static::setVars($object, $type);
+
 			method_exists($object, 'init') and $object->init();
 
 			return $object;
@@ -330,6 +332,12 @@ abstract class Fwe {
 	 */
 	public static function getVars(object $obj) {
 		return get_object_vars($obj);
+	}
+
+	public static function setVars(object $obj, array $properties) {
+		foreach($properties as $prop => $value) {
+			$obj->$prop = $value;
+		}
 	}
 
 	/**

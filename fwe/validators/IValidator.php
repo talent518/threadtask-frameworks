@@ -11,6 +11,14 @@ abstract class IValidator {
     public $skipOnEmpty = true;
 	public $message;
 
+	/**
+	 * 对指定的模块(Model)的属性进行数据验证
+	 *
+	 * @param Model $model
+	 * @param boolean $isPerOne
+	 * @param boolean $isOnly
+	 * @return \Closure|int
+	 */
     abstract public function validate(Model $model, bool $isPerOne = false, bool $isOnly = false);
 
 	public function isSkipOnEmpty($value) {
