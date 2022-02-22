@@ -296,14 +296,16 @@ class RedisConnection extends AsyncConnection {
 	public $iUsed;
 	
 	protected $_socket = false;
-
 	protected $_isAsync = false;
-	protected $_events = [];
 
 	public function __construct(string $host, int $port, ?string $auth = null) {
 		$this->_host = $host;
 		$this->_port = $port;
 		$this->_auth = $auth;
+	}
+
+	public function __destruct() {
+		$this->reset();
 	}
 	
 	public function init() {
@@ -313,6 +315,16 @@ class RedisConnection extends AsyncConnection {
 			$this->connectionString = "unix://{$this->unixSocket}";
 		} else {
 			$this->connectionString = "tcp://{$this->_host}:{$this->_port}";
+		}
+	}
+
+	public function reset() {
+		parent::reset();
+
+		$this->_isAsync = false;
+		if($this->_socket) {
+			fclose($this->_socket);
+			$this->_socket = null;
 		}
 	}
 	
@@ -357,12 +369,12 @@ class RedisConnection extends AsyncConnection {
 	 * @return RedisConnection
 	 */
 	public function beginAsync() {
-		if($this->_readEvent) {
+		if($this->_readEvent || $this->_isAsync) {
+			return $this;
+		} else {
+			$this->_isAsync = true;
 			return $this;
 		}
-		$this->_isAsync = true;
-		$this->_events = [];
-		return $this;
 	}
 	
 	public function getFd() {
@@ -372,7 +384,7 @@ class RedisConnection extends AsyncConnection {
 	public function goAsync(callable $success, callable $error, float $timeout = -1) {
 		if($this->_isAsync) {
 			$this->_isAsync = false;
-			$this->_syncKey = null;
+			$this->_syncKey = $this->_syncCallback = null;
 			$this->open();
 			return parent::goAsync($success, $error, $timeout);
 		} else {
@@ -387,6 +399,14 @@ class RedisConnection extends AsyncConnection {
 		}
 		return $this;
 	}
+
+	protected $_syncCallback;
+	public function setAsyncCallback(callable $call) {
+		if($this->_isAsync) {
+			$this->_syncCallback = $call;
+		}
+		return $this;
+	}
 	
 	public function __call(string $name, array $params) {
 		$name = strtoupper(trim(str_replace(['-', '_', '.'], ' ', preg_replace('/(?<!\p{Lu})(\p{Lu})|(\p{Lu})(?=\p{Ll})/u', ' \0', $name))));
@@ -395,12 +415,13 @@ class RedisConnection extends AsyncConnection {
 		foreach ($params as $arg) {
 			$command .= '$' . strlen($arg) . "\r\n" . $arg . "\r\n";
 		}
-		
+
 		if($this->_isAsync) {
 			$key = $this->_syncKey;
-			$this->_syncKey = null;
+			$callback = $this->_syncCallback;
+			$this->_syncKey = $this->_syncCallback = null;
 			$db = $this;
-			$this->_events[] = \Fwe::createObject(RedisEvent::class, compact('db', 'name', 'params', 'command', 'key'));
+			$this->_events[] = \Fwe::createObject(RedisEvent::class, compact('db', 'name', 'params', 'command', 'key', 'callback'));
 			return $this;
 		} elseif($this->_readEvent) {
 			$this->sendCommandInternal($command, $params);

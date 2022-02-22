@@ -122,7 +122,7 @@ abstract class AsyncConnection {
 			}
 		}
 	}
-	
+
 	public function goAsync(callable $success, callable $error, float $timeout = -1) {
 		if($this->_event === null) {
 			if($this->_events) {

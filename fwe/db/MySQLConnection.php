@@ -43,7 +43,16 @@ class MySQLConnection extends AsyncConnection {
 		$this->_time = microtime(true);
 		$this->_isMaster = $isMaster;
 	}
-	
+
+	public function reset() {
+        parent::reset();
+
+		if($this->_mysqli) {
+			$this->_mysqli->close();
+			$this->_mysqli = null;
+		}
+    }
+
 	public function getTime() {
 		return $this->_time;
 	}
@@ -167,7 +176,7 @@ class MySQLConnection extends AsyncConnection {
 	}
 	
 	public function __destruct() {
-		$this->_mysqli->close();
+		$this->reset();
 	}
 }
 
