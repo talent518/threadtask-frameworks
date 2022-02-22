@@ -12,7 +12,7 @@ class RedisEvent implements IEvent {
 	protected $_callback;
 	protected $_data;
 
-	public function __construct(RedisConnection $db, string $name, string $command, array $params, ?string $key, ?callable $callback) {
+	public function __construct(RedisConnection $db, string $name, string $command, array $params, $key, $callback) {
 		$this->_db = $db;
 		$this->_name = $name;
 		$this->_command = $command;
