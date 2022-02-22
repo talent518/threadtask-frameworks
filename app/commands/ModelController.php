@@ -87,6 +87,12 @@ class ModelController extends Controller {
         });
 	}
 
+    /**
+     * MySQL表单验证，以及表记录的增、删、查、改
+     *
+     * @param array $__params__
+     * @return void
+     */
     public function actionMysql(array $__params__) {
         $model = new MySQLDemo();
         $model->scene = 'new';

@@ -118,6 +118,28 @@ class DefaultController extends Controller {
 			var_dump($data, microtime(true)-$t);
 		});
 	}
+
+	/**
+	 * 查询表字段和索引列表信息
+	 *
+	 * @return void
+	 */
+	public function actionTable(string $table) {
+		if(!preg_match('/^[0-9a-zA-Z_-]+$/', $table)) {
+			trigger_error("`{$table}` 表名不合法", E_USER_ERROR);
+		}
+
+		db()->pop()
+		->asyncQuery("SHOW FIELDS FROM `$table`", ['key'=>'fields', 'style'=>IEvent::FETCH_ALL])
+		->asyncQuery("SHOW INDEX FROM `$table`", ['key'=>'indexes', 'style'=>IEvent::FETCH_ALL])
+		->goAsync(function($fields, $indexes) {
+			$json = json_encode(get_defined_vars(), JSON_PRETTY_PRINT);
+			echo "SUCCESS: {$json}\n";
+		}, function(array $data) {
+			$json = json_encode($data, JSON_PRETTY_PRINT);
+			echo "ERROR: {$json}\n";
+		});
+	}
 	
 	/**
 	 * 根据$isAsync参数是否进行异步Redis请求
