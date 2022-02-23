@@ -12,6 +12,11 @@ class MatchValidator extends IValidator {
 	public $isNumeric = false;
 
 	public function init() {
+		if(!$this->pattern) {
+			$class = get_class($this);
+			trigger_error("{$class}的pattern属性不能为空", E_USER_ERROR);
+		}
+
 		if($this->message === null) {
 			$this->message = '{attribute} 的值无效';
 		}

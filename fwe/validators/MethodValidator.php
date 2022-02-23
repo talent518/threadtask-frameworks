@@ -8,7 +8,8 @@ class MethodValidator extends IValidator {
 
 	public function init() {
 		if(!$this->method) {
-			trigger_error("method属性不能为空", E_USER_ERROR);
+			$class = get_class($this);
+			trigger_error("{$class}的method属性不能为空", E_USER_ERROR);
 		}
 	}
 
