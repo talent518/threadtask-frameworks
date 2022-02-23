@@ -7,7 +7,7 @@ use fwe\base\Model;
 class RequiredValidator extends IValidator {
 
 	public function init() {
-		if(!$this->message) {
+		if($this->message === null) {
 			$this->message = '{attribute} 不能为空';
 		}
 	}

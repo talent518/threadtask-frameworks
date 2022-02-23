@@ -10,7 +10,7 @@ class CompareValidator extends IValidator {
 	public $isNumeric = false;
 
 	public function init() {
-		if(!$this->message) {
+		if($this->message === null) {
 			switch ($this->operator) {
 				case '==':
 				case '===':

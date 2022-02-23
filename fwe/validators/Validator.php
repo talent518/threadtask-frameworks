@@ -31,10 +31,12 @@ class Validator {
 			'double' => [
 				'class' => MatchValidator::class,
 				'pattern' => '/^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$/',
+				'isNumeric' => true,
 			],
 			'integer' => [
 				'class' => MatchValidator::class,
 				'pattern' => '/^[+-]?\d+$/',
+				'isNumeric' => true,
 			],
 			'url' => [
 				'class' => MatchValidator::class,

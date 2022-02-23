@@ -8,7 +8,7 @@ class InValidator extends IValidator {
 	public $not = false;
 
 	public function init() {
-		if(!$this->message) {
+		if($this->message === null) {
 			$this->message = '{attribute} 的值无效';
 		}
 	}
