@@ -98,10 +98,12 @@ class ModelController extends Controller {
 		$model->scene = 'new';
 		$model->attributes = $__params__;
 		var_dump($model->attributes);
-		if($model->validate(null)) {
-			$this->formatColor("errors\n", static::FG_BLUE);
-			var_dump($model->getErrors());
-		}
+		$model->validate(function($n) use($model) {
+			if($n) {
+				$this->formatColor("errors\n", static::FG_BLUE);
+				var_dump($model->getErrors());
+			}
+		});
 	}
 
 }
