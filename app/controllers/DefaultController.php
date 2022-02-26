@@ -185,6 +185,13 @@ class DefaultController extends Controller {
 	public function actionWsDemo(RequestEvent $request) {
 		$request->webSocket(Demo::class);
 	}
+	public function actionEmpty(RequestEvent $request, bool $isReturn = true) {
+		if($isReturn) {
+			return __METHOD__;
+		} else {
+			$request->getResponse()->end(__METHOD__);
+		}
+	}
 	public function actionInfo(RequestEvent $request, bool $isChunk = true) {
 		$response = $request->getResponse();
 		$response->setContentType('text/plain; charset=utf-8');

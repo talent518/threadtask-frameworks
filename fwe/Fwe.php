@@ -230,17 +230,6 @@ abstract class Fwe {
 	}
 
 	public static function invoke(callable $callback, array $params, ?string $funcName = null) {
-		if(is_array($callback)) {
-			$reflection = new \ReflectionMethod($callback[0], $callback[1]);
-			$object = is_object($callback[0]) ? $callback[0] : null;
-		} elseif(is_object($callback) && ! $callback instanceof \Closure) {
-			$reflection = new \ReflectionMethod($callback, '__invoke');
-			$object = $callback;
-		} else {
-			$reflection = new \ReflectionFunction($callback);
-			$object = null;
-		}
-
 		$isAssoc = false;
 		foreach($params as $key => $val) {
 			if(is_string($key)) {
@@ -248,21 +237,26 @@ abstract class Fwe {
 				break;
 			}
 		}
-		unset($val);
+		unset($key, $val);
 
 		if($isAssoc) {
-			if($reflection instanceof \ReflectionFunction) {
-				return $reflection->invokeArgs(static::makeArgs($reflection, $params, $funcName));
+			if(is_array($callback)) {
+				$reflection = new ReflectionMethod($callback[0], $callback[1]);
+				$object = is_object($callback[0]) ? $callback[0] : null;
+			} elseif(is_object($callback) && ! ($callback instanceof \Closure)) {
+				$reflection = new ReflectionMethod($callback, '__invoke');
+				$object = $callback;
 			} else {
-				return $reflection->invokeArgs($object, static::makeArgs($reflection, $params, $funcName));
+				$reflection = new ReflectionFunction($callback);
+				$object = null;
 			}
-		} else {
-			if($reflection instanceof \ReflectionFunction) {
-				return $reflection->invokeArgs(static::makeArgs($reflection, $params, $funcName));
-			} else {
-				return $reflection->invokeArgs($object, $params);
-			}
+
+			$params = static::makeArgs($reflection, $params, $funcName);
+
+			$reflection = null;
 		}
+
+		return call_user_func_array($callback, $params);
 	}
 
 	public static function makeArgs(ReflectionFunctionAbstract $reflection, array &$params, ?string $funcName = null) {
@@ -275,38 +269,8 @@ abstract class Fwe {
 				$args[] = $__params__;
 				continue;
 			}
-			if(PHP_VERSION_ID >= 80000) {
-				$class = $param->getType();
-				$isClass = $class !== null && ! $param->getType()->isBuiltin();
-			} else {
-				$class = $param->getClass();
-				$isClass = $class !== null;
-			}
-			if($isClass) {
-				$className = $class->getName();
-				if(PHP_VERSION_ID >= 50600 && $param->isVariadic()) {
-					$args = array_merge($args, array_values($params));
-					break;
-				}
 
-				if(array_key_exists($name, $params)) {
-					revalue:
-					$value = $params[$name];
-					if($value instanceof $className) {
-						$args[] = $value;
-					} elseif(static::$app && static::$app->has($value)) {
-						$args[] = static::$app->get($value);
-					} else {
-						$args[] = static::createObject($value);
-					}
-					unset($params[$name]);
-				} elseif(array_key_exists($i, $params)) {
-					$name = $i++;
-					goto revalue;
-				} elseif(! $param->isOptional()) {
-					$args[] = static::createObject($className);
-				}
-			} elseif(array_key_exists($name, $params)) {
+			if(array_key_exists($name, $params)) {
 				$args[] = $params[$name];
 				unset($params[$name]);
 			} elseif(array_key_exists($i, $params)) {

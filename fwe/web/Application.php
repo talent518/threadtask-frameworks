@@ -19,12 +19,24 @@ class Application extends \fwe\base\Application {
 
 	protected $_isReq = false;
 
+	public $gcTimes = 120;
+
 	public function init() {
 		parent::init();
 		
-		$this->signalEvent(function() {
+		$i = 0;
+		$memsize = 0;
+		$name = defined('THREAD_TASK_NAME') ? THREAD_TASK_NAME : 'main';
+		$this->signalEvent(function() use(&$i, &$memsize, $name) {
 			if($this->_isReq) {
 				$this->isEmptyReq();
+			}
+			if(++$i > $this->gcTimes) {
+				$i = 0;
+				gc_collect_cycles();
+				// $size = memory_get_usage() - $memsize;
+				// $memsize += $size;
+				// echo "$name memory: $size\n";
 			}
 		});
 	}
@@ -256,8 +268,15 @@ class Application extends \fwe\base\Application {
 	}
 	
 	public function setReqEvent(int $key, $val = false) {
-		if($val) $this->_reqEvents[$key] = $val;
-		else unset($this->_reqEvents[$key]);
+		if($val) {
+			if(isset($this->_reqEvents[$key])) {
+				echo "{$key} is exists\n";
+			} else {
+				$this->_reqEvents[$key] = $val;
+			}
+		} else {
+			unset($this->_reqEvents[$key]);
+		}
 	}
 
 	public function decConn() {
@@ -283,7 +302,7 @@ class Application extends \fwe\base\Application {
 		
 		$this->_reqEvent = $this->_reqVars->newReadEvent(function() use($index) {
 			if(!$this->_reqVars->read()) return;
-			
+
 			$key = null;
 			list($fd, $addr, $port) = $this->_reqVars->shift(true, $key);
 			

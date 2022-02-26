@@ -122,27 +122,21 @@ class RequestEvent {
 	 */
 	protected $response;
 
-	public function getResponse(int $status = 200, $statusText = 'OK') {
-		if($this->response) {
-			if(!$this->response->isHeadSent()) {
-				$this->response->status = $status;
-				$this->response->statusText = $statusText;
-			}
-			return $this->response;
+	public function getResponse() {
+		if($this->response === null) {
+			$this->response = \Fwe::createObject(ResponseEvent::class, [
+				'request' => $this,
+				'protocol' => $this->protocol??'HTTP/1.0',
+			]);
 		}
 
-		return $this->response = \Fwe::createObject(ResponseEvent::class, [
-			'request' => $this,
-			'protocol' => $this->protocol??'HTTP/1.0',
-			'status' => $status,
-			'statusText' => $statusText
-		]);
+		return $this->response;
 	}
 	
 	public function webSocket($class = null) {
 		$isClass = ($class !== null && !is_subclass_of($class['class'] ?? $class, IWsEvent::class));
 		if(!isset($this->headers['Upgrade'], $this->headers['Sec-WebSocket-Key'], $this->headers['Sec-WebSocket-Version']) || empty($this->headers['Sec-WebSocket-Key']) || $this->headers['Upgrade'] !== 'websocket' || $isClass) {
-			$response = $this->getResponse(404, 'Not Found');
+			$response = $this->getResponse()->setStatus(404);
 			$response->setContentType('text/plain; charset=utf-8');
 			$response->headers['Connection'] = 'close';
 			$response->end($isClass ? "class $class is not implements " . IWsEvent::class : "WebSocket Error\n");
@@ -150,7 +144,7 @@ class RequestEvent {
 		} else {
 			$host = $this->headers['Host'] ?? '127.0.0.1:5000';
 			$secAccept = base64_encode(pack('H*', sha1($this->headers['Sec-WebSocket-Key'] . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
-			$response = $this->getResponse(101, 'Web Socket Protocol Handshake');
+			$response = $this->getResponse()->setStatus(101);
 			$response->headers['Upgrade'] = 'websocket';
 			$response->headers['Connection'] = 'Upgrade';
 			$response->headers['WebSocket-Origin'] = $host;
@@ -185,6 +179,7 @@ class RequestEvent {
 		if($isClose) {
 			\Fwe::$app->decConn();
 			$this->event->close();
+			// echo "{$this->key} close\n";
 		}
 		$this->event->free();
 
@@ -223,6 +218,7 @@ class RequestEvent {
 			$this->free(false);
 			$index = $this->get['index'] ?? 0;
 			\Fwe::$app->addWs($index, $this->key, [$this->fd, $this->clientAddr, $this->clientPort, $class]);
+			// echo "{$this->key} web socket\n";
 		} elseif($this->isKeepAlive) {
 			$this->free(false);
 
@@ -234,6 +230,7 @@ class RequestEvent {
 				'keepAlive' => $this->keepAlive
 			]);
 			\Fwe::$app->setReqEvent($this->key, $reqEvent);
+			// echo "{$this->key} keep alive\n";
 		} else {
 			$this->free();
 		}
@@ -283,7 +280,7 @@ class RequestEvent {
 			} else if($ret === 0) {
 				$this->isKeepAlive = false;
 				
-				$response = $this->getResponse(400, 'Bad Request');
+				$response = $this->getResponse()->setStatus(400);
 				$response->setContentType('text/plain');
 				$response->headers['Connection'] = 'close';
 				$response->end('Bad Request');
@@ -303,12 +300,12 @@ class RequestEvent {
 			$this->isKeepAlive = ($this->isKeepAlive && microtime(true) < $this->keepAlive);
 			
 			if($ex->getMessage() === 'Not Acceptable') {
-				$response = $this->getResponse(406, 'Not Acceptable');
+				$response = $this->getResponse()->setStatus(406);
 				$response->setContentType('text/plain; charset=utf-8');
 				$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
 				$response->end($ex->getMessage());
 			} else {
-				$response = $this->getResponse(404, 'Not Found');
+				$response = $this->getResponse()->setStatus(404);
 				$response->setContentType('text/plain; charset=utf-8');
 				$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
 				$response->end($ex->getMessage());
@@ -323,7 +320,7 @@ class RequestEvent {
 			if($ret) {
 				$this->isKeepAlive = ($this->isKeepAlive && microtime(true) < $this->keepAlive);
 				
-				$response = $this->getResponse(500, 'Internal Server Error');
+				$response = $this->getResponse()->setStatus(500);
 				$response->setContentType('text/plain; charset=utf-8');
 				$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
 				$response->end($ex->getMessage());

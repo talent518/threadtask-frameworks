@@ -77,8 +77,7 @@ class Action implements IAction {
 	}
 
 	final public function run(array $params = []) {
-		$ret = \Fwe::invoke($this->callback, $params, $this->funcName);
-		return $ret;
+		return \Fwe::invoke($this->callback, $params, $this->funcName);
 	}
 
 }

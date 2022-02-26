@@ -34,7 +34,7 @@ abstract class AsyncConnection {
 		$this->_callbacks = [];
 		$this->_current = null;
 		if($this->_event) {
-			$this->_event->del();
+			$this->_event->free();
 			$this->_event = null;
 			\Fwe::$app->events--;
 		}

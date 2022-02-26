@@ -79,8 +79,6 @@ class Application extends \fwe\base\Application {
 									curl_multi_remove_handle($this->_mh, $val['ch']);
 									curl_close($val['ch']);
 									$this->write($val['var'], $key, $val['res']);
-									
-									unset($this->_reqs[$key]);
 									$this->_count--;
 									break;
 								}
@@ -175,8 +173,12 @@ class Application extends \fwe\base\Application {
 	}
 	
 	protected function write($var, $key, $res) {
+		unset($this->_reqs[$key]);
+
 		$var[$key] = $res;
 		
 		$var->write();
+
+		gc_collect_cycles();
 	}
 }
