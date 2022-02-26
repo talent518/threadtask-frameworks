@@ -8,7 +8,12 @@ class InValidator extends IValidator {
 	public $not = false;
 
 	public function init() {
-		if(!$this->message) {
+		if(!is_array($this->range) && !($this->range instanceof \Closure)) {
+			$class = get_class($this);
+			trigger_error("{$class}的range属性只能是Closure和数组类型", E_USER_ERROR);
+		}
+
+		if($this->message === null) {
 			$this->message = '{attribute} 的值无效';
 		}
 	}
