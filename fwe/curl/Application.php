@@ -94,13 +94,12 @@ class Application extends \fwe\base\Application {
 			}
 			$read = [$this->_var->getReadFd()];
 			$write = $except = [];
-			$ret = @socket_select($read, $write, $except, $this->_count ? 0 : 1, 100); // 100us
-			if($ret === 0) continue;
-			if($ret === false) break;
+			$ret = @socket_select($read, $write, $except, 0);
+			if($ret) {
+				if(($n = $this->_var->read(128)) === false) return;
 			
-			if(($n = $this->_var->read(128)) === false) return;
-			
-			for($i=0; $i<$n; $i++) $this->read();
+				for($i=0; $i<$n; $i++) $this->read();
+			}
 		}
 		
 		$this->write_all(-2, 'stopped curl');

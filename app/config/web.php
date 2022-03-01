@@ -6,6 +6,9 @@ return [
 	'bootstrap' => [],
 	'components' => [
 		'db' => require __DIR__ . '/db.php',
+		'curl' => [
+			'maxThreads' => (($threads = getenv("CURL_THREADS")) > 0 ? (int) $threads : 2),
+		],
 	],
 	'modules' => [
 		'gii' => 'fwe\gii\Module',
