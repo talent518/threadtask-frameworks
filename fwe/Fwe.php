@@ -215,10 +215,6 @@ abstract class Fwe {
 				$object = $reflection->newInstanceWithoutConstructor();
 			}
 
-			foreach($type as $prop => $value) {
-				$object->$prop = $value;
-			}
-
 			static::setVars($object, $type);
 
 			method_exists($object, 'init') and $object->init();

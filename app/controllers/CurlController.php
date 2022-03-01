@@ -30,5 +30,7 @@ class CurlController extends Controller {
 				}
 			}
 		});
+		$key = $req->resKey;
+		$request->onFree(function() use($key) {curl()->cancel($key);});
 	}
 }
