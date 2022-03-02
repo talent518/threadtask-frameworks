@@ -55,6 +55,7 @@ class Application extends \fwe\base\Application {
 	protected function loop() {
 		if(!task_get_run()) return;
 
+		$isFirst = true;
 		while($this->_running || $this->_count) {
 			if($this->_count) {
 				$active = 0;
@@ -94,11 +95,18 @@ class Application extends \fwe\base\Application {
 			}
 			$read = [$this->_var->getReadFd()];
 			$write = $except = [];
-			$ret = @socket_select($read, $write, $except, 0);
-			if($ret) {
+			$ret = @socket_select($read, $write, $except, $this->_count > 0 ? 0 : 1);
+			if($ret > 0) {
 				if(($n = $this->_var->read(128)) === false) return;
 			
 				for($i=0; $i<$n; $i++) $this->read();
+
+				if($this->_count) {
+					$isFirst = true;
+				}
+			} elseif($isFirst) {
+				$isFirst = false;
+				gc_collect_cycles();
 			}
 		}
 		
@@ -177,7 +185,5 @@ class Application extends \fwe\base\Application {
 		$var[$key] = $res;
 		
 		$var->write();
-
-		gc_collect_cycles();
 	}
 }

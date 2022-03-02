@@ -93,6 +93,10 @@ class Boot {
 		$key = null;
 		$res = $this->_var->shift(true, $key);
 
+		if(!isset($this->_call[$key])) {
+			return;
+		}
+
 		list($req, $call, $i) = $this->_call[$key];
 		unset($this->_call[$key]);
 		$this->_stat->inc($i, -1);
@@ -105,7 +109,9 @@ class Boot {
 	}
 	
 	public function cancel($key) {
-		if(!isset($this->_call[$key])) return;
+		if(!isset($this->_call[$key])) {
+			return;
+		}
 	
 		if(!--$this->_events) $this->_event->del();
 		
