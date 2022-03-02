@@ -93,6 +93,7 @@ class Application extends \fwe\base\Application {
 						break;
 				}
 			}
+		read:
 			$read = [$this->_var->getReadFd()];
 			$write = $except = [];
 			$ret = @socket_select($read, $write, $except, $this->_count > 0 ? 0 : 1);
@@ -104,9 +105,14 @@ class Application extends \fwe\base\Application {
 				if($this->_count) {
 					$isFirst = true;
 				}
-			} elseif($isFirst) {
-				$isFirst = false;
-				gc_collect_cycles();
+			} else {
+				if($isFirst) {
+					$isFirst = false;
+					gc_collect_cycles();
+				}
+				if($this->_count > 0 && curl_multi_select($this->_mh, 0.001) <= 0) {
+					goto read;
+				}
 			}
 		}
 		
