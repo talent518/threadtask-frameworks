@@ -82,6 +82,7 @@ class Application extends \fwe\base\Application {
 								$this->write($val['var'], $key, $val['res']);
 								$this->_count--;
 							}
+							unset($ret, $key, $val);
 						} while($msgs);
 						if(!$active && $this->_count) $this->write_all(-2, 'curl_multi_info_read');
 						break;
