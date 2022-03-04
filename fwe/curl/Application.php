@@ -98,7 +98,7 @@ class Application extends \fwe\base\Application {
 			$write = $except = [];
 			$ret = @socket_select($read, $write, $except, $this->_count > 0 ? 0 : 1);
 			if($ret > 0) {
-				if(($n = $this->_var->read(128)) === false) return;
+				if(($n = $this->_var->read(128)) === false) break;
 			
 				for($i=0; $i<$n; $i++) $this->read();
 
@@ -178,11 +178,10 @@ class Application extends \fwe\base\Application {
 			curl_close($ch);
 			$res->setError($ret, $err);
 			$this->write($var, $key, $res);
-			return;
+		} else {
+			$this->_count ++;
+			$this->_reqs[$key] = compact('req', 'var', 'ch', 'res');
 		}
-		
-		$this->_count ++;
-		$this->_reqs[$key] = compact('req', 'var', 'ch', 'res');
 	}
 	
 	protected function write($var, $key, $res) {
