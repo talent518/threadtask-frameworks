@@ -187,9 +187,10 @@ class DefaultController extends Controller {
 			$req = new Request('https://www.baidu.com/#'.$i);
 			$req->addHeader('index', $i);
 			curl()->make($req, function($res, $req) use(&$data) {
+				$i = $req->resKey;
 				$res = $res->properties;
 				$req = $req->properties;
-				$data[] = compact('req', 'res');
+				$data[$i] = compact('req', 'res');
 				if(count($data) == self::CURL_COUNT) {
 					var_export($data);
 				}

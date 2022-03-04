@@ -68,20 +68,20 @@ class Application extends \fwe\base\Application {
 							$ret = curl_multi_info_read($this->_mh, $msgs);
 							if($ret) {
 								foreach($this->_reqs as $key => $val) {
-									if($val['ch'] != $ret['handle']) continue;
-
-									if($ret['result'] === CURLE_OK) {
-										$val['res']->setError(0, 'OK');
-									} else {
-										$err = curl_strerror($ret['result']);
-										$val['res']->setError($ret['result'], $err);
+									if($val['ch'] === $ret['handle']) {
+										if($ret['result'] === CURLE_OK) {
+											$val['res']->setError(0, 'OK');
+										} else {
+											$err = curl_strerror($ret['result']);
+											$val['res']->setError($ret['result'], $err);
+										}
+										
+										curl_multi_remove_handle($this->_mh, $val['ch']);
+										curl_close($val['ch']);
+										$this->write($val['var'], $key, $val['res']);
+										$this->_count--;
+										break;
 									}
-									
-									curl_multi_remove_handle($this->_mh, $val['ch']);
-									curl_close($val['ch']);
-									$this->write($val['var'], $key, $val['res']);
-									$this->_count--;
-									break;
 								}
 							}
 						} while($msgs);
