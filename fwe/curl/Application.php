@@ -67,22 +67,20 @@ class Application extends \fwe\base\Application {
 							$msgs = 0;
 							$ret = curl_multi_info_read($this->_mh, $msgs);
 							if($ret) {
-								foreach($this->_reqs as $key => $val) {
-									if($val['ch'] === $ret['handle']) {
-										if($ret['result'] === CURLE_OK) {
-											$val['res']->setError(0, 'OK');
-										} else {
-											$err = curl_strerror($ret['result']);
-											$val['res']->setError($ret['result'], $err);
-										}
-										
-										curl_multi_remove_handle($this->_mh, $val['ch']);
-										curl_close($val['ch']);
-										$this->write($val['var'], $key, $val['res']);
-										$this->_count--;
-										break;
-									}
+								$key = curl_getinfo($ret['handle'], CURLINFO_PRIVATE);
+								$val = $this->_reqs[$key];
+
+								if($ret['result'] === CURLE_OK) {
+									$val['res']->setError(0, 'OK');
+								} else {
+									$err = curl_strerror($ret['result']);
+									$val['res']->setError($ret['result'], $err);
 								}
+
+								curl_multi_remove_handle($this->_mh, $val['ch']);
+								curl_close($val['ch']);
+								$this->write($val['var'], $key, $val['res']);
+								$this->_count--;
 							}
 						} while($msgs);
 						if(!$active && $this->_count) $this->write_all(-2, 'curl_multi_info_read');
@@ -168,7 +166,9 @@ class Application extends \fwe\base\Application {
 			$name =\Fwe::$config->get('__app__');
 			curl_setopt($ch, CURLOPT_STDERR, fopen(\Fwe::getAlias("@app/runtime/curl-$name-$key.log"), 'ab'));
 		}
-		
+
+		curl_setopt($ch, CURLOPT_PRIVATE, $key);
+
 		$ret = curl_multi_add_handle($this->_mh, $ch);
 		if($ret != CURLM_OK) {
 			$err = curl_multi_strerror($ret);
