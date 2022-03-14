@@ -56,7 +56,7 @@ class Application extends \fwe\base\Application {
 		if(!task_get_run()) return;
 
 		$isFirst = true;
-		while($this->_running || $this->_count) {
+		while($this->_running) {
 			if($this->_count) {
 				$active = 0;
 				$ret = curl_multi_exec($this->_mh, $active);
