@@ -156,6 +156,13 @@ function task_set_run(bool $isRun) {}
 function pthread_sigmask(int $how, array $newset, ?array &$oldset = null) {}
 
 /**
+ * 让出当前线程剩余的CPU时间片
+ *
+ * @return bool
+ */
+function pthread_yield(): bool {}
+
+/**
  * 设置调试信息开关(默认值为false)
  *
  * @param bool $isDebug
