@@ -291,8 +291,6 @@ class RequestEvent {
 				$this->free();
 			}
 		} catch(RouteException $ex) {
-			echo "{$this->key}: $ex\n";
-			
 			if($this->bodylen !== $this->bodyoff) {
 				$this->isKeepAlive = false;
 			}

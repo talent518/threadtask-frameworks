@@ -65,21 +65,25 @@ class DefaultController extends Controller {
 				    (($mode & 0x0200) ? 'T' : '-'));
 		return $info;
 	}
-	public function actionIndex(RequestEvent $request) {
-		$path = \Fwe::getAlias('@app/static');
+	public function actionIndex(RequestEvent $request, string $route__, string $__route) {
+		if($__route !== '') {
+			$__route = preg_replace('/(\/\.\.\/|\/\.\.$)/', '/', "/$__route");
+			if($__route === '/') $__route = '';
+		}
+		$path = \Fwe::getAlias("@app/static{$__route}");
 		$files = [];
-		$_path = rtrim($request->path, '/') . '/';
 		if(($dh = @opendir($path)) !== false) {
 			while(($f=readdir($dh)) !== false) {
 				if($f === '.' || $f === '..') continue;
 				
 				$type = null;
 				$st = stat($path . '/' . $f);
+				$perms = $this->getperms($st['mode'], $type);
 				$files[] = [
 					'name' => $f,
-					'url' => $_path . $f,
+					'url' => $type === 'Directory' ? "/{$route__}{$__route}/$f/" : "/static{$__route}/$f",
 					'size' => $st['size'],
-					'perms' => $this->getperms($st['mode'], $type),
+					'perms' => $perms,
 					'type' => $type,
 					'atime' => $st['atime'],
 					'mtime' => $st['mtime'],
@@ -87,6 +91,9 @@ class DefaultController extends Controller {
 				];
 			}
 			closedir($dh);
+		} else {
+			$request->getResponse()->setStatus(404);
+			return;
 		}
 		
 		$key = ($request->get['key'] ?? 'name');
@@ -126,7 +133,7 @@ class DefaultController extends Controller {
     <meta http-equiv="Cache-Control" content="no-transform" />
     <meta http-equiv="Cache-Control" content="no-siteapp" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title><?=$request->path?></title>
+    <title><?=$__route?>/</title>
     <style type="text/css">
     body{margin:0;padding:5px;}
     table{border:1px #ccc solid;border-width:1px 0 0 1px;border-spacing:0;margin:0 auto;}
@@ -158,8 +165,8 @@ class DefaultController extends Controller {
 		?></tr>
 	</thead>
 	<tbody><?php
-	if($request->path !== '/'):
-		?><tr><td colspan="7"><a href="<?=dirname($request->path)?>">..</a></td></tr><?php
+	if($__route !== ''):
+		?><tr><td colspan="7"><a href="<?=strrpos($__route, '/') ? '..' : '/'?>">..</a></td></tr><?php
 	endif;
 	foreach($files as $file):
 		?><tr>

@@ -1,6 +1,7 @@
 <?php
 namespace fwe\web;
 
+use fwe\base\RouteException;
 use fwe\base\TsVar;
 
 class Application extends \fwe\base\Application {
@@ -312,12 +313,26 @@ class Application extends \fwe\base\Application {
 		$this->_reqEvent->add();
 	}
 	
-	public $statics = ['/' => '@app/static/'];
+	public $statics = [];
 	public function getAction(string $route, array &$params) {
 		foreach($this->statics as $prefix => $path) {
-			$n = strlen($prefix);
-			if(!strncmp($route, $prefix, $n) && is_file($file = \Fwe::getAlias($path . substr($route, $n)))) {
+			if(substr($prefix, -1) === '/') {
+				$n = strlen($prefix);
+				if(strncmp($route, $prefix, $n)) {
+					continue;
+				}
+				$file = \Fwe::getAlias($path . substr($route, $n));
+			} else {
+				if($route !== $prefix) {
+					continue;
+				}
+				$file = $file = \Fwe::getAlias($path);
+			}
+
+			if(is_file($file)) {
 				return \Fwe::createObject(StaticAction::class, compact('route', 'prefix', 'path', 'file', 'params'));
+			} else {
+				throw new RouteException($route, 'Not Found');
 			}
 		}
 		return parent::getAction($route, $params);
