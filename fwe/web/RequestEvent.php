@@ -524,7 +524,7 @@ class RequestEvent {
 										if($this->fp) {
 											$j = $n - $i - strlen($this->boundaryPos) + 1;
 											if($j > 0) {
-												$this->files[$this->formargs['name']]['size'] += $j;
+												if(isset($this->files[$this->formargs['name']]['size'])) $this->files[$this->formargs['name']]['size'] += $j;
 												fwrite($this->fp, substr($buf, $i, $j), $j);
 												$this->buf = substr($buf, $i + $j);
 											} else {
@@ -536,7 +536,7 @@ class RequestEvent {
 										$i = $n;
 									} else {
 										$value = substr($buf, $i, $pos - $i);
-										$this->files[$this->formargs['name']]['size'] += $pos - $i;
+										if(isset($this->files[$this->formargs['name']]['size'])) $this->files[$this->formargs['name']]['size'] += $pos - $i;
 										if($this->fp) {
 											fwrite($this->fp, $value, strlen($value));
 											fclose($this->fp);
