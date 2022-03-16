@@ -72,10 +72,25 @@ class RequestEvent {
 	 * @var integer
 	 */
 	protected $key;
-	
+
+	/**
+	 * @var bool
+	 */
+	public $isToFile;
+
+	/**
+	 * @var float
+	 */
 	public $time, $runTime;
+
+	/**
+	 * @var bool
+	 */
 	protected $keepAlive;
 	
+	/**
+	 * @var mixed
+	 */
 	public $data;
 	
 	public function __construct(int $fd, string $addr, int $port, int $key, float $keepAlive) {
@@ -93,6 +108,7 @@ class RequestEvent {
 	}
 	
 	public function init() {
+		$this->isToFile = \Fwe::$app->isToFile;
 		$this->event->enable(\Event::READ);
 	}
 	
@@ -105,7 +121,7 @@ class RequestEvent {
 		}
 		
 		foreach($this->files as $file) {
-			@unlink($file['path']);
+			empty($file['path']) or unlink($file['path']);
 		}
 	}
 	
@@ -246,7 +262,7 @@ class RequestEvent {
 
 	protected function runAction() {
 		$this->runTime = microtime(true);
-		$this->params += $this->get + $this->post;
+		$this->params += $this->post;
 		$ret = $this->action->run($this->params);
 		$this->action->afterAction($this->params);
 
@@ -484,7 +500,7 @@ class RequestEvent {
 											return 0;
 										}
 										if(isset($this->formargs['filename'], $this->formheaders['Content-Type'])) {
-											if(\Fwe::$app->isToFile) {
+											if($this->isToFile) {
 												$path = tempnam(ini_get('upload_tmp_dir') ?: sys_get_temp_dir(), 'TTHS_');
 												$this->fp = fopen($path, 'wb+');
 											} else {
@@ -566,7 +582,6 @@ class RequestEvent {
 									}
 									break;
 								default:
-									
 									break;
 							}
 						}

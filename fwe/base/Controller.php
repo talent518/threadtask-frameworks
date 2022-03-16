@@ -52,11 +52,29 @@ class Controller {
 	}
 
 	public function beforeAction(Action $action, array $params = []): bool {
+		if($action instanceof InlineAction) {
+			$methodName = 'before' . ucfirst($action->method);
+			if(method_exists($this, $methodName)) {
+				$method = new \ReflectionMethod($this, $methodName);
+				if($method->isPublic() && $method->getName() === $methodName && !\Fwe::invoke([$this, $methodName], $params, get_class($this) . "::$methodName")) {
+					return false;
+				}
+			}
+		}
 		return $this->module->beforeAction($action, $params);
 	}
 
 	public function afterAction(Action $action, array $params = []) {
 		$this->module->afterAction($action, $params);
+		if($action instanceof InlineAction) {
+			$methodName = 'after' . ucfirst($action->method);
+			if(method_exists($this, $methodName)) {
+				$method = new \ReflectionMethod($this, $methodName);
+				if($method->isPublic() && $method->getName() === $methodName) {
+					\Fwe::invoke([$this, $methodName], $params, get_class($this) . "::$methodName");
+				}
+			}
+		}
 	}
 
 	/**

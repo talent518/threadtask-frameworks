@@ -199,6 +199,10 @@ class DefaultController extends Controller {
 			$request->getResponse()->end(__METHOD__);
 		}
 	}
+	public function beforeActionInfo(RequestEvent $request, bool $isToFile = true) {
+		$request->isToFile = $isToFile;
+		return true;
+	}
 	public function actionInfo(RequestEvent $request, bool $isChunk = true) {
 		$response = $request->getResponse();
 		$response->setContentType('text/plain; charset=utf-8');

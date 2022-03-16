@@ -5,7 +5,7 @@ use fwe\base\Action;
 
 class ServeController extends Controller {
 	
-	public function afterAction(Action $action, array $params = []) {
+	public function afterActionIndex() {
 		$this->module->controllerObjects = [];
 		$this->module = null;
 		$this->actionObjects = [];
