@@ -157,10 +157,12 @@ class ResponseEvent {
 	
 	public function setContentType(string $type) {
 		$this->headers['Content-Type'] = $type;
+		return $this;
 	}
 	
 	public function setCookie(string $name, ?string $value, int $expires = 0, string $path = '', string $domain = '', bool $secure = false, bool $httponly = false, string $samesite = '') {
 		$this->setRawCookie($name, $value === null ? null : urlencode($value), $expires, $path, $domain, $secure, $httponly, $samesite);
+		return $this;
 	}
 	
 	public function setRawCookie(string $name, ?string $value, int $expires = 0, string $path = '', string $domain = '', bool $secure = false, bool $httponly = false, string $samesite = '') {
@@ -182,6 +184,7 @@ class ResponseEvent {
 		if($httponly) $cookie .= "; HttpOnly";
 		if($samesite !== '') $cookie .= "; SameSite=$samesite";
 		$this->headers['Set-Cookie'][] = $cookie;
+		return $this;
 	}
 	
 	public function write(string $data): bool {
@@ -313,6 +316,8 @@ class ResponseEvent {
         }
 		$this->headers['Content-Disposition'] = $dispositionHeader;
 		$this->headers['Content-Type'] = 'application/octet-stream';
+
+		return $this;
 	}
 	
 	protected $fp, $size = 0, $ranges = [], $range = 0, $rsize = 0, $boundaryEnd;

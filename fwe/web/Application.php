@@ -1,6 +1,7 @@
 <?php
 namespace fwe\web;
 
+use fwe\base\Action;
 use fwe\base\RouteException;
 use fwe\base\TsVar;
 
@@ -311,6 +312,17 @@ class Application extends \fwe\base\Application {
 			$this->_reqEvents[$key] = \Fwe::createObject(RequestEvent::class, compact('fd', 'addr', 'port', 'key', 'keepAlive'));
 		});
 		$this->_reqEvent->add();
+	}
+	
+	public $maxBodyLen = 8*1024*1024;
+	public function beforeAction(Action $action, array $params = []): bool {
+		$request = $params['request'];
+		if($request->bodylen > $this->maxBodyLen) {
+			$request->getResponse()->setStatus(403)->end('<h1>Request Entity Too Large</h1>');
+			return false;
+		} else {
+			return true;
+		}
 	}
 	
 	public $statics = [];
