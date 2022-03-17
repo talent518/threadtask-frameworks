@@ -223,12 +223,14 @@ class Application extends \fwe\base\Application {
 		$this->_wsVar = new TsVar("__ws{$index}__", 0, null, true);
 
 		$this->_reqEvent = $this->_wsVar->newReadEvent(function() {
-			if(!$this->_wsVar->read()) return;
+			if(($n = $this->_wsVar->read(128)) === false) return;
 			
-			$key = null;
-			list($fd, $addr, $port, $doClass) = $this->_wsVar->shift(true, $key);
+			for($i=0; $i<$n; $i++) {
+				$key = null;
+				list($fd, $addr, $port, $doClass) = $this->_wsVar->shift(true, $key);
 
-			$this->_reqEvents[$key] = \Fwe::createObject(WsEvent::class, compact('fd', 'addr', 'port', 'key', 'doClass'));
+				$this->_reqEvents[$key] = \Fwe::createObject(WsEvent::class, compact('fd', 'addr', 'port', 'key', 'doClass'));
+			}
 		});
 		$this->_reqEvent->add();
 		
@@ -303,13 +305,15 @@ class Application extends \fwe\base\Application {
 		}
 		
 		$this->_reqEvent = $this->_reqVars->newReadEvent(function() use($index) {
-			if(!$this->_reqVars->read()) return;
+			if(($n = $this->_reqVars->read(128)) === false) return;
 
-			$key = null;
-			list($fd, $addr, $port) = $this->_reqVars->shift(true, $key);
-			
-			$keepAlive = microtime(true) + $this->keepAlive;
-			$this->_reqEvents[$key] = \Fwe::createObject(RequestEvent::class, compact('fd', 'addr', 'port', 'key', 'keepAlive'));
+			for($i=0; $i<$n; $i++) {
+				$key = null;
+				list($fd, $addr, $port) = $this->_reqVars->shift(true, $key);
+				
+				$keepAlive = microtime(true) + $this->keepAlive;
+				$this->_reqEvents[$key] = \Fwe::createObject(RequestEvent::class, compact('fd', 'addr', 'port', 'key', 'keepAlive'));
+			}
 		});
 		$this->_reqEvent->add();
 	}

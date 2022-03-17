@@ -81,30 +81,32 @@ class Boot {
 	}
 	
 	public function read() {
-		if(!$this->_var->read()) return;
-		
-		if(!--$this->_events) $this->_event->del();
+		if(($n = $this->_var->read(128)) === false) return;
 
-		\Fwe::$app->events--;
-		
-		\Fwe::$app->stat('curl:act', -1);
-		\Fwe::$app->stat('curl:res');
+		for($j=0; $j<$n; $j++) {
+			if(!--$this->_events) $this->_event->del();
 
-		$key = null;
-		$res = $this->_var->shift(true, $key);
+			\Fwe::$app->events--;
+			
+			\Fwe::$app->stat('curl:act', -1);
+			\Fwe::$app->stat('curl:res');
 
-		if(!isset($this->_call[$key])) {
-			return;
-		}
+			$key = null;
+			$res = $this->_var->shift(true, $key);
 
-		list($req, $call, $i) = $this->_call[$key];
-		unset($this->_call[$key]);
-		$this->_stat->inc($i, -1);
-		
-		try {
-			$call($res, $req);
-		} catch(\Throwable $ex) {
-			echo "$ex\n";
+			if(!isset($this->_call[$key])) {
+				return;
+			}
+
+			list($req, $call, $i) = $this->_call[$key];
+			unset($this->_call[$key]);
+			$this->_stat->inc($i, -1);
+			
+			try {
+				$call($res, $req);
+			} catch(\Throwable $ex) {
+				echo "$ex\n";
+			}
 		}
 	}
 	
