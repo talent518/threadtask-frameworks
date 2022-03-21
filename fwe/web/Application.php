@@ -260,13 +260,17 @@ class Application extends \fwe\base\Application {
 	}
 	
 	public function sendWs($data, $doClass = false) {
-		foreach($this->_reqEvents as $ev) {
-			if($doClass) {
+		if($doClass) {
+			foreach($this->_reqEvents as $ev) {
 				if(is_subclass_of($ev->doClass, $doClass)) {
 					$ev->send($data);
 				}
-			} elseif(!$ev->doClass) {
-				$ev->send($data);
+			}
+		} else {
+			foreach($this->_reqEvents as $ev) {
+				if(!$ev->doClass) {
+					$ev->send($data);
+				}
 			}
 		}
 	}

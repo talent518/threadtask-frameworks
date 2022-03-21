@@ -39,8 +39,9 @@ class WsEvent {
 		$this->event = new \EventBufferEvent(\Fwe::$base, $this->fd, \EventBufferEvent::OPT_CLOSE_ON_FREE, [$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler'], $this->key);
 		\Fwe::$app->events++;
 		
-		$this->doObj = $doClass ? \Fwe::createObject($doClass, ['wsEvent' => $this]) : null;
-		if(!$this->doObj) {
+		if($doClass) {
+			$this->doObj = \Fwe::createObject($doClass, ['wsEvent' => $this]);
+		} else {
 			$msg = $this->mask("Connected {$addr}:{$port}");
 			$this->event->write($msg);
 			\Fwe::$app->sendWs($msg);

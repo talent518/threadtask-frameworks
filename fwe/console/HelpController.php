@@ -120,15 +120,15 @@ class HelpController extends Controller {
 		echo PHP_EOL, PHP_EOL;
 
 		echo 'Fwe::$aliases = ';
-		var_export(\Fwe::$aliases->all());
+		var_export(\Fwe::$aliases);
 		echo PHP_EOL, PHP_EOL;
 
 		echo 'Fwe::$classMap = ';
-		var_export(\Fwe::$classMap->all());
+		var_export(\Fwe::$classMap);
 		echo PHP_EOL, PHP_EOL;
 
 		echo 'Fwe::$classAlias = ';
-		var_export(\Fwe::$classAlias->all());
+		var_export(\Fwe::$classAlias);
 		echo PHP_EOL;
 	}
 
