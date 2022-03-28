@@ -123,7 +123,7 @@ abstract class Application extends Module {
 		$this->_sigEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() use($call) {
 			if(!$this->_running) {
 				$this->signalHandler($this->_exitSig);
-				$this->_sigEvent->delTimer();
+				// $this->_sigEvent->delTimer();
 			}
 			if($call) $call();
 		});

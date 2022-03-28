@@ -81,7 +81,7 @@ class RequestEvent {
 	/**
 	 * @var float
 	 */
-	public $time, $runTime;
+	public $time, $recvTime, $runTime;
 
 	/**
 	 * @var bool
@@ -228,7 +228,10 @@ class RequestEvent {
 		
 		\Fwe::$app->stat($this->response->status < 400 ? 'success' : 'error');
 		
-		if($this->response->isWebSocket) {
+		if(!\Fwe::$app->isRunning()) {
+			// echo "closed: {$this->key}\n";
+			$this->free();
+		} elseif($this->response->isWebSocket) {
 			$class = $this->response->wsClass;
 			\Fwe::$app->decConn();
 			$this->free(false);
@@ -276,7 +279,7 @@ class RequestEvent {
 			$ret = $this->read();
 			if($ret === false) return;
 
-			if($this->bodylen !== $this->bodyoff) {
+			if($this->bodylen !== $this->bodyoff || !\Fwe::$app->isRunning()) {
 				$this->isKeepAlive = false;
 			}
 
@@ -354,6 +357,9 @@ class RequestEvent {
 		
 		$buf = $this->event->read(16384);
 		$n = strlen($buf);
+		if($n === 0) return null;
+
+		if($this->recvTime === null) $this->recvTime = microtime(true);
 		
 		$this->readlen += $n;
 		

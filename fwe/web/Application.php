@@ -30,8 +30,8 @@ class Application extends \fwe\base\Application {
 		$memsize = 0;
 		$name = defined('THREAD_TASK_NAME') ? THREAD_TASK_NAME : 'main';
 		$this->signalEvent(function() use(&$i, &$memsize, $name) {
-			if($this->_isReq) {
-				$this->isEmptyReq();
+			if($this->_isReq && $this->isEmptyReq() && !$this->_running) {
+				\Fwe::$base->exit();
 			}
 			if(++$i > $this->gcTimes) {
 				$i = 0;
@@ -57,29 +57,29 @@ class Application extends \fwe\base\Application {
 		}
 	}
 	
-	public $maxIdleSeconds = 3.0;
+	public $maxIdleSeconds = 10.0;
+	public $maxRecvSeconds = 30.0;
 	public $maxRunSeconds = 30.0;
 	public $timeoutStatus = 408;
 	public $timeoutType = 'text/plain';
-	public $timeoutData = 'Request Time-out';
+	public $timeoutRecvData = 'Request Recv Time-out';
+	public $timeoutRunData = 'Request Run Time-out';
 	protected function isEmptyReq() {
 		$count = 0;
 		
 		$time = microtime(true);
 		foreach($this->_reqEvents as $reqEvent) { /* @var $reqEvent RequestEvent */
-			if(!$this->_running && !$reqEvent->isHTTP) {
+			if(($reqEvent->runTime && $reqEvent->runTime + $this->maxRunSeconds < $time) ||
+				($reqEvent->runTime === null && $reqEvent->recvTime && $reqEvent->recvTime + $this->maxRecvSeconds < $time)) {
+				$response = $reqEvent->getResponse();
+				$response->setStatus($this->timeoutStatus);
+				$response->setContentType($this->timeoutType);
+				$response->end($reqEvent->runTime === null ? $this->timeoutRecvData : $this->timeoutRunData);
+				$count ++;
+			} elseif(!$reqEvent->isHTTP && $reqEvent->time + $this->maxIdleSeconds < $time) {
 				$reqEvent->free();
-			} elseif($reqEvent->isHTTP || $reqEvent->time + $this->maxIdleSeconds > $time) {
-				if($reqEvent->runTime === null || $reqEvent->runTime + $this->maxRunSeconds > $time) {
-					$count++;
-				} else {
-					$response = $reqEvent->getResponse();
-					$response->setStatus($this->timeoutStatus);
-					$response->setContentType($this->timeoutType);
-					$response->end($this->timeoutData);
-				}
 			} else {
-				$reqEvent->free();
+				$count ++;
 			}
 		}
 		
