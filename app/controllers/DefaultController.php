@@ -77,17 +77,17 @@ class DefaultController extends Controller {
 				if($f === '.' || $f === '..') continue;
 				
 				$type = null;
-				$st = stat($path . '/' . $f);
-				$perms = $this->getperms($st['mode'], $type);
+				$st = @stat($path . '/' . $f);
+				$perms = $this->getperms($st['mode'] ?? 0, $type);
 				$files[] = [
 					'name' => $f,
 					'url' => $type === 'Directory' ? "/{$route__}{$__route}/$f/" : "/static{$__route}/$f",
-					'size' => $st['size'],
+					'size' => $st['size']??0,
 					'perms' => $perms,
 					'type' => $type,
-					'atime' => $st['atime'],
-					'mtime' => $st['mtime'],
-					'ctime' => $st['ctime'],
+					'atime' => $st['atime']??0,
+					'mtime' => $st['mtime']??0,
+					'ctime' => $st['ctime']??0,
 				];
 			}
 			closedir($dh);
@@ -174,9 +174,9 @@ class DefaultController extends Controller {
 			<td><?=$file['size']?></td>
 			<td><?=$file['type']?></td>
 			<td><?=$file['perms']?></td>
-			<td><?=date('Y-m-d H:i:s', $file['atime'])?></td>
-			<td><?=date('Y-m-d H:i:s', $file['mtime'])?></td>
-			<td><?=date('Y-m-d H:i:s', $file['ctime'])?></td>
+			<td><?=$file['atime']?date('Y-m-d H:i:s', $file['atime']):'-'?></td>
+			<td><?=$file['mtime']?date('Y-m-d H:i:s', $file['mtime']):'-'?></td>
+			<td><?=$file['ctime']?date('Y-m-d H:i:s', $file['ctime']):'-'?></td>
 		</tr><?php
 	endforeach;
 	?></tbody>

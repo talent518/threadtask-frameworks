@@ -461,6 +461,8 @@ class ResponseEvent {
 	}
 
 	public static $MIME_TYPES = [
+		'md' => 'text/markdown',
+		'sh' => 'text/plain',
 		'txt' => 'text/plain',
 		'htm' => 'text/html',
 		'html' => 'text/html',
@@ -490,7 +492,7 @@ class ResponseEvent {
 		// archives
 		'zip' => 'application/zip',
 		'rar' => 'application/x-rar-compressed',
-		'exe' => 'application/x-msdownload',
+		'exe' => 'application/x-ms-dos-executable',
 		'msi' => 'application/x-msdownload',
 		'cab' => 'application/vnd.ms-cab-compressed',
 		'xz' => 'application/x-xz-compressed-tar',
