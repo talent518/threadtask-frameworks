@@ -30,6 +30,7 @@
 	var width = 0, height = 0;
 	var p1 = {x: 0,y: 0}, p2 = {x: 0,y: 0};
 	var angle = 0, angle2 = 0, radius = 0, maxRadius = 0;
+	var timer = 0;
 	
 	document.body.onload = function() {
 		width = box.clientWidth - ball.clientWidth;
@@ -42,6 +43,8 @@
 		} while(angle % 90 < 5);
 		radius = 0;
 		calcRadius();
+		if(timer) clearInterval(timer);
+		timer = setInterval(timerFunc, 20);
 	};
 	document.body.onresize = function() {
 		this.onload();
@@ -102,7 +105,7 @@
 
 		console.log("width = " + width + ", height = " + height + ", angle = " + angle + ", angle2 = " + angle2);
 	}
-	setInterval(function() {
+	function timerFunc() {
 		radius += 10;
 		if(radius >= maxRadius) {
 			radius = 0;
@@ -140,7 +143,7 @@
 			ball3.style.left = x + 'px';
 			ball3.style.top = y + 'px';
 		}
-	}, 20);
+	}
 	</script>
 </body>
 </html>
