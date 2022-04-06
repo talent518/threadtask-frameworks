@@ -11,10 +11,11 @@
     <title>WebSocket Demo</title>
 	<style type="text/css">
 	#box{position:fixed;top:10px;left:10px;bottom:10px;right:10px;border:1px #999 solid;}
-	#ball,#ball2,#ball3{position:absolute;width:50px;height:50px;border-radius:25px;}
+	#ball,#ball2,#ball3,#ball4{position:absolute;width:50px;height:50px;border-radius:25px;}
 	#ball{background:#f20;}
 	#ball2{background:#999;}
 	#ball3{background:#02f;}
+	#ball4{background:#920;}
 	</style>
 </head>
 <body>
@@ -22,11 +23,14 @@
 		<span id="ball"></span>
 		<span id="ball2"></span>
 		<span id="ball3"></span>
+		<span id="ball4"></span>
 	</div>
 	<script type="text/javascript">
 	const box = document.getElementById('box');
 	const ball = document.getElementById('ball');
 	const ball2 = document.getElementById('ball2');
+	const ball3 = document.getElementById('ball3');
+	const ball4 = document.getElementById('ball4');
 	var width = 0, height = 0;
 	var p1 = {x: 0,y: 0}, p2 = {x: 0,y: 0};
 	var angle = 0, angle2 = 0, radius = 0, maxRadius = 0;
@@ -109,6 +113,8 @@
 		radius += 10;
 		if(radius >= maxRadius) {
 			radius = 0;
+			ball4.style.left = p1.x + 'px';
+			ball4.style.top = p1.y + 'px';
 			p1.x = p2.x;
 			p1.y = p2.y;
 			if(angle < 90) {
@@ -121,7 +127,7 @@
 				if(angle > angle2) {
 					angle = 90 - (90 - (180 - angle));
 				} else {
-					angle = (angle - 90) + 180;
+					angle = 90 - (angle - 90) + 180;
 				}
 			} else if(angle < 270) {
 				if(angle > angle2) {
