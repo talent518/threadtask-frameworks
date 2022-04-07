@@ -53,15 +53,15 @@
 		
 		p1.x = parseInt(width * Math.random());
 		p1.y = parseInt(height * Math.random());
+		p3.x = p1.x;
+		p3.y = p1.y;
+		p4.x = p1.x;
+		p4.y = p1.y;
 		do {
 			angle = parseInt(360 * Math.random());
 		} while(angle % 90 < 5);
 		radius = 0;
 		calcRadius();
-		p3.x = p1.x;
-		p3.y = p1.y;
-		p4.x = p1.x;
-		p4.y = p1.y;
 		point3.style.left = p1.x + 'px';
 		point3.style.top = p1.y + 'px';
 		point4.style.left = p1.x + 'px';
@@ -72,6 +72,7 @@
 	document.body.onresize = function() {
 		this.onload();
 	};
+	box.onclick = document.body.onload;
 	function calcRadius() {
 		if(angle < 90) {
 			angle2 = Math.atan(p1.y / (width-p1.x))*180/Math.PI;
