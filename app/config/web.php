@@ -9,6 +9,7 @@ return [
 		'curl' => [
 			'maxThreads' => (($threads = getenv("CURL_THREADS")) > 0 ? (int) $threads : 2),
 		],
+		'monitor' => 'app\ws\MonBoot',
 	],
 	'modules' => [
 		'gii' => 'fwe\gii\Module',

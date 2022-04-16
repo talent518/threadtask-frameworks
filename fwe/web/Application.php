@@ -380,8 +380,20 @@ class Application extends \fwe\base\Application {
 			}
 		}
 		
-		if($method === 'run') $method = $params[0];
-		
-		return \Fwe::invoke([$this, $method], $params);
+		if($method === 'run') {
+			$id = array_shift(\Fwe::$names);
+			$comp = $this->get($id);
+			if($comp) {
+                if (method_exists($comp, 'boot')) {
+                    return \Fwe::invoke([$comp, 'boot'], $params);
+                } else {
+					trigger_error("组件ID为'$id'的类没有boot方法", E_USER_ERROR);
+				}
+			} else {
+				trigger_error("不存在ID为'$id'的组件", E_USER_ERROR);
+			}
+		} else {
+			return \Fwe::invoke([$this, $method], $params);
+		}
 	}
 }

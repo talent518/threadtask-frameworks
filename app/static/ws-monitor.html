@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="referrer" content="origin" />
+    <meta http-equiv="Cache-Control" content="no-transform" />
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+    <title>基于WebSocket实现的系统资源监控</title>
+	<style type="text/css">
+		#mask{display:none;}
+		#wrapper{position:fixed;left:5px;top:5px;right:5px;bottom:5px;border:1px #999 solid;font-size:14px;}
+		#wrapper > canvas{position:absolute;}
+		#wrapper > .proc{position:absolute;left:0;top:40%;right:0;bottom:0;border-top:1px #999 solid;}
+		#cpuCanvas,#diskCanvas{border-right:1px #999 solid;}
+		#memCanvas,#netCanvas{border-left:1px #999 solid;}
+		#loadavgCanvas{border-top:1px #999 solid;border-bottom:1px #999 solid;}
+
+		body.offline #mask{position:fixed;left:0;top:0;right:0;bottom:0;display:block;background:rgba(0, 0, 0, 0.6);}
+	</style>
+</head>
+<body>
+	<div id="wrapper">
+		<canvas id="cpuCanvas"></canvas>
+		<canvas id="memCanvas"></canvas>
+		<canvas id="loadavgCanvas"></canvas>
+		<canvas id="diskCanvas"></canvas>
+		<canvas id="netCanvas"></canvas>
+		<div class="proc">
+			<table>
+				<thead>
+					<tr>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody id="procList">
+				</tbody>
+			</table>
+			<canvas id="procCanvas"></canvas>
+		</div>
+	</div>
+	<div id="mask"></div>
+
+	<script type="text/javascript">
+	const wrapper = document.getElementById('wrapper');
+	const cpuElem = document.getElementById('cpuCanvas');
+	const cpuCanvas = cpuElem.getContext('2d');
+	const memElem = document.getElementById('memCanvas');
+	const memCanvas = memElem.getContext('2d');
+	const loadavgElem = document.getElementById('loadavgCanvas');
+	const loadavgCanvas = loadavgElem.getContext('2d');
+	const diskElem = document.getElementById('diskCanvas');
+	const diskCanvas = diskElem.getContext('2d');
+	const netElem = document.getElementById('netCanvas');
+	const netCanvas = netElem.getContext('2d');
+	const procElem = document.getElementById('procCanvas');
+	const procCanvas = procElem.getContext('2d');
+	let ws = null;
+	const fsize = function(size) {
+		if(size <= 0) {
+			return '0.00';
+		}
+		
+		let unit = parseInt(Math.log(size)/Math.log(1024));
+		if(unit > 8) {
+			unit = 8;
+		}
+		if(unit < 0) unit = 0;
+
+		return Math.round(size / Math.pow(1024, unit), 1) + "0KMGTPEZY".charAt(unit);
+	}
+	const actions = {
+		cpus: [],
+		cpuColor: {
+			user: '#A52A2A',
+			nice: '#8A2BE2',
+			system: '#0000FF',
+			idle: '#7FFF00',
+			iowait: '#DEB887',
+			irq: '#5F9EA0',
+			softirq: '#D2691E',
+			stolen: '#FF7F50',
+			guest: '#6495ED'
+		},
+		mems: [],
+		memColor: {
+			free: '#A52A2A',
+			buffers: '#8A2BE2',
+			cached: '#0000FF',
+			locked: '#7FFF00',
+			shared: '#6495ED',
+			swapFree: '#5F9EA0'
+		},
+		loadavgs: [],
+		loadavgColor: {
+			min1: '#A52A2A',
+			min5: '#8A2BE2',
+			min15: '#0000FF'
+		},
+		init: function() {
+			this.cpus = [];
+			this.mems = [];
+		},
+		cpu: function(cpu) {
+			const width = cpuElem.clientWidth;
+			const height = cpuElem.clientHeight;
+			cpuCanvas.reset();
+			cpuCanvas.clearRect(0, 0, width, height);
+
+			this.cpus.push(cpu);
+
+			while(this.cpus.length > width / 2) {
+				this.cpus.shift(0);
+			}
+
+			const x = width - this.cpus.length * 2;
+
+			['user', 'nice', 'system', 'idle', 'iowait', 'irq', 'softirq', 'stolen', 'guest'].forEach(function(key, i) {
+				cpuCanvas.beginPath();
+				actions.cpus.forEach(function(cpu, i) {
+					const y = height - height * cpu[key] / 100.0;
+					if(i == 0) {
+						cpuCanvas.moveTo(x, y);
+					} else {
+						cpuCanvas.lineTo(x + i * 2, y);
+					}
+				});
+				cpuCanvas.lineWidth = 1;
+				cpuCanvas.strokeStyle = actions.cpuColor[key];
+				cpuCanvas.lineJoin = "miter";
+				cpuCanvas.stroke();
+				cpuCanvas.closePath();
+			});
+
+			const h = (height - 45) / 9;
+
+			cpuCanvas.font = 'normal bold 30px Arial';
+			cpuCanvas.strokeStyle = '#999999';
+			cpuCanvas.strokeText("CPU", 5, 30);
+			['user', 'nice', 'system', 'idle', 'iowait', 'irq', 'softirq', 'stolen', 'guest'].forEach(function(key, i) {
+				cpuCanvas.font = 'normal bold ' + h + 'px Arial';
+				cpuCanvas.fillStyle = actions.cpuColor[key];
+				cpuCanvas.fillText(key + ': ' + cpu[key] + '%', 5, 40 + (i + 1) * h);
+			});
+		},
+		mem: function(mem) {
+			const width = memElem.clientWidth;
+			const height = memElem.clientHeight;
+			memCanvas.reset();
+			memCanvas.clearRect(0, 0, width, height);
+
+			this.mems.push(mem);
+
+			while(this.mems.length > width / 2) {
+				this.mems.shift(0);
+			}
+
+			const x = width - this.mems.length * 2;
+
+			['free', 'buffers', 'cached', 'locked', 'shared', 'swapFree'].forEach(function(key, i) {
+				memCanvas.beginPath();
+				actions.mems.forEach(function(mem, i) {
+					const y = height - height * mem[key] / (key === 'swapFree' ? mem.swapTotal : mem.total);
+					if(i == 0) {
+						memCanvas.moveTo(x, y);
+					} else {
+						memCanvas.lineTo(x + i * 2, y);
+					}
+				});
+				memCanvas.lineWidth = 1;
+				memCanvas.strokeStyle = actions.memColor[key];
+				memCanvas.lineJoin = "miter";
+				memCanvas.stroke();
+				memCanvas.closePath();
+			});
+
+			const h = (height - 45) / 6;
+
+			memCanvas.font = 'normal bold 30px Arial';
+			memCanvas.strokeStyle = '#999999';
+			memCanvas.strokeText("Memory", 5, 25);
+			['free', 'buffers', 'cached', 'locked', 'shared', 'swapFree'].forEach(function(key, i) {
+				memCanvas.font = 'normal bold ' + (h * 2 / 3) + 'px Arial';
+				memCanvas.fillStyle = actions.memColor[key];
+				memCanvas.fillText(key + ': ' + fsize(mem[key]) + (key === 'free' ? ' / ' + fsize(mem.total) : (key === 'swapFree' ? ' / ' + fsize(mem.swapTotal) : '')), 5, 40 + (i + 0.5) * h);
+			});
+		},
+		loadavg: function(la) {
+			const width = loadavgElem.clientWidth;
+			const height = loadavgElem.clientHeight;
+			loadavgCanvas.reset();
+			loadavgCanvas.clearRect(0, 0, width, height);
+
+			this.loadavgs.push(la);
+
+			while(this.loadavgs.length > width / 2) {
+				this.loadavgs.shift(0);
+			}
+
+			const max = {min1: 0, min5: 0, min15: 0};
+			const x = width - this.loadavgs.length * 2;
+
+			this.loadavgs.forEach(function(la) {
+				max.min1 = Math.max(max.min1, la.min1);
+				max.min5 = Math.max(max.min5, la.min5);
+				max.min15 = Math.max(max.min15, la.min15);
+			});
+			['min1', 'min5', 'min15'].forEach(function(key, i) {
+				loadavgCanvas.beginPath();
+				actions.loadavgs.forEach(function(la, i) {
+					const y = height - height * la[key] / max[key];
+					if(i == 0) {
+						loadavgCanvas.moveTo(x, y);
+					} else {
+						loadavgCanvas.lineTo(x + i * 2, y);
+					}
+				});
+				loadavgCanvas.lineWidth = 1;
+				loadavgCanvas.strokeStyle = actions.loadavgColor[key];
+				loadavgCanvas.lineJoin = "miter";
+				loadavgCanvas.stroke();
+				loadavgCanvas.closePath();
+			});
+
+			const h = (height - 35) / 3;
+
+			loadavgCanvas.font = 'normal bold 30px Arial';
+			loadavgCanvas.strokeStyle = '#999999';
+			loadavgCanvas.strokeText("Loadavg", 5, 25);
+			['min1', 'min5', 'min15'].forEach(function(key, i) {
+				loadavgCanvas.font = 'normal bold ' + h + 'px Arial';
+				loadavgCanvas.fillStyle = actions.loadavgColor[key];
+				loadavgCanvas.fillText(key + ': ' + la[key], 5, 35 + (i + 0.5) * h);
+			});
+
+			loadavgCanvas.font = 'normal bold ' + h + 'px Arial';
+			loadavgCanvas.fillStyle = 'red';
+			loadavgCanvas.fillText('runs: ' + la.runs + ', procs: ' + la.procs, 140, 30);
+		},
+		proc: function(procs) {
+		},
+		disk: function(disk) {
+		},
+		net: function(net) {
+		}
+	};
+	const WS = function() { // WebSocket connect
+		ws = new WebSocket('ws://' + location.host + '/default/ws-monitor' + (location.search == '' ? '?index=0' : location.search));
+		ws.onopen = function(e) {
+			document.body.className = 'online';
+		};
+		ws.onerror = function(e) {
+			console.clear();
+			console.error(e);
+		};
+		ws.onmessage = function(e) {
+			const json = JSON.parse(e.data);
+
+			actions[json.action](json.data);
+		};
+		ws.onclose = function(e) {
+			document.body.className = 'offline';
+			ws = null;
+
+			setTimeout(WS, 1000);
+		};
+	};
+	
+	document.body.onload = function() {
+		this.onresize();
+	}
+	document.body.onresize = function() {
+		const width = wrapper.clientWidth;
+		const height = parseInt(wrapper.clientHeight * 0.4);
+		let w = parseInt(width / 2);
+		let h1 = parseInt(height * 2 / 5);
+		let h2 = height - h1 * 2 - 2;
+		cpuElem.style.left = 0;
+		cpuElem.width = w;
+		cpuElem.height = h1;
+		memElem.style.right = 0;
+		memElem.width = width - w - 1;
+		memElem.height = h1;
+		loadavgElem.style.top = h1 + 'px';
+		loadavgElem.width = width;
+		loadavgElem.height = h2;
+		diskElem.style.left = 0;
+		diskElem.style.top = height - h1 + 'px';
+		diskElem.width = w;
+		diskElem.height = h1;
+		netElem.style.right = 0;
+		netElem.style.top = height - h1 + 'px';
+		netElem.width = width - w - 1;
+		netElem.height = h1;
+	};
+	setTimeout(WS, 50); // auto connect
+	</script>
+</body>
+</html>
+

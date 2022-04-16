@@ -5,7 +5,8 @@ use fwe\base\Controller;
 use fwe\web\RequestEvent;
 use fwe\db\IEvent;
 use fwe\curl\Request;
-use app\ws\Demo;
+use app\ws\Demo as WsDemo;
+use app\ws\Monitor as WsMonitor;
 
 class DefaultController extends Controller {
 	private function getperms(int $mode, ?string &$type = null) {
@@ -190,7 +191,10 @@ class DefaultController extends Controller {
 		$request->webSocket();
 	}
 	public function actionWsDemo(RequestEvent $request) {
-		$request->webSocket(Demo::class);
+		$request->webSocket(WsDemo::class);
+	}
+	public function actionWsMonitor(RequestEvent $request) {
+		$request->webSocket(WsMonitor::class);
 	}
 	public function actionEmpty(RequestEvent $request, bool $isReturn = true) {
 		if($isReturn) {
