@@ -779,6 +779,23 @@
 		procMask.style.display = 'none';
 		procCanvas.reset();
 	};
+	const formatData = function(data, sep) {
+		const ret = [];
+		
+		Object.keys(data).forEach(function(key) {
+			const val = data[key];
+			if(typeof(val) === 'object') {
+				ret.push(key + ':');
+				Object.keys(val).forEach(function(k) {
+					ret.push('    ' + k + ': ' + formatData(val[k], ', '));
+				});
+			} else {
+				ret.push(key + ': ' + val);
+			}
+		});
+		
+		return ret.join(sep || '\n');
+	};
 	const dataXs = {key: false};
 	const updateData = function(key) {
 		if(dataXs.key != key) return;
@@ -787,10 +804,13 @@
 		const X = dataXs[key].width - data.length * 2;
 		const x = parseInt((dataXs[key].x - X) / 2);
 
-		if(x >= 0) {
-			dataView.innerText = JSON.stringify(data[x], null, 4);
+		if(x >= 0 && x < data.length) {
+			dataLine.style.display = 'block';
+			dataView.style.display = 'block';
+			dataView.innerText = formatData(data[x]);
 		} else {
-			mouseLeaveEvent();
+			dataLine.style.display = 'none';
+			dataView.style.display = 'none';
 		}
 	};
 	const mouseMoveEvent = function(e) {
@@ -802,29 +822,35 @@
 		const x = parseInt((e.offsetX - X) / 2);
 
 		dataXs[key] = {width: width, x: e.offsetX};
+		dataXs.key = key;
 
-		if(x >= 0) {
-			dataXs.key = key;
+		dataLine.style.left = e.pageX - wrapper.offsetLeft - 1 + 'px';
+		dataLine.style.top = e.pageY - e.offsetY - wrapper.offsetTop - 1 + 'px';
+		dataLine.style.height = height + 'px';
 
+		if(e.pageX > window.innerWidth / 2) {
+			dataView.style.left = 'auto';
+			dataView.style.right = window.innerWidth - e.pageX + 'px';
+		} else {
+			dataView.style.left = e.pageX + 'px';
+			dataView.style.right = 'auto';
+		}
+		if(e.pageY > window.innerHeight / 2) {
+			dataView.style.top = 'auto'
+			dataView.style.bottom = window.innerHeight - e.pageY + 'px';
+		} else {
+			dataView.style.top = e.pageY + 'px';
+			dataView.style.bottom = 'auto';
+		}
+
+		if(x >= 0 && x < data.length) {
 			dataLine.style.display = 'block';
-			dataLine.style.left = e.pageX - wrapper.offsetLeft - 1 + 'px';
-			dataLine.style.top = e.pageY - e.offsetY - wrapper.offsetTop - 1 + 'px';
-			dataLine.style.height = height + 'px';
-
 			dataView.style.display = 'block';
 
-			if(e.pageX > window.innerWidth - 200) {
-				dataView.style.left = 'auto';
-				dataView.style.right = window.innerWidth - e.pageX + 'px';
-			} else {
-				dataView.style.left = e.pageX + 'px';
-				dataView.style.right = 'auto';
-			}
-			dataView.style.top = e.pageY + 'px';
-
-			dataView.innerText = JSON.stringify(data[x], null, 4);
+			dataView.innerText = formatData(data[x]);
 		} else {
-			mouseLeaveEvent();
+			dataLine.style.display = 'none';
+			dataView.style.display = 'none';
 		}
 	};
 	const mouseLeaveEvent = function() {
