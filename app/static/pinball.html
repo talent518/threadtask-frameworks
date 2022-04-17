@@ -98,9 +98,13 @@
 		point2.style.top = P2.y - wsX + 'px';
 	};
 	canvasElem.onmouseup = function(e) {
+		p1.x = P1.x - wsX;
+		p1.y = P1.y - wsX;
+
 		point3.style.display = 'inline';
 		point4.style.display = 'inline';
 		movePoint.style.display = 'inline';
+
 		if(P1.x != P2.x || P1.y != P2.y) {
 			angle = Math.atan((P2.y - P1.y) / (P1.x - P2.x)) * 180 / Math.PI;
 			// console.log(angle);
@@ -109,15 +113,15 @@
 			} else if(angle < 0) {
 				angle += 360;
 			}
-
-			p1.x = P1.x - wsX;
-			p1.y = P1.y - wsX;
-			calcInit();
 		} else {
-			document.body.onload();
+			do {
+				angle = parseInt(360 * Math.random());
+			} while(angle % 90 < 15);
 		}
 		P1.x = P2.x = 0;
 		P1.y = P2.y = 0;
+
+		calcInit();
 	};
 	document.body.onresize = function() {
 		this.onload();
