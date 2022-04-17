@@ -22,10 +22,10 @@
 </head>
 <body>
 	<div id="box">
+		<span id="point4"></span>
+		<span id="point3"></span>
 		<span id="point1"></span>
 		<span id="point2"></span>
-		<span id="point3"></span>
-		<span id="point4"></span>
 		<canvas id="canvas"></canvas>
 		<span id="movePoint"></span>
 	</div>
@@ -39,7 +39,7 @@
 	const canvasElem = document.getElementById('canvas');
 	const canvas = canvasElem.getContext("2d");
 	var width = 0, height = 0, wsX = 0, wsY = 0;
-	var p1 = {x: 0,y: 0}, p2 = {x: 0,y: 0}, p3 = {x: 0,y: 0}, p4 = {x: 0,y: 0};
+	var p1 = {x: 0, y: 0}, p2 = {x: 0, y: 0}, p3 = {x: 0, y: 0}, p4 = {x: 0, y: 0};
 	var angle = 0, angle2 = 0, radius = 0, maxRadius = 0;
 	var timer = 0;
 	
@@ -53,13 +53,80 @@
 		
 		p1.x = parseInt(width * Math.random());
 		p1.y = parseInt(height * Math.random());
+		do {
+			angle = parseInt(360 * Math.random());
+		} while(angle % 90 < 15);
+		
+		calcInit();
+	};
+	const P1 = {x: 0, y: 0}, P2 = {x: 0, y: 0};
+	canvasElem.onmousedown = function(e) {
+		P1.x = P2.x = e.offsetX;
+		P1.y = P2.y = e.offsetY;
+		
+		if(timer) clearInterval(timer);
+		
+		canvas.clearRect(0, 0, box.clientWidth, box.clientHeight);
+
+		point1.style.left = P1.x - wsX + 'px';
+		point1.style.top = P1.y - wsX + 'px';
+		point2.style.left = P1.x - wsX + 'px';
+		point2.style.top = P1.y - wsX + 'px';
+		point3.style.display = 'none';
+		point4.style.display = 'none';
+		movePoint.style.display = 'none';
+	};
+	canvasElem.onmousemove = function(e) {
+		if(P1.x === 0 && P1.y === 0 && P2.x === 0 && P2.y === 0) {
+			return;
+		}
+
+		P2.x = e.offsetX;
+		P2.y = e.offsetY;
+
+		canvas.clearRect(0, 0, box.clientWidth, box.clientHeight);
+		canvas.beginPath();
+		canvas.moveTo(P1.x, P1.y);
+		canvas.lineTo(P2.x, P2.y);
+		canvas.lineWidth = 1;
+		canvas.strokeStyle = "#090";
+		canvas.lineJoin = "miter";
+		canvas.stroke();
+		canvas.closePath();
+
+		point2.style.left = P2.x - wsX + 'px';
+		point2.style.top = P2.y - wsX + 'px';
+	};
+	canvasElem.onmouseup = function(e) {
+		point3.style.display = 'inline';
+		point4.style.display = 'inline';
+		movePoint.style.display = 'inline';
+		if(P1.x != P2.x || P1.y != P2.y) {
+			angle = Math.atan((P2.y - P1.y) / (P1.x - P2.x)) * 180 / Math.PI;
+			// console.log(angle);
+			if(P1.x > P2.x) {
+				angle += 180;
+			} else if(angle < 0) {
+				angle += 360;
+			}
+
+			p1.x = P1.x - wsX;
+			p1.y = P1.y - wsX;
+			calcInit();
+		} else {
+			document.body.onload();
+		}
+		P1.x = P2.x = 0;
+		P1.y = P2.y = 0;
+	};
+	document.body.onresize = function() {
+		this.onload();
+	};
+	function calcInit() {
 		p3.x = p1.x;
 		p3.y = p1.y;
 		p4.x = p1.x;
 		p4.y = p1.y;
-		do {
-			angle = parseInt(360 * Math.random());
-		} while(angle % 90 < 5);
 		radius = 0;
 		calcRadius();
 		point3.style.left = p1.x + 'px';
@@ -68,14 +135,10 @@
 		point4.style.top = p1.y + 'px';
 		if(timer) clearInterval(timer);
 		timer = setInterval(timerFunc, 20);
-	};
-	document.body.onresize = function() {
-		this.onload();
-	};
-	box.onclick = document.body.onload;
+	}
 	function calcRadius() {
 		if(angle < 90) {
-			angle2 = Math.atan(p1.y / (width-p1.x))*180/Math.PI;
+			angle2 = Math.atan(p1.y / (width-p1.x))* 180 / Math.PI;
 			if(angle > angle2) {
 				maxRadius = p1.y / Math.cos((90-angle) * Math.PI / 180);
 				p2.x = p1.x + maxRadius * Math.cos(angle * Math.PI / 180);
@@ -86,7 +149,7 @@
 				p2.y = p1.y - maxRadius * Math.sin(angle * Math.PI / 180);
 			}
 		} else if(angle < 180) {
-			angle2 = 180 - Math.atan(p1.y / p1.x)*180/Math.PI;
+			angle2 = 180 - Math.atan(p1.y / p1.x)* 180 / Math.PI;
 			if(angle > angle2) {
 				maxRadius = p1.x / Math.cos((180-angle) * Math.PI / 180);
 				p2.x = 0;
@@ -97,7 +160,7 @@
 				p2.y = 0;
 			}
 		} else if(angle < 270) {
-			angle2 = 270 - Math.atan(p1.x / (height-p1.y))*180/Math.PI;
+			angle2 = 270 - Math.atan(p1.x / (height-p1.y))* 180 / Math.PI;
 			if(angle > angle2) {
 				maxRadius = (height-p1.y) / Math.cos((270-angle) * Math.PI / 180);
 				p2.x = p1.x + maxRadius * Math.cos(angle * Math.PI / 180);
@@ -108,7 +171,7 @@
 				p2.y = p1.y - maxRadius * Math.sin(angle * Math.PI / 180);
 			}
 		} else {
-			angle2 = 360 - Math.atan((height-p1.y) / (width-p1.x))*180/Math.PI;
+			angle2 = 360 - Math.atan((height-p1.y) / (width-p1.x))* 180 / Math.PI;
 			if(angle > angle2) {
 				maxRadius = (width-p1.x) / Math.cos((360-angle) * Math.PI / 180);
 				p2.x = width;
@@ -139,7 +202,7 @@
 		canvas.stroke();
 		canvas.closePath();
 
-		console.log("width = " + width + ", height = " + height + ", angle = " + angle + ", angle2 = " + angle2);
+		// console.log("width = " + width + ", height = " + height + ", angle = " + angle + ", angle2 = " + angle2);
 	}
 	function timerFunc() {
 		radius += 10;
