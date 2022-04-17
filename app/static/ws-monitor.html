@@ -335,6 +335,8 @@
 			while(this.loadavgs.length > width / 2) {
 				this.loadavgs.shift(0);
 			}
+			
+			updateData('loadavgs');
 
 			const max = {min1: 1, min5: 1, min15: 1};
 			const keys = Object.keys(max);
