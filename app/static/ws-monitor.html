@@ -8,7 +8,7 @@
     <meta http-equiv="Cache-Control" content="no-siteapp" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
-    <title>基于WebSocket实现的系统资源监控</title>
+    <title>基于WebSocket实现的系统资源监控(按Ctrl+Shift+S组合键保存数据到指定的目录)</title>
 	<style type="text/css">
 		#mask{display:none;}
 		#wrapper{position:fixed;left:5px;top:5px;right:5px;bottom:5px;overflow:hidden;border:1px #999 solid;font-size:14px;}
@@ -741,7 +741,29 @@
 			setTimeout(WS, 1000);
 		};
 	};
-	
+	let dirHandle = false;
+	async function save2File(name, data) {
+		if(!dirHandle) return;
+
+		try {
+			const fd = await dirHandle.getFileHandle(name, {create: true});
+			const f = await fd.createWritable();
+			await f.write(JSON.stringify(data, null, 4));
+			await f.close();
+		} catch(e) {
+			console.error(e);
+			dirHandle = false;
+		}
+	};
+	if(window.showDirectoryPicker) {
+		document.body.onkeydown = function(e) {
+			if(!e.ctrlKey || !e.shiftKey || e.key != 'S') return;
+
+			window.showDirectoryPicker().then(function(dir) {
+				dirHandle = dir;
+			});
+		};
+	}
 	document.body.onload = function() {
 		this.onresize();
 	};
@@ -807,9 +829,12 @@
 	};
 	const dataXs = {key: false};
 	const updateData = function(key) {
+		const data = actions[key];
+
+		save2File(key + '.json', data);
+
 		if(dataXs.key != key) return;
 
-		const data = actions[key];
 		const X = dataXs[key].width - data.length * 2;
 		const x = parseInt((dataXs[key].x - X) / 2);
 
