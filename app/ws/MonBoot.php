@@ -344,10 +344,24 @@ class MonBoot {
         return $n;
     }
 
-    protected $disks = [];
+    protected $disks = [], $mounts = [];
     protected function getdisks() {
         $fp = @fopen('/proc/diskstats', 'r');
         if(!$fp) return false;
+
+        if(preg_match_all('/^\/dev\/([^\s]+)\s+([^\s]+)\s+([^\s]+)/m', file_get_contents('/proc/mounts'), $matches)) {
+            $this->mounts = [];
+            foreach($matches[1] as $i => $k) {
+                $path = $matches[2][$i];
+                $this->mounts[$k] = [
+                    'path' => $path,
+                    'type' => $matches[3][$i],
+                    // 'loop' => strncmp($k, 'loop', 4) === 0 ? file_get_contents("/sys/block/$k/loop/backing_file") : '',
+                    'total' => disk_total_space($path),
+                    'free' => disk_free_space($path),
+                ];
+            }
+        }
 
         $keys = [];
         while(!feof($fp) && ($line = @fgets($fp)) !== false && sscanf($line, "%*s %*s %[^ ] %ld %*s %ld %*s %ld %*s %ld", $key, $rd_ops, $rd_bytes, $wr_ops, $wr_bytes) === 10) {
@@ -363,7 +377,22 @@ class MonBoot {
                     $disk[$_key] -= $val;
                 }
             }
-            $this->_disk[$key] = $disk;
+            $mount = $this->mounts[$key] ?? [];
+            if(!isset($mount['total'])) {
+                if($key) {
+                    if(preg_match('/^(sd[a-z]+|mmcblk\d+p)\d+$/', $key, $matches)) {
+                        $_key = (string) $matches[1];
+                        $_key = $_key[0] === 's' ? $_key : substr($_key, 0, -1);
+                        $_key = "$_key/$key";
+                    } else {
+                        $_key = $key;
+                    }
+                } else {
+                    $_key = $key;
+                }
+                $mount['total'] = file_get_contents("/sys/block/$_key/size") * 512;
+            }
+            $this->_disk[$key] = $mount + $disk;
         }
 
         fclose($fp);
