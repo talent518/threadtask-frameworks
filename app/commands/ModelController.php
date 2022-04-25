@@ -1,9 +1,9 @@
 <?php
 namespace app\commands;
 
-use fwe\console\Controller;
-use app\models\forms\Demo as FormDemo;
 use app\models\db\Demo as MySQLDemo;
+use app\models\forms\Demo as FormDemo;
+use fwe\console\Controller;
 
 class ModelController extends Controller {
 
@@ -44,7 +44,6 @@ class ModelController extends Controller {
 						$this->formatColor("errors: isPerOne isOnly\n", static::FG_BLUE);
 						var_dump($model->getErrors());
 					}
-
 
 					$model->attributes = $__params__;
 					$this->formatColor("attributes\n", static::FG_BLUE);
@@ -104,6 +103,41 @@ class ModelController extends Controller {
 				var_dump($model->getErrors());
 			}
 		});
+		
+		echo "============================\n";
+		
+		$page = random_int(1, 20);
+		$total = random_int(1, 1000);
+		$size = random_int(1, 50);
+
+		var_dump(compact('page', 'total', 'size'));
+		
+		echo "----------------------------\n";
+		
+		$query = MySQLDemo::find()->prefix('DISTINCT')
+		->select('*', 'count(u.uid) users')
+		->whereArgs('AND', ['=', 'uid', $model->uid], ['=', 'username', $model->username])
+		->leftJoin('user', 'u', 'd.uid=u.uid')
+		->group('d.uid', 'd.username')
+		->having('users > ?', [0])
+		->page($page, $total, $size, $pages);
+		
+		var_dump(compact('page', 'total', 'size', 'pages'), $query->build(), $query->makeSQL());
+		
+		echo "============================\n";
+		
+		$query = MySQLDemo::find()
+		->select('uid')
+		->whereArgs('and', ['between', 'a', 1, 5], ['or', ['=', 'b', 1], ['>', 'c', 5], ['and', ['>=', 'd', 1], ['<=', 'd', 10]], ['!=', 'e', 1]], ['=', 'isdel', 0], ['=', 'f', null], ['!=', 'g', null])
+		->group('d.uid')
+		->havingArgs('or', ['>', 'count(1)', 0], ['>', 'avg(d.score)', 0]);
+		var_dump($result=$query->build(), $query->makeSQL());
+
+		echo "============================\n";
+		
+		$query = MySQLDemo::find()
+		->whereArgs('and', ['in', 'uid', $result], ['=', 'uid', $result], ['not', $result], ['like', 'd', ['a', 'b', 'c\'d', "'\r'\n\"", '中国'], false, true]);
+		var_dump($query->build(), $query->makeSQL());
 	}
 
 }

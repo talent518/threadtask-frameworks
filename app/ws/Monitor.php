@@ -68,7 +68,6 @@ class Monitor implements IWsEvent {
 	}
 	
 	public static function event() {
-		$time = microtime(true);
 		$cpu = json_encode(['action'=>'cpu', 'data'=>static::$cpu->all()]);
 		$mem = json_encode(['action'=>'mem', 'data'=>static::$mem->all()]);
 		$loadavg = json_encode(['action'=>'loadavg', 'data'=>static::$loadavg->all()]);

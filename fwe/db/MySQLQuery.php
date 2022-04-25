@@ -1,0 +1,346 @@
+<?php
+namespace fwe\db;
+
+class MySQLQuery {
+	protected $prefix;
+	protected $select = ['*', []];
+	protected $from = [];
+	protected $join = [];
+	protected $where;
+	protected $group = [];
+	protected $having;
+	protected $limit;
+	
+	protected $sql, $params;
+	
+	public function prefix(string ...$options) {
+		$this->prefix = implode(' ', $options) . ' ';
+		return $this;
+	}
+	
+	public function select(...$fields) {
+		$select = [];
+		$params = [];
+		foreach($fields as $field) {
+			if(isset($field['sql'], $field['params'])) {
+				$select[] = (isset($field['alias']) ? "({$field['sql']}) as $alias" : $field['sql']);
+				foreach($field['params'] as $v) $params[] = $v;
+			} else if(is_array($field)) {
+				if(strpos($field[0], '.') !== false) {
+					$field[0] = str_replace('.', '`.`', $field[0]);
+				}
+				$select[] = "`{$field[0]}` as {$field[1]}";
+			} else {
+				if(strpos($field, '.') !== false) {
+					$field = str_replace('.', '`.`', $field);
+				}
+				$select[] = "`$field`";
+			}
+		}
+		$this->select = [implode(',', $select), $params];
+		return $this;
+	}
+	
+	public function from(string $table, string $alias = 'sq') {
+		$this->from[] = "`$table` as $alias";
+		return $this;
+	}
+	
+	public function leftJoin(string $table, string $alias, string $on, array $params = []) {
+		$this->join[] = [
+			"LEFT JOIN `$table` as $alias ON $on",
+			$params,
+		];
+		return $this;
+	}
+	
+	public function rightJoin(string $table, string $alias, string $on, array $params = []) {
+		$this->join[] = [
+			"RIGHT JOIN `$table` as $alias ON $on",
+			$params,
+		];
+		return $this;
+	}
+	
+	public function innerJoin(string $table, string $alias, string $on, array $params = []) {
+		$this->join[] = [
+			"INNER JOIN `$table` as $alias ON $on",
+			$params,
+		];
+		return $this;
+	}
+	
+	public function where(string $where, array $params = []) {
+		$this->where = [$where, $params];
+		return $this;
+	}
+	
+	public static function makeWhere(array $args, array &$params) {
+		if(isset($args['sql'], $args['params'])) {
+			foreach($args['params'] as $v) $params[] = $v;
+			return $args['sql'];
+		}
+
+		$oper = array_shift($args);
+		$op = strtoupper(preg_replace('/\s+/', ' ', trim($oper)));
+
+		switch($op) {
+			case 'AND':
+			case 'OR':
+				$sqls = [];
+				foreach($args as $arg) {
+					$sql = static::makeWhere($arg, $params);
+					if($sql !== null) {
+						$sqls[] = $sql;
+					}
+				}
+				if($sqls) {
+					$sql = implode(" $op ", $sqls);
+					$sql = "($sql)";
+				} else {
+					$sql = null;
+				}
+				break;
+			case '!':
+			case 'NOT':
+				$sql = static::makeWhere($args[0], $params);
+				if($sql !== null) {
+					$sql = "$op ($sql)";
+				}
+				break;
+			case 'IN':
+			case 'NOT IN':
+				$field = array_shift($args);
+				$value = array_shift($args);
+				if(isset($value['sql'], $value['params'])) {
+					$sql = "{$field} $op ({$value['sql']})";
+					foreach($value['params'] as $v) $params[] = $v;
+				} else {
+					$sqls = [];
+					array_unshift($args, $value);
+					foreach($args as $arg) {
+						if($arg !== null) {
+							$sqls[] = '?';
+							$params[] = $arg;
+						}
+					}
+					if($sqls) {
+						$sql = implode(', ', $sqls);
+						if($sql === '?') {
+							$op = ($op === 'IN' ? '=' : '!=');
+							$sql = "$field $op ?";
+						} else {
+							$sql = "$field $op ($sql)";
+						}
+					} else {
+						$sql = null;
+					}
+				}
+				break;
+			case '=':
+			case '!=':
+			case '<>':
+			case '>':
+			case '>=':
+			case '<':
+			case '<=':
+				list($field, $value) = $args;
+				if($value === null) {
+					if($op === '=') {
+						$sql = "{$field} IS NULL";
+					} else {
+						$sql = "{$field} IS NOT NULL";
+					}
+				} elseif(isset($value['sql'], $value['params'])) {
+					$sql = "{$field} $op ({$value['sql']})";
+					foreach($value['params'] as $v) $params[] = $v;
+				} else {
+					$sql = "{$field} $op ?";
+					$params[] = $value;
+				}
+				break;
+			case 'BETWEEN':
+				list($field, $value0, $value1) = $args;
+				$sql = "({$field} BETWEEN ? AND ?)";
+				$params[] = $value0;
+				$params[] = $value1;
+				break;
+			case '|': // 位或
+			case '&': // 位与
+			case '^': // 位异或
+			case '<<': // 位左移
+			case '>>': // 位右移
+				@list($field, $value0, $op1, $value1) = $args;
+				if($op1 === null) {
+					$sql = "({$field} $op ?)";
+					$params[] = $value0;
+				} else {
+					$sql = "({$field} $op ?) $op1 ?";
+					$params[] = $value0;
+					$params[] = $value1;
+				}
+				break;
+			case '~':
+				@list($field, $op, $value) = $args;
+				if($op === null) {
+					$sql = "(~{$field})";
+				} else {
+					$sql = "(~{$field}) $op ?";
+					$params[] = $value;
+				}
+				break;
+			case 'LIKE':
+			case 'NOT LIKE':
+				@list($field, $value, $left, $right, $and) = $args;
+				if($left === null) $left = '%'; else $left = ($left ? '%' : '');
+				if($right === null) $right = '%'; else $right = ($right ? '%' : '');
+				$op2 = ($and ? 'AND' : 'OR');
+				$sqls = [];
+				foreach((array) $value as $v) {
+					$sqls[] = "{$field} $op ?";
+					$params[] = $left . strtr($v, static::$likeEscapes) . $right;
+				}
+				$sql = implode(" $op2 ", $sqls);
+				break;
+			default:
+				$sql = (string) $oper;
+				break;
+		}
+
+		return $sql;
+	}
+	
+	protected static $likeEscapes = [
+		'%' => '\%',
+		'_' => '\_',
+		'\\' => '\\\\',
+	];
+	
+	public function whereArray(array $args) {
+		$params = [];
+		$sql = static::makeWhere($args, $params);
+		if($sql) {
+			$this->where = [$sql, $params];
+		}
+		return $this;
+	}
+	
+	public function whereArgs(...$args) {
+		$params = [];
+		$sql = static::makeWhere($args, $params);
+		if($sql) {
+			$this->where = [$sql, $params];
+		}
+		return $this;
+	}
+	
+	public function group(...$fields) {
+		$this->group = implode(', ', $fields);
+		return $this;
+	}
+	
+	public function having(string $having, array $params = []) {
+		$this->having = [$having, $params];
+		return $this;
+	}
+	
+	public function havingArray(array $args) {
+		$params = [];
+		$sql = static::makeWhere($args, $params);
+		if($sql) {
+			$this->having = [$sql, $params];
+		}
+		return $this;
+	}
+	
+	public function havingArgs(...$args) {
+		$params = [];
+		$sql = static::makeWhere($args, $params);
+		if($sql) {
+			$this->having = [$sql, $params];
+		}
+		return $this;
+	}
+	
+	public function limit(int $offset, int $size) {
+		$this->limit = [$offset, $size];
+		return $this;
+	}
+	
+	public function page(int &$page, int &$total, int &$size, &$pages = 0) {
+		if($total <= 0 || $size <= 0) return $this;
+
+		if($page <= 0) $page = 1;
+
+		$pages = ceil($total / $size);
+		if($page > $pages) $page = $pages;
+		
+		$this->limit = [($page - 1) * $size, $size];
+		
+		return $this;
+	}
+	
+	public function build() {
+		$sql = "SELECT {$this->prefix}{$this->select[0]} FROM ";
+		$sql .= implode(', ', $this->from);
+		
+		$params = $this->select[1];
+		
+		foreach($this->join as $join) {
+			$sql .= " {$join[0]}";
+			foreach($join[1] as $v) $params[] = $v;
+		}
+		
+		if($this->where) {
+			$sql .= " WHERE {$this->where[0]}";
+			foreach($this->where[1] as $v) $params[] = $v;
+		}
+		
+		if($this->group) {
+			$sql .= " GROUP BY {$this->group}";
+			
+			if($this->having) {
+				$sql .= " HAVING {$this->having[0]}";
+				foreach($this->having[1] as $v) $params[] = $v;
+			}
+		}
+		
+		if($this->limit) {
+			$sql .= " LIMIT ?, ?";
+			foreach($this->limit as $v) $params[] = $v;
+		}
+		
+		$this->sql = $sql;
+		$this->params = $params;
+		
+		return compact('sql', 'params');
+	}
+	
+	protected static $sqlEscapes = [
+		'\'' => '\\\'',
+		"\r" => '\r',
+		"\n" => '\n',
+	];
+	
+	public function makeSQL() {
+		if($this->sql === null || $this->params === null) return;
+
+		$sql = $this->sql;
+		$i = 0;
+		while(($pos = strpos($sql, '?')) !== false) {
+			$str = $this->params[$i++];
+			if(is_array($str) || is_object($str)) $str = json_encode($str, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
+			if(is_string($str)) {
+				$str = strtr($str, static::$sqlEscapes);
+				$str = "'$str'";
+			} elseif(is_bool($str)) {
+				$str = ($str ? 1 : 0);
+			} elseif(is_null($str)) {
+				$str = 'NULL';
+			}
+			$sql = substr_replace($sql, $str, $pos, 1);
+		}
+
+		return $sql;
+	}
+}

@@ -348,7 +348,7 @@ function ts_var_expire(resource $var, int $expire) {}
  *
  * @return bool 是否设置成功
  */
-function ts_var_set(resource $var, string|int|null $key, mixed $val, bool $expire = 0): bool {}
+function ts_var_set(resource $var, string|int|null $key, $val, bool $expire = 0): bool {}
 
 /**
  * 向线程安全变量中存储数据: 是ts_var_set别名
@@ -360,7 +360,7 @@ function ts_var_set(resource $var, string|int|null $key, mixed $val, bool $expir
  *
  * @return bool 是否设置成功
  */
-function ts_var_put(resource $var, string|int|null $key, mixed $val, bool $expire = 0): bool {}
+function ts_var_put(resource $var, string|int|null $key, $val, bool $expire = 0): bool {}
 
 /**
  * 压入队列
@@ -449,7 +449,7 @@ function ts_var_del(resource $var, string|int $key): bool {}
  *
  * @return mixed
  */
-function ts_var_inc(resource $var, string|int|null $key, mixed $inc) {}
+function ts_var_inc(resource $var, string|int|null $key, $inc) {}
 
 /**
  * 获取线程安全变量有多少个数据（与count函数类似）
@@ -584,7 +584,7 @@ function trigger_timeout(int $signal = SIGALRM): bool {}
  *
  * @return mixed $call函数的执行结果
  */
-function go(is_callable $call, $args...) {}
+function go(is_callable $call, ...$args) {}
 
 /**
  * 调用并清除由register_shutdown_function注册的php中止函数
@@ -602,7 +602,7 @@ function call_and_free_shutdown() {}
  *
  * @return bool
  */
-function redefine(string $name, mixed $value, bool $case_insensitive): bool {}
+function redefine(string $name, $value, bool $case_insensitive): bool {}
 
 /**
  * go的$call函数执行时遇到die函数或exit语句时抛出

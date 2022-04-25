@@ -1,7 +1,6 @@
 <?php
 namespace fwe\validators;
 
-use Exception;
 use fwe\base\Model;
 
 class RequiredValidator extends IValidator {

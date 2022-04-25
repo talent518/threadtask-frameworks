@@ -84,4 +84,8 @@ class FtpResponse extends IResponse {
 		if($this->fp) fclose($this->fp);
 		$this->fp = null;
 	}
+
+	public function headerHandler($ch, $header) {
+	}
+
 }

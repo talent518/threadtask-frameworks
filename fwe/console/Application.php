@@ -15,6 +15,7 @@ class Application extends \fwe\base\Application {
 
 		$this->controllerMap['help'] = 'fwe\console\HelpController';
 		$this->controllerMap['serve'] = 'fwe\console\ServeController';
+		$this->controllerMap['generator'] = 'fwe\console\GeneratorController';
 		$this->defaultRoute = 'help';
 	}
 	

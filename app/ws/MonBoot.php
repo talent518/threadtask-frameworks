@@ -85,7 +85,6 @@ class MonBoot {
         if(!$fp) return false;
 
         $i = 0377;
-        $ret = [];
         while($i > 0 && !feof($fp) && ($line = @fgets($fp)) !== false && sscanf($line, "%[^:]: %d", $key, $val) === 2) {
             // echo "$key: $val\n";
             $val *= 1024;

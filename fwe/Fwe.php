@@ -238,13 +238,10 @@ abstract class Fwe {
 		if($isAssoc) {
 			if(is_array($callback)) {
 				$reflection = new ReflectionMethod($callback[0], $callback[1]);
-				$object = is_object($callback[0]) ? $callback[0] : null;
 			} elseif(is_object($callback) && ! ($callback instanceof \Closure)) {
 				$reflection = new ReflectionMethod($callback, '__invoke');
-				$object = $callback;
 			} else {
 				$reflection = new ReflectionFunction($callback);
-				$object = null;
 			}
 
 			$params = static::makeArgs($reflection, $params, $funcName);

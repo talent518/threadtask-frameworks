@@ -11,9 +11,6 @@ return [
 		],
 		'monitor' => 'app\ws\MonBoot',
 	],
-	'modules' => [
-		'gii' => 'fwe\gii\Module',
-	],
 	'statics' => [
 		'/favicon.ico' => '@app/static/favicon.ico',
 		'/static/' => '@app/static/',

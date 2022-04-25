@@ -188,20 +188,6 @@
 			write_bytes: '#FF7F50'
 		},
 		init: function() {
-			this.cpus = [];
-			this.cpuGraphic();
-			this.mems = [];
-			this.memGraphic();
-			this.loadavgs = [];
-			this.loadavgGraphic();
-			this.disks = [];
-			this.diskGraphic();
-			this.nets = [];
-			this.netGraphic();
-			this.procs = [];
-			this.procInfos = [];
-			procList.innerHTML = '';
-			procCanvas.reset();
 			this.firstPid = true;
 		},
 		cpuGraphic: function(cpu) {

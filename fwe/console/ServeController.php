@@ -1,8 +1,6 @@
 <?php
 namespace fwe\console;
 
-use fwe\base\Action;
-
 class ServeController extends Controller {
 	
 	public function afterActionIndex() {
