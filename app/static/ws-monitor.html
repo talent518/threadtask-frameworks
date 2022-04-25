@@ -772,7 +772,7 @@
 		const height = parseInt(wrapper.clientHeight * 0.4);
 		let w = parseInt(width / 2);
 		let h1 = parseInt(height * 2 / 5);
-		let h2 = (height - h1) / 2 - 2;
+		let h2 = (height - h1) / 2;
 		cpuElem.style.left = 0;
 		cpuElem.width = w;
 		cpuElem.height = h1;
@@ -781,20 +781,20 @@
 		memElem.height = h1;
 		loadavgElem.style.top = h1 + 'px';
 		loadavgElem.width = width;
-		loadavgElem.height = h2;
+		loadavgElem.height = h2 - 1;
 		diskElem.style.left = 0;
-		diskElem.style.top = height - h2 + 'px';
+		diskElem.style.top = h1 + h2 + 'px';
 		diskElem.width = w;
 		diskElem.height = h2;
 		netElem.style.right = 0;
-		netElem.style.top = height - h2 + 'px';
+		netElem.style.top = h1 + h2 + 'px';
 		netElem.width = width - w - 1;
 		netElem.height = h2;
 
 		{
 			const height = procBox.clientHeight;
 
-			procElem.width = width / 2 + 1;
+			procElem.width = Math.ceil(width / 2) + 1;
 			procElem.height = height / 2;
 		}
 
