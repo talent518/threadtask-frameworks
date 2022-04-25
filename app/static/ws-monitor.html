@@ -546,7 +546,14 @@
 				procCanvas.fillText(str, x, y);
 			});
 		},
-		proc: function(procs) {
+		firstPid: true,
+		proc: function(procs, pid) {
+			if(this.firstPid) {
+				this.firstPid = false;
+				this.pid = pid;
+				this.comm = procs[pid].comm;
+				procMask.style.display = 'block';
+			}
 			this.procs = Object.values(procs);
 			this.procs.forEach(function(proc) {
 				proc.tcpu = proc.ucpu + proc.scpu;
@@ -732,7 +739,7 @@
 		ws.onmessage = function(e) {
 			const json = JSON.parse(e.data);
 
-			actions[json.action](json.data);
+			actions[json.action](json.data, json.pid);
 		};
 		ws.onclose = function(e) {
 			document.body.className = 'offline';

@@ -72,7 +72,7 @@ class Monitor implements IWsEvent {
 		$cpu = json_encode(['action'=>'cpu', 'data'=>static::$cpu->all()]);
 		$mem = json_encode(['action'=>'mem', 'data'=>static::$mem->all()]);
 		$loadavg = json_encode(['action'=>'loadavg', 'data'=>static::$loadavg->all()]);
-		$proc = json_encode(['action'=>'proc', 'data'=>static::$proc->all()]);
+		$proc = json_encode(['action'=>'proc', 'data'=>static::$proc->all(), 'pid'=>posix_getpid()]);
 		$disk = static::$disk->all();
 		ksort($disk, SORT_NATURAL);
 		$disk = json_encode(['action'=>'disk', 'data'=>$disk]);
