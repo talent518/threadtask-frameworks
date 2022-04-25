@@ -201,8 +201,8 @@
 			this.procs = [];
 			this.procInfos = [];
 			procList.innerHTML = '';
-			procMask.style.display = 'none';
 			procCanvas.reset();
+			this.firstPid = true;
 		},
 		cpuGraphic: function(cpu) {
 			const width = cpuElem.clientWidth;
@@ -550,9 +550,11 @@
 		proc: function(procs, pid) {
 			if(this.firstPid) {
 				this.firstPid = false;
-				this.pid = pid;
-				this.comm = procs[pid].comm;
-				procMask.style.display = 'block';
+				if(this.pid <= 0 || !(this.pid in procs)) {
+					this.pid = pid;
+					this.comm = procs[pid].comm;
+					procMask.style.display = 'block';
+				}
 			}
 			this.procs = Object.values(procs);
 			this.procs.forEach(function(proc) {
