@@ -23,7 +23,7 @@
  *
  * @return bool
  */
-function create_task(string $taskname, string $filename, array $params, string $logfile = '', string $logmode = 'ab', resource &$res = null) {}
+function create_task(string $taskname, string $filename, array $params, string $logfile = '', string $logmode = 'ab', &$res = null) {}
 
 /**
  * 任务是否已完成函数
@@ -32,7 +32,7 @@ function create_task(string $taskname, string $filename, array $params, string $
  *
  * @return bool
  */
-function task_is_run(resource $res) {}
+function task_is_run($res) {}
 
 /**
  * 等待任务完成函数
@@ -41,7 +41,7 @@ function task_is_run(resource $res) {}
  *
  * @return bool
  */
-function task_join(resource $res) {}
+function task_join($res) {}
 
 /**
  * 向指定任务发送$sig信号
@@ -51,7 +51,7 @@ function task_join(resource $res) {}
  *
  * @return bool
  */
-function task_kill(resource $res, int $sig = SIGINT) {}
+function task_kill($res, int $sig = SIGINT) {}
 
 /**
  * 向所有线程发送$signal信号，并等待所有线程结束(只能在主线程中使用)
@@ -234,14 +234,17 @@ function share_var_get_and_del(...$keys) {}
  *
  * @return mixed
  */
-function share_var_put(...$keys, $value) {}
+function share_var_put($keys, $value) {}
 
 /**
  * 累加共享变量($key[,...]查到的变量: 是数组则会把$value附加到数组后，是字符串则在其后附加$value字符串，其它数值类型或布尔值则会按数值累加)
  *
+ * @param array ...$keys 是数组级联键
+ * @param mixed $value
+ * 
  * @return mixed 返回运算结果
  */
-function share_var_inc(...$keys, $value) {}
+function share_var_inc($keys, $value) {}
 
 /**
  * 写入共享变量(至少两个参数: $key, $value)，例如:
@@ -253,7 +256,7 @@ function share_var_inc(...$keys, $value) {}
  *
  * @return bool
  */
-function share_var_set(...$keys, $value) {}
+function share_var_set($keys, $value) {}
 
 /**
  * 写入过期共享变量(至少三个参数: $key, $value, $expire)，例如:
@@ -266,7 +269,7 @@ function share_var_set(...$keys, $value) {}
  *
  * @return bool
  */
-function share_var_set_ex(...$keys, $value, int $expire) {}
+function share_var_set_ex($keys, $value, int $expire) {}
 
 /**
  * 删除共享变量
@@ -316,7 +319,7 @@ function share_var_count(...$keys) {}
  *
  * @return resource|bool
  */
-function ts_var_declare(string|int|null $varname, ?resource $var = null, bool $is_fd = false): resource|bool {}
+function ts_var_declare($varname, $var = null, bool $is_fd = false) {}
 
 /**
  * 导出socket文件描述符的管道对(可使用sockets扩展中的函数进行操作)
@@ -326,7 +329,7 @@ function ts_var_declare(string|int|null $varname, ?resource $var = null, bool $i
  *
  * @return \Socket|resource|bool 为false时$var参数无效
  */
-function ts_var_fd(resource $var, bool $is_write = false): \Socket|resource|bool {}
+function ts_var_fd($var, bool $is_write = false) {}
 
 /**
  * 设置共享变量的过期时间
@@ -336,7 +339,7 @@ function ts_var_fd(resource $var, bool $is_write = false): \Socket|resource|bool
  *
  * @return bool|null 为false时$var参数无效或ts_var_declare时is_fd参数不是true
  */
-function ts_var_expire(resource $var, int $expire) {}
+function ts_var_expire($var, int $expire) {}
 
 /**
  * 向线程安全变量中存储数据
@@ -348,7 +351,7 @@ function ts_var_expire(resource $var, int $expire) {}
  *
  * @return bool 是否设置成功
  */
-function ts_var_set(resource $var, string|int|null $key, $val, bool $expire = 0): bool {}
+function ts_var_set($var, $key, $val, bool $expire = 0): bool {}
 
 /**
  * 向线程安全变量中存储数据: 是ts_var_set别名
@@ -360,7 +363,7 @@ function ts_var_set(resource $var, string|int|null $key, $val, bool $expire = 0)
  *
  * @return bool 是否设置成功
  */
-function ts_var_put(resource $var, string|int|null $key, $val, bool $expire = 0): bool {}
+function ts_var_put($var, $key, $val, bool $expire = 0): bool {}
 
 /**
  * 压入队列
@@ -370,7 +373,7 @@ function ts_var_put(resource $var, string|int|null $key, $val, bool $expire = 0)
  *
  * @return bool
  */
-function ts_var_push(resource $var, ...$vals): bool {}
+function ts_var_push($var, ...$vals): bool {}
 
 /**
  * 弹出队列（线程安全变量）中最后一个
@@ -380,7 +383,7 @@ function ts_var_push(resource $var, ...$vals): bool {}
  *
  * @return mixed 弹出的值
  */
-function ts_var_pop(resource $var, string|long &$key = null) {}
+function ts_var_pop($var, &$key = null) {}
 
 /**
  * 弹出队列（线程安全变量）中第一个
@@ -390,7 +393,7 @@ function ts_var_pop(resource $var, string|long &$key = null) {}
  *
  * @return mixed 弹出的值
  */
-function ts_var_shift(resource $var, string|long &$key = null) {}
+function ts_var_shift($var, &$key = null) {}
 
 /**
  * 获取最小或最大键/值
@@ -402,7 +405,7 @@ function ts_var_shift(resource $var, string|long &$key = null) {}
  *
  * @return mixed 最小或最大的值
  */
-function ts_var_minmax(resource $var, bool $is_max = false, bool $is_key = false, string|long &$key = null) {}
+function ts_var_minmax($var, bool $is_max = false, bool $is_key = false, &$key = null) {}
 
 /**
  * 获取线程安全变量数据
@@ -413,7 +416,7 @@ function ts_var_minmax(resource $var, bool $is_max = false, bool $is_key = false
  *
  * @return mixed
  */
-function ts_var_get(resource $var, string|int|null $key = null, bool $is_del = false) {}
+function ts_var_get($var, $key = null, bool $is_del = false) {}
 
 /**
  * 获取线程安全变量数据
@@ -428,7 +431,7 @@ function ts_var_get(resource $var, string|int|null $key = null, bool $is_del = f
  *
  * @return mixed 返回已存在的值或$callback函数的返回值
  */
-function ts_var_get_or_set(resource $var, string|int $key, callable $callback, int $expire = 0, ...$parameters) {}
+function ts_var_get_or_set($var, $key, callable $callback, int $expire = 0, ...$parameters) {}
 
 /**
  * 删除线程安全变量中的数据
@@ -438,7 +441,7 @@ function ts_var_get_or_set(resource $var, string|int $key, callable $callback, i
  *
  * @return bool
  */
-function ts_var_del(resource $var, string|int $key): bool {}
+function ts_var_del($var, $key): bool {}
 
 /**
  * 自增线程安全变量并返回
@@ -449,7 +452,7 @@ function ts_var_del(resource $var, string|int $key): bool {}
  *
  * @return mixed
  */
-function ts_var_inc(resource $var, string|int|null $key, $inc) {}
+function ts_var_inc($var, $key, $inc) {}
 
 /**
  * 获取线程安全变量有多少个数据（与count函数类似）
@@ -458,7 +461,7 @@ function ts_var_inc(resource $var, string|int|null $key, $inc) {}
  *
  * @return int
  */
-function ts_var_count(resource $var) {}
+function ts_var_count($var) {}
 
 /**
  * 清理线程安全变量并返回元素个数
@@ -468,7 +471,7 @@ function ts_var_count(resource $var) {}
  *
  * @return int
  */
-function ts_var_clean(resource $var, int $expire = 0) {}
+function ts_var_clean($var, int $expire = 0) {}
 
 /**
  * 重建线程安全变量索引
@@ -478,7 +481,7 @@ function ts_var_clean(resource $var, int $expire = 0) {}
  *
  * @return bool
  */
-function ts_var_reindex(resource $var, bool $only_integer_keys = false): bool {}
+function ts_var_reindex($var, bool $only_integer_keys = false): bool {}
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// sockets附加函数 ////////////////////////////////
@@ -492,7 +495,7 @@ function ts_var_reindex(resource $var, bool $only_integer_keys = false): bool {}
  *
  * @return int|bool 返回整数类型的文件描述符(unix平台)
  */
-function socket_export_fd(\Socket|resource $socket, bool $is_close = false): int {}
+function socket_export_fd($socket, bool $is_close = false): int {}
 
 /**
  * 从整型导入socket资源类型值
@@ -525,7 +528,7 @@ function socket_accept_ex(int $sockfd, string &$addr, int &$port) {}
  *
  * @return int|bool 返回整数类型的文件描述符(unix平台)
  */
-function mysqli_export_fd(mysqli $mysql): int|bool {}
+function mysqli_export_fd(mysqli $mysql) {}
 
 /**
  * 异步执行mysqli预处理SQL
@@ -584,7 +587,7 @@ function trigger_timeout(int $signal = SIGALRM): bool {}
  *
  * @return mixed $call函数的执行结果
  */
-function go(is_callable $call, ...$args) {}
+function go(callable $call, ...$args) {}
 
 /**
  * 调用并清除由register_shutdown_function注册的php中止函数
@@ -608,9 +611,10 @@ function redefine(string $name, $value, bool $case_insensitive): bool {}
  * go的$call函数执行时遇到die函数或exit语句时抛出
  */
 class GoExitException extends Exception {
-	private int $status;
-
-	public function getStatus() {
-		return $status;
-	}
+	/**
+	 * exit code
+	 * 
+	 * @return int
+	 */
+	public function getStatus(): int {}
 }
