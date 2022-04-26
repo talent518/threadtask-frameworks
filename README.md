@@ -1,6 +1,8 @@
 # threadtask-frameworks
 基于项目threadtask封装的框架。
 
+* 运行先决条件就是必须安装 [threadtask](/talent518/threadtask)
+
 ### API文档
 * 使用phpdoc生成API文档
 ```sh

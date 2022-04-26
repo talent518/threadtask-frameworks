@@ -28,7 +28,7 @@ abstract class Model extends \fwe\base\Model implements \JsonSerializable {
 			}
 		}
 
-		return isset($this->attributeNames[$name]);
+		return isset($this->attributeNames[$name]) || isset($this->attributes[$name]);
 	}
 
 	public function getAttribute(string $name, $default = null) {
@@ -61,6 +61,22 @@ abstract class Model extends \fwe\base\Model implements \JsonSerializable {
 
 	protected function delProperty(string $name) {
 		$this->setAttribute($name, null);
+	}
+	
+	protected function beforeFind(array $row) {
+	}
+	
+	protected function afterFind() {
+	}
+	
+	public static function populate(array $row) {
+		/* @var $model MySQLModel */
+		$model = \Fwe::createObject(get_called_class());
+		$model->beforeFind($row);
+		$model->isNewRecord = false;
+		$model->attributes = $row;
+		$model->afterFind();
+		return $model;
 	}
 
 }

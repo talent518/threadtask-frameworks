@@ -3,10 +3,8 @@ namespace app\models\forms;
 
 use fwe\base\Model;
 use fwe\curl\Request;
-use fwe\validators\IValidator;
 
 class Demo extends Model {
-
 	public $email;
 	public $reply;
 	public $subject;
@@ -17,26 +15,22 @@ class Demo extends Model {
 	public $repasswd2;
 	public $age;
 	public $url;
-
+	
 	public function getRules() {
-		$method = function(IValidator $validator, bool $isPerOne, bool $isOnly, array $attributes) {
-			if($validator->isSkipOnEmpty($this->url)) {
-				return 0;
-			} else {
-                $vars = compact('isPerOne', 'isOnly', 'attributes');
-                return function (callable $ok) use ($vars) {
-                    echo "Closure\n";
-                    var_dump($vars);
-                    curl()->make(new Request($this->url, 'HEAD'), function ($res) use ($ok) {
-                        if ($res->errno === 0 && $res->status === 200) {
-                            $ok(0);
-                        } else {
-                            $this->addError('url', "url: {$this->url}, errno: {$res->errno}, error: {$res->error}, status: {$res->status}");
-                            $ok(1);
-                        }
-                    });
-                };
-            }
+		$method = function(bool $isPerOne, bool $isOnly, array $attributes) {
+			$vars = compact('isPerOne', 'isOnly', 'attributes');
+			return function (callable $ok) use ($vars) {
+				echo "Closure\n";
+				var_dump($vars);
+				curl()->make(new Request($this->url, 'HEAD'), function ($res) use ($ok) {
+					if ($res->errno === 0 && $res->status === 200) {
+						$ok(0);
+					} else {
+						$this->addError('url', "url: {$this->url}, errno: {$res->errno}, error: {$res->error}, status: {$res->status}");
+						$ok(1);
+					}
+				});
+			};
 		};
 		return [
 			['email, message', 'required'],
@@ -53,9 +47,9 @@ class Demo extends Model {
 			['url', 'url'],
 			['url', 'method', 'method' => $method],
 			['url', 'method', 'method' => 'validUrl'],
-		];
+			];
 	}
-
+	
 	protected function getLabels() {
 		return [
 			'email' => '收件邮箱',
@@ -69,18 +63,14 @@ class Demo extends Model {
 			'age' => '年龄',
 		];
 	}
-
-	public function validUrl(IValidator $validator, bool $isPerOne, bool $isOnly, array $attributes) {
-		if($validator->isSkipOnEmpty($this->url)) {
-			return 0;
-		} else {
-			$vars = compact('isPerOne', 'isOnly', 'attributes');
-
-			return function(callable $ok) use ($vars) {
-                echo "Method\n";
-                var_dump($vars);
-                $ok(0);
-            };
-        }
+	
+	public function validUrl(bool $isPerOne, bool $isOnly, array $attributes) {
+		$vars = compact('isPerOne', 'isOnly', 'attributes');
+		
+		return function(callable $ok) use ($vars) {
+			echo "Method\n";
+			var_dump($vars);
+			$ok(0);
+		};
 	}
 }

@@ -92,7 +92,7 @@ class DefaultController extends Controller {
 	 */
 	public function actionCallback(int $id = 1, string $table='%us%') {
 		$t = microtime(true);
-		db()->pop()->asyncQuery("SHOW TABLES LIKE 'clazz'", ['callback'=>function($data, $db) use($id,$table) {
+		db()->pop()->asyncQuery("SHOW TABLES LIKE 'clazz'", ['success'=>function($data, $db) use($id,$table) {
 			$this->formatColor('CALL1: ', self::FG_BLUE);
 			var_dump($data);
 			if($data) {
@@ -101,7 +101,7 @@ class DefaultController extends Controller {
 			} else {
 				return "ERR: $table";
 			}
-		}, 'style'=>IEvent::FETCH_COLUMN])->asyncPrepare("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=database() AND TABLE_NAME LIKE ?", [$table], ['callback'=>function($data, $db) use($table) {
+		}, 'style'=>IEvent::FETCH_COLUMN])->asyncPrepare("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=database() AND TABLE_NAME LIKE ?", [$table], ['success'=>function($data, $db) use($table) {
 			$this->formatColor('CALL2: ', self::FG_BLUE);
 			var_dump($data);
 			if($data) {

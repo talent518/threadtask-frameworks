@@ -9,17 +9,18 @@ class RedisEvent implements IEvent {
 	protected $_command;
 	
 	protected $_key;
-	protected $_callback;
+	protected $_success, $_error;
 	protected $_data;
 
-	public function __construct(RedisConnection $db, string $name, string $command, array $params, $key, $callback) {
+	public function __construct(RedisConnection $db, string $name, string $command, array $params, $key, ?callable $success = null, ?callable $error = null) {
 		$this->_db = $db;
 		$this->_name = $name;
 		$this->_command = $command;
 		$this->_params = $params;
 		
 		$this->_key = $key === null ? $db->eventKey++ : $key;
-		$this->_callback  = $callback;
+		$this->_success = $success;
+		$this->_error = $error;
 	}
 	
 	public function getSql() {
@@ -41,7 +42,20 @@ class RedisEvent implements IEvent {
 	public function recv() {
 		$this->_data = $this->_db->multiParseResponse($this->_params);
 
-		if($this->_callback) $this->_data = call_user_func($this->_callback, $this->_data, $this->_db);
+		if($this->_success) $this->_data = call_user_func($this->_success, $this->_data, $this->_db);
+	}
+	
+	public function error(\Throwable $e) {
+		if($e instanceof SocketException) {
+			$this->_db->close();
+		}
+
+		$this->_data = $e;
+		if($this->_error) {
+			$this->_data = call_user_func($this->_error, $this->_data, $this->_db);
+		} else {
+			throw $e;
+		}
 	}
 
 }

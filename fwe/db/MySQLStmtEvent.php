@@ -17,7 +17,7 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 	protected function clone(&$params, &$result, &$retkey = null) {
 		switch($this->_type) {
 			default:
-			case IEvent::TYPE_ASSOC:
+			case static::TYPE_ASSOC:
 				$data = [];
 				foreach($result as $key=>$val) {
 					$data[$key] = $val;
@@ -25,7 +25,7 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 				if($this->_keyBy !== null) $retkey = $data[$this->_keyBy]??null;
 				if($this->_valueBy !== null) $data = $data[$this->_valueBy]??null;
 				break;
-			case IEvent::TYPE_NUM:
+			case static::TYPE_NUM:
 				$data = [];
 				foreach($params as $val) {
 					$data[] = $val;
@@ -33,7 +33,7 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 				if($this->_keyBy !== null) $retkey = $data[$this->_keyBy]??null;
 				if($this->_valueBy !== null) $data = $data[$this->_valueBy]??null;
 				break;
-			case IEvent::TYPE_OBJ:
+			case static::TYPE_OBJ:
 				$data = new \stdClass();
 				foreach($result as $key=>$val) {
 					$data->$key = $val;
@@ -55,7 +55,7 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 			$this->_stmt->bind_result(...$params);
 			
 			switch($this->_style) {
-				case IEvent::FETCH_ONE: {
+				case static::FETCH_ONE: {
 					if($this->_stmt->fetch()) {
 						$this->_data = $this->clone($params, $result);
 					} else {
@@ -63,7 +63,7 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 					}
 					break;
 				}
-				case IEvent::FETCH_COLUMN: {
+				case static::FETCH_COLUMN: {
 					if($this->_stmt->fetch()) {
 						$this->_data = $params[$this->_col]??null;
 					} else {
@@ -72,7 +72,7 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 					break;
 				}
 				default:
-				case IEvent::FETCH_ALL: {
+				case static::FETCH_ALL: {
 					$this->_data = [];
 					if($this->_keyBy === null) {
 						while($this->_stmt->fetch()) {
@@ -87,7 +87,7 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 					}
 					break;
 				}
-				case IEvent::FETCH_COLUMN_ALL: {
+				case static::FETCH_COLUMN_ALL: {
 					$this->_data = [];
 					while($this->_stmt->fetch()) {
 						$this->_data[] = $params[$this->_col]??null;
@@ -103,7 +103,7 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 			];
 		}
 		
-		if($this->_callback) $this->_data = call_user_func($this->_callback, $this->_data, $this->_db);
+		if($this->_success) $this->_data = call_user_func($this->_success, $this->_data, $this->_db);
 	}
 
 	public function send() {
@@ -120,6 +120,18 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 		} else {
 			list($errno, $error) = $this->_db->getError();
 			if($errno) throw new Exception("ERROR: {$this->_sql}", compact('errno', 'error'));
+		}
+	}
+	
+	public function error(\Throwable $e) {
+		$sql = $this->_sql;
+
+		try {
+			$this->_sql = MySQLQuery::formatSQL($this->_sql, $this->param);
+			
+			parent::error($e);
+		} finally {
+			$this->_sql = $sql;
 		}
 	}
 	

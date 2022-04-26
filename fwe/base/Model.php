@@ -235,7 +235,7 @@ abstract class Model {
 	 * @param boolean $isOnly
 	 * @return null|int|\Closure
 	 */
-	public function validate(?callable $ok, bool $isPerOne = false, bool $isOnly = false) {
+	public function validate(?callable $ok, bool $isPerOne = false, bool $isOnly = false, ...$args) {
 		$this->errors = [];
 
 		$ret = 0;
@@ -243,7 +243,7 @@ abstract class Model {
 
 		/** @var \fwe\validators\IValidator $validator */
 		foreach($this->validators as $validator) {
-			$n = $validator->validate($this, $isPerOne, $isOnly);
+			$n = $validator->validate($this, $isPerOne, $isOnly, ...$args);
 			if($n instanceof \Closure) {
 				$calls[] = $n;
 			} else {
@@ -256,33 +256,36 @@ abstract class Model {
 
 		if(empty($calls) || ($ret && $isOnly)) {
 			if($ok) {
-				call_user_func($ok, $ret);
+				$ok($ret);
 			} else {
 				return $ret;
 			}
 		} else {
-			$call = (function(callable $ok) use($calls, $ret, $isOnly) {
-				$next = function(callable $ok) use(&$calls) {
-					$call = array_shift($calls);
-					if($call) {
-						$call($ok);
-					} else {
-						call_user_func($ok, 0);
-					}
+			$call = (function(callable $ok) use($calls, $ret, $isOnly, $args) {
+				$next = function(callable $ok) use(&$calls, $args) {
+					array_shift($calls)($ok, ...$args);
 				};
-				$res = function(int $n) use(&$calls, &$ret, $isOnly, $next, $ok) {
-					$ret += $n;
-					if(($n && $isOnly) || empty($calls)) {
-						call_user_func($ok, $ret);
+				$res = function(int $n, ?string $error = null) use(&$calls, &$ret, $isOnly, $next, $ok) {
+					if($n < 0) {
+						$ok($ret + 1, $error);
 					} else {
-						$next($this);
+						$ret += $n;
+						if(($n && $isOnly) || empty($calls)) {
+							$ok($ret);
+						} else {
+							$next($this);
+						}
 					}
 				};
 				$next($res->bindTo($res));
 			})->bindTo(null);
 
 			if($ok) {
-				$call($ok);
+				if(empty($calls)) {
+					$ok($ret);
+				} else {
+					$call($ok);
+				}
 			} else {
 				return $call;
 			}

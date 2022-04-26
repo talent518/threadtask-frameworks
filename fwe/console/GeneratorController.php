@@ -21,7 +21,6 @@ class GeneratorController extends Controller {
 		->goAsync(function($fields, $indexes) {
 			$json = json_encode(get_defined_vars(), JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE);
 			echo "SUCCESS: {$json}\n";
-			
 		}, function(array $data) {
 			$json = json_encode($data, JSON_PRETTY_PRINT);
 			echo "ERROR: {$json}\n";

@@ -226,16 +226,7 @@ abstract class Fwe {
 	}
 
 	public static function invoke(callable $callback, array $params, ?string $funcName = null) {
-		$isAssoc = false;
-		foreach($params as $key => $val) {
-			if(is_string($key)) {
-				$isAssoc = true;
-				break;
-			}
-		}
-		unset($key, $val);
-
-		if($isAssoc) {
+		if(is_assoc($params)) {
 			if(is_array($callback)) {
 				$reflection = new ReflectionMethod($callback[0], $callback[1]);
 			} elseif(is_object($callback) && ! ($callback instanceof \Closure)) {

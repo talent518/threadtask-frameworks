@@ -29,4 +29,6 @@ interface IEvent {
 	public function send();
 
 	public function recv();
+	
+	public function error(\Throwable $e);
 }

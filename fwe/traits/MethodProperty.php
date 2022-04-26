@@ -38,12 +38,12 @@ trait MethodProperty {
 		$getter = 'get' . $name;
 		if(method_exists($this, $getter)) {
 			return $this->$getter();
-		} elseif(method_exists($this, 'set' . $name)) {
-			throw new Exception('正在读取只写属性：' . get_class($this) . '::' . $name);
 		} elseif($this->hasProperty($name)) {
 			return $this->getProperty($name);
 		} elseif(is_object(($this->extendObject))) {
 			return $this->extendObject->$name;
+		} elseif(method_exists($this, 'set' . $name)) {
+			throw new Exception('正在读取只写属性：' . get_class($this) . '::' . $name);
 		} else {
 			throw new Exception('正在读取未知属性：' . get_class($this) . '::' . $name);
 		}
@@ -60,12 +60,12 @@ trait MethodProperty {
 		$setter = 'set' . $name;
 		if(method_exists($this, $setter)) {
 			$this->$setter($value);
-		} elseif(method_exists($this, 'get' . $name)) {
-			throw new Exception('正在设置只读属性：' . get_class($this) . '::' . $name);
 		} elseif($this->hasProperty($name)) {
 			return $this->setProperty($name, $value);
 		} elseif(is_object(($this->extendObject))) {
 			$this->extendObject->$name = $value;
+		} elseif(method_exists($this, 'get' . $name)) {
+			throw new Exception('正在设置只读属性：' . get_class($this) . '::' . $name);
 		} else {
 			throw new Exception('正在设置未知属性：' . get_class($this) . '::' . $name);
 		}
@@ -85,6 +85,8 @@ trait MethodProperty {
 			return $this->getProperty($name) !== null;
 		} elseif(is_object(($this->extendObject))) {
 			return isset($this->extendObject->$name);
+		} elseif(method_exists($this, 'set' . $name)) {
+			throw new Exception('正在读取只写属性：' . get_class($this) . '::' . $name);
 		} else {
             throw new Exception('正在判断未知属性：' . get_class($this) . '::' . $name);
         }
@@ -100,12 +102,12 @@ trait MethodProperty {
 		$setter = 'set' . $name;
 		if(method_exists($this, $setter)) {
 			$this->$setter(null);
-		} elseif(method_exists($this, 'get' . $name)) {
-			throw new Exception('正在取消只读属性：' . get_class($this) . '::' . $name);
 		} elseif($this->hasProperty($name)) {
 			$this->delProperty($name);
 		} elseif(is_object(($this->extendObject))) {
 			unset($this->extendObject->$name);
+		} elseif(method_exists($this, 'get' . $name)) {
+			throw new Exception('正在取消只读属性：' . get_class($this) . '::' . $name);
 		} else {
 			throw new Exception('正在取消未知属性：' . get_class($this) . '::' . $name);
 		}

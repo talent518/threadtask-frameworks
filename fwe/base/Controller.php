@@ -76,6 +76,10 @@ class Controller {
 			}
 		}
 	}
+	
+	public function actionId(string &$id, array &$params) {
+		return false;
+	}
 
 	/**
 	 * 根据路由获取Action对象
@@ -89,11 +93,16 @@ class Controller {
 			$id = $this->defaultAction;
 		}
 		
-		if(strpos($id, '/') !== false) {
-			list($id, $route) = explode('/', $id, 2);
+		if($this->actionId($id, $params)) {
+			if(strpos($id, '/') !== false) {
+				list($id, $route) = explode('/', $id, 2);
+			} else {
+				$route = '';
+			}
 		} else {
 			$route = '';
 		}
+
 		$params['route__'] = $this->_route . $id;
 		$params['__route'] = $route;
 

@@ -36,9 +36,9 @@ class Application extends \fwe\base\Application {
 			if(++$i > $this->gcTimes) {
 				$i = 0;
 				gc_collect_cycles();
-				// $size = memory_get_usage() - $memsize;
-				// $memsize += $size;
-				// echo "$name memory: $size\n";
+				$size = memory_get_usage() - $memsize;
+				$memsize += $size;
+				echo "$name memory: $size\n";
 			}
 		});
 	}

@@ -2,16 +2,46 @@
 namespace fwe\db;
 
 class MySQLQuery {
+	protected static $likeEscapes = [
+		'%' => '\%',
+		'_' => '\_',
+		'\\' => '\\\\',
+	];
+	
+	protected static $sqlEscapes = [
+		'\'' => '\\\'',
+		"\r" => '\r',
+		"\n" => '\n',
+	];
+
+	/**
+	 * 用于继承于MySQLModel类对的查询结果数据行的对象实例化
+	 * 
+	 * @var ?string
+	 */
+	protected $modelClass, $keyBy, $valueBy;
+	
 	protected $prefix;
 	protected $select = ['*', []];
 	protected $from = [];
 	protected $join = [];
 	protected $where;
-	protected $group = [];
+	protected $groupBy;
 	protected $having;
+	protected $orderBy;
 	protected $limit;
 	
+	/**
+	 * 构建后保存的数据
+	 * 
+	 * @var ?string $sql SQL语句
+	 * @var ?array $params SQL预处理所需的动态参数
+	 */
 	protected $sql, $params;
+	
+	public function __construct(?string $modelClass = null) {
+		$this->modelClass = $modelClass;
+	}
 	
 	public function prefix(string ...$options) {
 		$this->prefix = implode(' ', $options) . ' ';
@@ -30,6 +60,8 @@ class MySQLQuery {
 					$field[0] = str_replace('.', '`.`', $field[0]);
 				}
 				$select[] = "`{$field[0]}` as {$field[1]}";
+			} elseif(is_int($field) || strpos($field, '(')) {
+				$select[] = $field;
 			} else {
 				if(strpos($field, '.') !== false) {
 					$field = str_replace('.', '`.`', $field);
@@ -89,9 +121,18 @@ class MySQLQuery {
 			case 'OR':
 				$sqls = [];
 				foreach($args as $arg) {
-					$sql = static::makeWhere($arg, $params);
-					if($sql !== null) {
-						$sqls[] = $sql;
+					if((is_array($arg) && !isset($arg[0])) || is_object($arg)) {
+						foreach($arg as $key=>$value) {
+							$sql = static::makeWhere(['=', "`$key`", $value], $params);
+							if($sql !== null) {
+								$sqls[] = $sql;
+							}
+						}
+					} else {
+						$sql = static::makeWhere($arg, $params);
+						if($sql !== null) {
+							$sqls[] = $sql;
+						}
 					}
 				}
 				if($sqls) {
@@ -210,12 +251,6 @@ class MySQLQuery {
 		return $sql;
 	}
 	
-	protected static $likeEscapes = [
-		'%' => '\%',
-		'_' => '\_',
-		'\\' => '\\\\',
-	];
-	
 	public function whereArray(array $args) {
 		$params = [];
 		$sql = static::makeWhere($args, $params);
@@ -234,8 +269,8 @@ class MySQLQuery {
 		return $this;
 	}
 	
-	public function group(...$fields) {
-		$this->group = implode(', ', $fields);
+	public function groupBy(...$fields) {
+		$this->groupBy = implode(', ', $fields);
 		return $this;
 	}
 	
@@ -262,6 +297,10 @@ class MySQLQuery {
 		return $this;
 	}
 	
+	public function orderBy(...$args) {
+		$this->order = implode(', ', $fields);
+	}
+	
 	public function limit(int $offset, int $size) {
 		$this->limit = [$offset, $size];
 		return $this;
@@ -280,7 +319,14 @@ class MySQLQuery {
 		return $this;
 	}
 	
-	public function build() {
+	public function build(bool $isForce = false) {
+		if(!$isForce && $this->sql !== null && $this->params !== null) {
+			return [
+				'sql' => $this->sql,
+				'params' => $this->params,
+			];
+		}
+		
 		$sql = "SELECT {$this->prefix}{$this->select[0]} FROM ";
 		$sql .= implode(', ', $this->from);
 		
@@ -296,8 +342,8 @@ class MySQLQuery {
 			foreach($this->where[1] as $v) $params[] = $v;
 		}
 		
-		if($this->group) {
-			$sql .= " GROUP BY {$this->group}";
+		if($this->groupBy) {
+			$sql .= " GROUP BY {$this->groupBy}";
 			
 			if($this->having) {
 				$sql .= " HAVING {$this->having[0]}";
@@ -316,19 +362,16 @@ class MySQLQuery {
 		return compact('sql', 'params');
 	}
 	
-	protected static $sqlEscapes = [
-		'\'' => '\\\'',
-		"\r" => '\r',
-		"\n" => '\n',
-	];
-	
 	public function makeSQL() {
-		if($this->sql === null || $this->params === null) return;
+		$this->build();
 
-		$sql = $this->sql;
+		return static::formatSQL($this->sql, $this->params);
+	}
+	
+	public static function formatSQL(string $sql, array $params) {
 		$i = 0;
 		while(($pos = strpos($sql, '?')) !== false) {
-			$str = $this->params[$i++];
+			$str = $params[$i++];
 			if(is_array($str) || is_object($str)) $str = json_encode($str, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
 			if(is_string($str)) {
 				$str = strtr($str, static::$sqlEscapes);
@@ -340,7 +383,113 @@ class MySQLQuery {
 			}
 			$sql = substr_replace($sql, $str, $pos, 1);
 		}
-
+		
 		return $sql;
+	}
+	
+	public function exec(MySQLConnection $db, array $options = [], ?callable $success = null, ?callable $error = null) {
+		$this->build();
+		
+		if($success) $options['success'] = $success;
+		if($error) $options['error'] = $error;
+		
+		return $db->asyncPrepare($this->sql, $this->params, $options);
+	}
+	
+	public function fetchOne(MySQLConnection $db, ?string $key = null, ?callable $success = null, ?callable $error = null) {
+		return $this->limit(0, 1)->exec(
+			$db,
+			[
+				'key' => $key,
+				'style' => IEvent::FETCH_ONE
+			],
+			function($row) use($success) {
+				$class = $this->modelClass;
+				$row = ($class && $row !== null ? $class::populate($row) : $row);
+				
+				return $success ? $success($row) : $row;
+			},
+			function(\Throwable $e) use($error) {
+				if($error) {
+					$error($e);
+				} else {
+					throw $e;
+				}
+			}
+		);
+	}
+	
+	public function fetchAll(MySQLConnection $db, ?string $key = null, ?callable $success = null, ?callable $error = null) {
+		return $this->exec(
+			$db,
+			[
+				'key' => $key,
+				'keyBy' => $this->keyBy,
+				'valueBy' => $this->valueBy,
+				'style' => IEvent::FETCH_ALL
+			],
+			function($rows) use($success) {
+				$class = $this->modelClass;
+				if($class && $this->valueBy === null) {
+					$rets = [];
+					
+					foreach($rows as $i => $row) {
+						$rets[$i] = $class::populate($row);
+					}
+					
+					return $success ? $success($rets) : $rets;
+				} else {
+					return $rows;
+				}
+			},
+			function(\Throwable $e) use($error) {
+				if($error) {
+					$error($e);
+				} else {
+					throw $e;
+				}
+			}
+		);
+	}
+	
+	public function fetchColumn(MySQLConnection $db, int $col, ?string $key = null, ?callable $success = null, ?callable $error = null) {
+		return $this->limit(0, 1)->exec(
+			$db,
+			[
+				'key' => $key,
+				'col' => $col,
+				'style' => IEvent::FETCH_COLUMN
+			],
+			function($col) use($success) {
+				return $success ? $success($col) : $col;
+			},
+			function(\Throwable $e) use($error) {
+				if($error) {
+					$error($e);
+				} else {
+					throw $e;
+				}
+			}
+		);
+	}
+	
+	public function fetchColumnAll(MySQLConnection $db, ?string $key = null, ?callable $success = null, ?callable $error = null) {
+		return $this->exec(
+			$db,
+			[
+				'key' => $key,
+				'style' => IEvent::FETCH_COLUMN_ALL
+			],
+			function($cols) use($success) {
+				return $success ? $success($columns) : $cols;
+			},
+			function(\Throwable $e) use($error) {
+				if($error) {
+					$error($e);
+				} else {
+					throw $e;
+				}
+			}
+		);
 	}
 }

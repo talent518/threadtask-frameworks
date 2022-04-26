@@ -9,6 +9,10 @@ use app\ws\Demo as WsDemo;
 use app\ws\Monitor as WsMonitor;
 
 class DefaultController extends Controller {
+	public function actionId(string &$id, array &$params) {
+		return !strncasecmp("$id/", 'index/', 6);
+	}
+
 	private function getperms(int $mode, ?string &$type = null) {
 		if (($mode & 0xC000) == 0xC000) {
 			// Socket
@@ -238,7 +242,7 @@ class DefaultController extends Controller {
 		$request->onFree(function(RequestEvent $req) {
 			if(!$req->data) return;
 
-			$req->data->cancel();
+			$req->data->remove();
 		});
 	}
 	public function actionAttach(RequestEvent $request) {

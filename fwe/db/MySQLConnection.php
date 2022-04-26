@@ -12,21 +12,33 @@ use fwe\traits\MethodProperty;
  */
 class MySQLConnection extends AsyncConnection {
 	use MethodProperty;
+
+	/**
+	 * 
+	 * @var string $_host
+	 * @var int $_port
+	 * @var string $_username
+	 * @var string $_password
+	 * @var string $_database
+	 * @var ?string $_socket
+	 * @var string $_charset
+	 */
+	protected $_host, $_port, $_username, $_password, $_database, $_socket, $_charset;
 	
 	/**
 	 * @var \mysqli
 	 */
-	private $_mysqli;
+	protected $_mysqli;
 	
 	/**
 	 * @var float
 	 */
-	private $_time;
+	protected $_time;
 	
 	/**
 	 * @var bool
 	 */
-	private $_isMaster;
+	protected $_isMaster;
 	
 	/**
 	 * @see MySQLPool::push()
@@ -36,22 +48,45 @@ class MySQLConnection extends AsyncConnection {
 	 */
 	public $iUsed;
 	
-	public function __construct(string $host, int $port, string $username, string $password, string $database, MySQLPool $pool, ?string $socket = null, bool $isMaster = false, string $charset = 'utf8') {
-		$this->pool = $pool;
-		$this->_mysqli = new \mysqli($host, $username, $password, $database, $port, $socket);
-		$this->_mysqli->set_charset($charset);
-		$this->_time = microtime(true);
+	public function __construct(MySQLPool $pool, string $host, int $port, string $username, string $password, string $database, ?string $socket = null, string $charset = 'utf8', bool $isMaster = false) {
+		$this->_pool = $pool;
+
+		$this->_host = $host;
+		$this->_port = $port;
+		$this->_username = $username;
+		$this->_password = $password;
+		$this->_database = $database;
+		$this->_socket = $socket;
+		$this->_charset = $charset;
+
 		$this->_isMaster = $isMaster;
+		
+		$this->open();
 	}
-
-	public function reset() {
-        parent::reset();
-
-		if($this->_mysqli) {
-			$this->_mysqli->close();
-			$this->_mysqli = null;
+	
+	public function open() {
+		if(!$this->_mysqli) {
+			$this->_mysqli = new \mysqli($this->_host, $this->_username, $this->_password, $this->_database, $this->_port, $this->_socket);
+			$this->_mysqli->set_charset($this->_charset);
+			$this->_time = microtime(true);
 		}
-    }
+	}
+	
+	public function autoCommit(bool $mode) {
+		return $this->_mysqli->autocommit($mode);
+	}
+	
+	public function beginTransaction(int $flags = 0, ?string $name = null) {
+		return $this->_mysqli->begin_transaction($flags, $name);
+	}
+	
+	public function commit(int $flags = 0, ?string $name = null) {
+		return $this->_mysqli->commit($flags, $name);
+	}
+	
+	public function rollback() {
+		return $this->_mysqli->rollback();
+	}
 
 	public function getTime() {
 		return $this->_time;
@@ -73,8 +108,23 @@ class MySQLConnection extends AsyncConnection {
 		return [$this->_mysqli->errno, $this->_mysqli->error];
 	}
 	
-	public function ping() {
-		return $this->_mysqli->ping();
+	public function ping(): bool {
+		if($this->_mysqli) {
+			try {
+				return $this->_mysqli->ping();
+			} catch(\Throwable $e) {
+				try {
+					$this->close();
+					$this->open();
+					return $this->_mysqli->ping();
+				} catch(\Throwable $e) {
+					$this->close();
+					return false;
+				}
+			}
+		} else {
+			return false;
+		}
 	}
 	
 	/**
@@ -171,8 +221,25 @@ class MySQLConnection extends AsyncConnection {
 		return $this;
 	}
 	
-	public function getFd() {
-		return mysqli_export_fd($this->_mysqli);
+	protected function getFd() {
+		return $this->_mysqli ? mysqli_export_fd($this->_mysqli) : 0;
+	}
+	
+	public function remove() {
+		parent::remove();
+
+		$this->close();
+	}
+	
+	public function close() {
+		if($this->_mysqli) {
+			$this->_mysqli->close();
+			$this->_mysqli = null;
+		}
+	}
+	
+	public function isClosed(): bool {
+		return !$this->_mysqli;
 	}
 	
 	public function __destruct() {

@@ -37,25 +37,26 @@ class MySQLQueryEvent implements IEvent {
 	/**
 	 * @var callable
 	 */
-	protected $_callback;
+	protected $_success, $_error;
 	
 	/**
 	 * @var mixed
 	 */
 	protected $_keyBy, $_valueBy;
 
-	public function __construct(MySQLConnection $db, string $sql, int $type = IEvent::TYPE_ASSOC, int $style = IEvent::FETCH_ONE, int $col = 0, $key = null, ?callable $callback = null, $keyBy = null, $valueBy = null) {
+	public function __construct(MySQLConnection $db, string $sql, int $type = self::TYPE_ASSOC, int $style = self::FETCH_ONE, int $col = 0, $key = null, ?callable $success = null, ?callable $error = null, $keyBy = null, $valueBy = null) {
 		$this->_db = $db;
 		$this->_sql = $sql;
-		$this->_type = ($style === IEvent::FETCH_COLUMN || $style === IEvent::FETCH_COLUMN_ALL ? IEvent::TYPE_NUM : $type);
+		$this->_type = ($style === static::FETCH_COLUMN || $style === static::FETCH_COLUMN_ALL ? static::TYPE_NUM : $type);
 		$this->_style = $style;
 		$this->_col = $col;
 		$this->_key = $key === null ? $db->eventKey++ : $key;
-		if($style === IEvent::FETCH_ALL || IEvent::FETCH_COLUMN_ALL) {
+		if($style === static::FETCH_ALL || static::FETCH_COLUMN_ALL) {
 			$this->_data = [];
 		}
-		$this->_callback = $callback;
-		if($style === IEvent::FETCH_ALL) {
+		$this->_success = $success;
+		$this->_error = $error;
+		if($style === static::FETCH_ALL) {
 			$this->_keyBy = $keyBy;
 			$this->_valueBy = $valueBy;
 		}
@@ -79,17 +80,17 @@ class MySQLQueryEvent implements IEvent {
 	protected function fetchOne(&$key = null) {
 		switch($this->_type) {
 			default:
-			case IEvent::TYPE_ASSOC:
+			case static::TYPE_ASSOC:
 				$data = $this->_result->fetch_assoc();
 				if($this->_keyBy !== null) $key = $data[$this->_keyBy]??null;
 				if($this->_valueBy !== null) $data = $data[$this->_valueBy]??null;
 				break;
-			case IEvent::TYPE_NUM:
+			case static::TYPE_NUM:
 				$data = $this->_result->fetch_array(MYSQLI_NUM);
 				if($this->_keyBy !== null) $key = $data[$this->_keyBy]??null;
 				if($this->_valueBy !== null) $data = $data[$this->_valueBy]??null;
 				break;
-			case IEvent::TYPE_OBJ:
+			case static::TYPE_OBJ:
 				$data = $this->_result->fetch_object();
 				if($this->_keyBy !== null) $key = $data->{$this->_keyBy}??null;
 				if($this->_valueBy !== null) $data = $data->{$this->_valueBy}??null;
@@ -102,16 +103,16 @@ class MySQLQueryEvent implements IEvent {
 		$this->_result = $this->_db->reapAsyncQuery();
 		if($this->_result) {
 			switch($this->_style) {
-				case IEvent::FETCH_ONE: {
+				case static::FETCH_ONE: {
 					$this->_data = $this->fetchOne();
 					break;
 				}
-				case IEvent::FETCH_COLUMN: {
+				case static::FETCH_COLUMN: {
 					$this->_data = $this->fetchOne()[$this->_col]??null;
 					break;
 				}
 				default:
-				case IEvent::FETCH_ALL: {
+				case static::FETCH_ALL: {
 					$n = $this->_result->num_rows;
 					if($this->_keyBy === null) {
 						for($i=0; $i<$n; $i++) {
@@ -126,7 +127,7 @@ class MySQLQueryEvent implements IEvent {
 					}
 					break;
 				}
-				case IEvent::FETCH_COLUMN_ALL: {
+				case static::FETCH_COLUMN_ALL: {
 					$n = $this->_result->num_rows;
 					for($i=0; $i<$n; $i++) {
 						$this->_data[] = $this->fetchOne()[$this->_col]??null;
@@ -144,7 +145,7 @@ class MySQLQueryEvent implements IEvent {
 			];
 		}
 		
-		if($this->_callback) $this->_data = call_user_func($this->_callback, $this->_data, $this->_db);
+		if($this->_success) $this->_data = call_user_func($this->_success, $this->_data, $this->_db);
 	}
 
 	public function send() {
@@ -152,7 +153,17 @@ class MySQLQueryEvent implements IEvent {
 			list($errno, $error) = $this->_db->getError();
 			if($errno) throw new Exception("ERROR: {$this->_sql}", compact('errno', 'error'));
 		}
-		
+	}
+	
+	public function error(\Throwable $e) {
+		$err = $e->getMessage();
+		echo "SQL ERROR($this->_sql): $sql\n";
+		$this->_data = $e;
+		if($this->_error) {
+			$this->_data = call_user_func($this->_error, $this->_data, $this->_db);
+		} else {
+			throw $e;
+		}
 	}
 	
 	public function __destruct() {
