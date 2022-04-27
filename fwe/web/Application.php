@@ -4,7 +4,11 @@ namespace fwe\web;
 use fwe\base\Action;
 use fwe\base\RouteException;
 use fwe\base\TsVar;
+use fwe\db\IPool;
 
+/**
+ * @property array $cleanPools
+ */
 class Application extends \fwe\base\Application {
 	public $controllerNamespace = 'app\controllers';
 
@@ -19,28 +23,51 @@ class Application extends \fwe\base\Application {
 	 */
 	public $port = 5000;
 
-	protected $_isReq = false;
+	public $gcTimes = 20; // 120;
+	public $poolExpire = 5; // 60;
 
-	public $gcTimes = 120;
+	protected $_isReq = false;
+	protected $_cleanPools = ['redis', 'db'];
 
 	public function init() {
 		parent::init();
 		
 		$i = 0;
 		$memsize = 0;
-		$name = defined('THREAD_TASK_NAME') ? THREAD_TASK_NAME : 'main';
-		$this->signalEvent(function() use(&$i, &$memsize, $name) {
+		$this->signalEvent(function() use(&$i, &$memsize) {
 			if($this->_isReq && $this->isEmptyReq() && !$this->_running) {
 				\Fwe::$base->exit();
 			}
 			if(++$i > $this->gcTimes) {
 				$i = 0;
+				$time = microtime(true) - $this->poolExpire;
+				$pools = [];
+				foreach($this->_cleanPools as $id) { /* @var $pool IPool */
+					if(($pool = $this->get($id, false)) !== null) {
+						$n = $pool->clean($time);
+						$pools[] = "$id: $n";
+					}
+				}
+				unset($pool);
+				$pools = implode(', ', $pools);
+				
 				gc_collect_cycles();
 				$size = memory_get_usage() - $memsize;
 				$memsize += $size;
-				$this->debug((string) $size, 'memory');
+				$this->info("pools: {{$pools}}, Memory: $size", 'memory');
 			}
 		});
+	}
+	
+	public function getCleanPools() {
+		return $this->_cleanPools;
+	}
+	
+	public function setCleanPools($pools) {
+		foreach((array) $pools as $pool) {
+			$this->_cleanPools[] = $pool;
+		}
+		$this->_cleanPools = array_unique($this->_cleanPools, SORT_REGULAR);
 	}
 
 	public function signalHandler(int $sig) {

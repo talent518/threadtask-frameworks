@@ -305,10 +305,6 @@ class RedisConnection extends AsyncConnection {
 		$this->_port = $port;
 		$this->_auth = $auth;
 	}
-
-	public function __destruct() {
-		$this->reset();
-	}
 	
 	public function init() {
 		if($this->connectionString !== null) return;

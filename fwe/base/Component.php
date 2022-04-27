@@ -43,19 +43,21 @@ class Component {
 	 * @return object
 	 */
 	public function get(string $id, bool $isMake = true, array $params = []) {
-		if(isset($this->_defines[$id])) {
-			if($isMake) {
-				if(isset($this->_objects[$id])) {
-					return $this->_objects[$id];
-				} else {
-					return $this->_objects[$id] = \Fwe::createObject($this->_defines[$id], ['id'=>$id] + $params);
-				}
-			} else {
-				return $this->_defines[$id];
-			}
+		if($isMake && isset($this->_defines[$id]) && !isset($this->_objects[$id])) {
+			return $this->_objects[$id] = \Fwe::createObject($this->_defines[$id], ['id'=>$id] + $params);
 		} elseif(isset($this->_objects[$id])) {
 			return $this->_objects[$id];
 		}
+	}
+	
+	/**
+	 * 获得组件配置
+	 * 
+	 * @param string $id
+	 * @return array|null
+	 */
+	public function def(string $id) {
+		return $this->_defines[$id] ?? null;
 	}
 
 	/**

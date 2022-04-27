@@ -10,7 +10,8 @@ use fwe\validators\Validator;
  * 应用基类
  * 
  * @method bool has(string $id)
- * @method mixed get(string $id, bool $isMake = true)
+ * @method array def(string $id)
+ * @method object|null get(string $id, bool $isMake = true)
  * @method void set(string $id, $value, bool $isFull = true)
  * @method void remove(string $id)
  * @method array all(bool $isObject = true)
@@ -22,6 +23,7 @@ abstract class Application extends Module {
 	const LOG_DEBUG = 0x08;
 	const LOG_VERBOSE = 0x10;
 	const LOG_ALL = 0x1f;
+	const LOG_SKIP = 0x100;
 	
 	public $id, $name;
 	public $events = 0; // EventBase中添加的事件数
@@ -63,7 +65,6 @@ abstract class Application extends Module {
 		$set = [SIGTERM, SIGINT, SIGUSR1, SIGUSR2];
 		foreach($set as $sig) pcntl_signal($sig, [$this, 'signalHandler'], false);
 	
-		$this->events = 0;
 		$this->_statVar = new TsVar('__stat__');
 		$this->_logVar = new TsVar('__log__', 0, null, true);
 		
@@ -78,10 +79,8 @@ abstract class Application extends Module {
 	}
 	
 	public function handleException(\Throwable $e) {
-		if(!$this->isService()) {
-			echo "$e\n";
-		}
-		$this->error($e, 'handleException');
+		echo "$e\n";
+		$this->log($e, static::LOG_ERROR | static::LOG_SKIP, 'handleException');
 	}
 	
 	public function handleError(int $code, string $message, string $file, int $line) {
@@ -118,11 +117,11 @@ abstract class Application extends Module {
 		if(!strncmp($file, ROOT, $n = strlen(ROOT))) {
 			$file = substr($file, $n + 1);
 		}
-		$this->log($message, $level, 'handleError');
+		$this->log("$message in $file:$line", $level | static::LOG_SKIP, 'handleError');
 	}
 	
 	public $logLevel = self::LOG_ERROR|self::LOG_WARN|self::LOG_INFO;
-	public $traceLevel = 10;
+	public $traceLevel = 0;
 	public $logSize = 2 * 1024 * 1024;
 	public $logMax = 50;
 	public $logFormat = '%02d';
@@ -131,9 +130,11 @@ abstract class Application extends Module {
 	protected $_logEvent, $_logFp;
 	
 	protected function logInit() {
-		$this->_logFile = \Fwe::getAlias('@app/runtime/app.log');
-		$this->_logIdxFile = \Fwe::getAlias('@app/runtime/app.idx');
-		$this->_logFormat = \Fwe::getAlias("@app/runtime/app-{$this->logFormat}.log");
+		$name = \Fwe::$name;
+		
+		$this->_logFile = \Fwe::getAlias("@app/runtime/{$name}.log");
+		$this->_logIdxFile = \Fwe::getAlias("@app/runtime/{$name}.idx");
+		$this->_logFormat = \Fwe::getAlias("@app/runtime/{$name}-{$this->logFormat}.log");
 		
 		$this->_logEvent = $this->_logVar->newReadEvent([$this, 'logEvent']);
 		$this->_logEvent->add();
@@ -148,6 +149,8 @@ abstract class Application extends Module {
 
 		for($i=0; $i<$n; $i++) {
 			$log = $this->_logVar->shift();
+			if(!$log) continue;
+			
 			$time = date('Y-m-d H:i:s.', $log['time']) . sprintf('%06d', ($log['time'] * 1000000) % 1000000);
 			fwrite($this->_logFp, "[$time][{$log['level']}][{$log['category']}][{$log['memory']}][{$log['thread']}] {$log['message']}\n");
 			if(isset($log['traces'])) {
@@ -169,6 +172,10 @@ abstract class Application extends Module {
 		}
 	}
 	
+	public function logCount() {
+		return $this->_logVar->count();
+	}
+	
 	public function logEvent() {
 		$this->logRead($this->_logVar->read(128));
 	}
@@ -180,40 +187,40 @@ abstract class Application extends Module {
 	public function log($message, int $level, string $category = 'app') {
 		if(!($level & $this->logLevel)) return;
 		
-		switch($level) {
-			case self::LOG_ERROR:
-				$level = 'error';
-				break;
-			case self::LOG_WARN:
-				$level = 'warning';
-				break;
-			case self::LOG_INFO:
-				$level = 'info';
-				break;
-			case self::LOG_DEBUG:
-				$level = 'debug';
-				break;
-			case self::LOG_VERBOSE:
-				$level = 'verbose';
-				break;
-			default:
-				$level = 'unknown';
-				break;
-		}
-		
 		$time = microtime(true);
 		$memory = memory_get_usage();
 		$thread = (defined('THREAD_TASK_NAME') ? THREAD_TASK_NAME : 'main');
-		$log = compact('message', 'level', 'category', 'time', 'memory', 'thread');
+		$log = compact('message', 'category', 'time', 'memory', 'thread');
+		
+		switch($level & 0xff) {
+			case self::LOG_ERROR:
+				$log['level'] = 'error';
+				break;
+			case self::LOG_WARN:
+				$log['level'] = 'warning';
+				break;
+			case self::LOG_INFO:
+				$log['level'] = 'info';
+				break;
+			case self::LOG_DEBUG:
+				$log['level'] = 'debug';
+				break;
+			case self::LOG_VERBOSE:
+				$log['level'] = 'verbose';
+				break;
+			default:
+				$log['level'] = 'unknown';
+				break;
+		}
 
 		if($message instanceof \Throwable) {
 			$log['message'] =  get_class($message) . ': ' . $message->getMessage();
 			$traces = [];
 			
 		trace:
-			foreach ($message->getTrace() as $trace) {
-				if (isset($trace['file'], $trace['line']) && !strncmp($trace['file'], ROOT, $n = strlen(ROOT))) {
-					$file = substr($trace['file'], $n + 1);
+			foreach($message->getTrace() as $trace) {
+				if(isset($trace['file'], $trace['line']) && !strncmp($trace['file'], ROOT . '/', $n = strlen(ROOT) + 1)) {
+					$file = substr($trace['file'], $n);
 					$traces[] = "  {$trace['class']}{$trace['type']}{$trace['function']} in {$file}:{$trace['line']}";
 				}
 			}
@@ -226,10 +233,12 @@ abstract class Application extends Module {
 			$traces = [];
 			$count = 0;
 			$ts = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-			array_pop($ts); // remove the last trace since it would be the entry script, not very useful
+			if(($level & static::LOG_SKIP)) {
+				array_shift($ts);
+			}
 			foreach ($ts as $trace) {
-				if (isset($trace['file'], $trace['line']) && !strncmp($trace['file'], ROOT, $n = strlen(ROOT))) {
-					$file = substr($trace['file'], $n + 1);
+				if (isset($trace['file'], $trace['line']) && !strncmp($trace['file'], ROOT . '/', $n = strlen(ROOT) + 1)) {
+					$file = substr($trace['file'], $n);
 					$traces[] = "  {$trace['class']}{$trace['type']}{$trace['function']} in {$file}:{$trace['line']}";
 					if (++$count >= $this->traceLevel) {
 						break;
@@ -237,6 +246,10 @@ abstract class Application extends Module {
 				}
 			}
 			if($count > 0) $log['traces'] = implode("\n", $traces);
+		}
+		
+		if(!is_scalar($log['message'])) {
+			$log['message'] = json_encode($log['message'], JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE);
 		}
 		
 		$this->_logVar->push($log);
@@ -250,7 +263,7 @@ abstract class Application extends Module {
 	 * @param string $category
 	 */
 	public function error($message, string $category = 'app') {
-		$this->log($message, static::LOG_ERROR, $category);
+		$this->log($message, static::LOG_ERROR|static::LOG_SKIP, $category);
 	}
 	
 	/**
@@ -260,7 +273,7 @@ abstract class Application extends Module {
 	 * @param string $category
 	 */
 	public function warn($message, string $category = 'app') {
-		$this->log($message, static::LOG_WARN, $category);
+		$this->log($message, static::LOG_WARN|static::LOG_SKIP, $category);
 	}
 	
 	/**
@@ -270,7 +283,7 @@ abstract class Application extends Module {
 	 * @param string $category
 	 */
 	public function info($message, string $category = 'app') {
-		$this->log($message, static::LOG_INFO, $category);
+		$this->log($message, static::LOG_INFO|static::LOG_SKIP, $category);
 	}
 	
 	/**
@@ -280,7 +293,7 @@ abstract class Application extends Module {
 	 * @param string $category
 	 */
 	public function debug($message, string $category = 'app') {
-		$this->log($message, static::LOG_DEBUG, $category);
+		$this->log($message, static::LOG_DEBUG|static::LOG_SKIP, $category);
 	}
 	
 	/**
@@ -290,7 +303,7 @@ abstract class Application extends Module {
 	 * @param string $category
 	 */
 	public function verbose($message, string $category = 'app') {
-		$this->log($message, static::LOG_VERBOSE, $category);
+		$this->log($message, static::LOG_VERBOSE|static::LOG_SKIP, $category);
 	}
 	
 	public function __isset($name) {

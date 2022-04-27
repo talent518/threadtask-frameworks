@@ -43,6 +43,8 @@ class MySQLQueryEvent implements IEvent {
 	 * @var mixed
 	 */
 	protected $_keyBy, $_valueBy;
+	
+	protected $_time;
 
 	public function __construct(MySQLConnection $db, string $sql, int $type = self::TYPE_ASSOC, int $style = self::FETCH_ONE, int $col = 0, $key = null, ?callable $success = null, ?callable $error = null, $keyBy = null, $valueBy = null) {
 		$this->_db = $db;
@@ -145,12 +147,14 @@ class MySQLQueryEvent implements IEvent {
 			];
 		}
 		
-		if($this->_success) $this->_data = call_user_func($this->_success, $this->_data, $this->_db);
+		$t = round(microtime(true) - $this->_time, 6);
+		\Fwe::$app->info("Run time $t second, SQL: {$this->_sql}", 'mysql-query');
 		
-		\Fwe::$app->info($this->_sql, 'mysql-query');
+		if($this->_success) $this->_data = call_user_func($this->_success, $this->_data, $this->_db);
 	}
 
 	public function send() {
+		$this->_time = microtime(true);
 		if(!$this->_db->query($this->_sql, MYSQLI_ASYNC|MYSQLI_STORE_RESULT)) {
 			list($errno, $error) = $this->_db->getError();
 			if($errno) throw new Exception("ERROR: {$this->_sql}", compact('errno', 'error'));
@@ -159,7 +163,8 @@ class MySQLQueryEvent implements IEvent {
 	
 	public function error(\Throwable $e) {
 		$err = $e->getMessage();
-		\Fwe::$app->error("{$this->_sql}, ERROR: $err", 'mysql-query');
+		$t = round(microtime(true) - $this->_time, 6);
+		\Fwe::$app->error("Run time $t second, SQL: {$this->_sql}, ERROR: $err", 'mysql-query');
 
 		$this->_data = $e;
 		if($this->_error) {

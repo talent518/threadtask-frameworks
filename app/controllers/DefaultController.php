@@ -9,7 +9,7 @@ use app\ws\Demo as WsDemo;
 use app\ws\Monitor as WsMonitor;
 
 class DefaultController extends Controller {
-	public function actionId(string &$id, array &$params) {
+	public function splitId(string &$id, array &$params) {
 		return !strncasecmp("$id/", 'index/', 6);
 	}
 
@@ -225,12 +225,16 @@ class DefaultController extends Controller {
 	public function actionTables(RequestEvent $request) {
 		$t = microtime(true);
 		$request->data = $db = db()->pop();
-		$db->asyncQuery("SHOW TABLES", ['style'=>IEvent::FETCH_COLUMN_ALL])->asyncQuery("SELECT TABLE_SCHEMA, (DATA_LENGTH+INDEX_LENGTH) as TABLE_SPACE FROM information_schema.TABLES GROUP BY TABLE_SCHEMA", ['style'=>IEvent::FETCH_ALL])->asyncQuery("SHOW GLOBAL VARIABLES LIKE '%timeout%'", ['type'=>IEvent::TYPE_OBJ, 'style'=>IEvent::FETCH_ALL])->goAsync(function($tables, $sleep, $variables) use($t, $request) {
+		$db->asyncQuery("SHOW TABLES", ['style'=>IEvent::FETCH_COLUMN_ALL])
+		->asyncQuery("SELECT TABLE_SCHEMA, (DATA_LENGTH+INDEX_LENGTH) as TABLE_SPACE FROM information_schema.TABLES GROUP BY TABLE_SCHEMA", ['style'=>IEvent::FETCH_ALL])
+		->asyncQuery("SHOW GLOBAL VARIABLES LIKE '%timeout%'", ['type'=>IEvent::TYPE_OBJ, 'style'=>IEvent::FETCH_ALL])
+		->goAsync(function($tables, $sleep, $variables) use($t, $request, $db) {
 			$t = microtime(true) - $t;
 			$response = $request->getResponse();
 			$response->setContentType('text/plain; charset=utf-8');
 			$response->end(json_encode(compact('tables', 'sleep', 'variables', 't'), JSON_PRETTY_PRINT));
 			$request->data = null;
+			$db->push();
 		}, function($data) use($t, $request) {
 			$t = microtime(true) - $t;
 			$response = $request->getResponse();

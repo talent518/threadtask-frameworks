@@ -25,6 +25,11 @@ abstract class AsyncConnection {
 	protected $_event;
 	
 	/**
+	 * @var float
+	 */
+	protected $_time;
+	
+	/**
 	 * @var int
 	 */
 	public $eventKey = 0;
@@ -44,42 +49,44 @@ abstract class AsyncConnection {
 	}
 	
 	protected function setData(bool $new = false, $data = null) {
-		$key = $this->_current->getKey();
-		if(!$new || !isset($this->_data[$key])) {
-			$this->_data[$key] = ($new ? $data : $this->_current->getData());
+		if($this->_current) {
+			$key = $this->_current->getKey();
+			if(!$new || !isset($this->_data[$key])) {
+				$this->_data[$key] = ($new ? $data : $this->_current->getData());
+			}
 		}
 	}
 	
-	protected function trigger(\Throwable $e = null) {
-		if($e === null) {
+	protected function trigger(\Throwable $e) {
+		try {
+			$this->_current->error($e);
+			$this->setData();
+			$this->send();
+		} catch(\Throwable $e) {
+			$this->setData(true, $e->getMessage());
+			$call = $this->_callbacks[1];
+			$params = ['db'=>$this, 'data'=>$this->_data, 'e'=>$e, 'err'=>$e, 'error'=>$e, 'event'=>$this->_current];
+			$this->reset();
 			try {
-				\Fwe::invoke($this->_callbacks[0], $this->_data + ['db'=>$this, 'data'=>$this->_data]) !== false;
+				\Fwe::invoke($call, $params);
 			} catch(\Throwable $e) {
-				$this->trigger($e);
-			} finally {
-				$this->reset();
-			}
-		} else {
-			try {
-				$this->_current->error($e);
-				$this->setData();
-				$this->send();
-			} catch(\Throwable $e) {
-				 $this->setData(true, (string) $e);
-
-				try {
-					\Fwe::invoke($this->_callbacks[1], ['db'=>$this, 'data'=>$this->_data, 'e'=>$e, 'err'=>$e, 'error'=>$e, 'event'=>$this->_current]) !== false;
-				} finally {
-					$this->reset();
-				}
+				\Fwe::$app->error($e, 'async-conn');
 			}
 		}
 	}
 	
 	protected function send() {
+		$this->_time = microtime(true);
 		$this->_current = array_shift($this->_events);
-		if($this->_current === null) {
-			$this->trigger();
+		if($this->_current === null) { // 事件队列处理完成
+			$call = $this->_callbacks[0];
+			$params = $this->_data + ['db'=>$this, 'data'=>$this->_data];
+			$this->reset();
+			try {
+				\Fwe::invoke($call, $params);
+			} catch(\Throwable $e) {
+				\Fwe::$app->error($e, 'async-conn');
+			}
 		} elseif($this->_current instanceof IEvent) {
 			try {
 				$this->_current->send();
@@ -102,12 +109,14 @@ abstract class AsyncConnection {
 		} elseif($this->_current === null) {
 			$this->trigger(new Exception("没有要处理的事件"));
 		} else {
+			$this->_time = microtime(true);
 			try {
 				$this->_current->recv();
-				$this->setData();
-				$this->send();
 			} catch(\Throwable $e) {
 				$this->trigger($e);
+			} finally {
+				$this->setData();
+				$this->send();
 			}
 		}
 	}
@@ -132,13 +141,25 @@ abstract class AsyncConnection {
 	
 	public function push() {
 		$this->reset();
-		$this->pool->push($this);
+		$this->_pool->push($this);
 	}
 
 	public function remove() {
 		$this->reset();
-		$this->pool->remove($this);
-		$this->pool = null;
+		$this->_pool->remove($this);
+		$this->_pool = null;
+	}
+	
+	public function getTime() {
+		return $this->_time;
+	}
+	
+	public function isUsing(): bool {
+		return $this->_event && $this->_events;
+	}
+	
+	public function __destruct() {
+		$this->reset();
 	}
 	
 	abstract public function open();

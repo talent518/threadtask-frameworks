@@ -121,4 +121,50 @@ class MySQLPool implements IPool {
 		}
 		$db->iUsed = null;
 	}
+	
+	public function clean(float $time): int {
+		$n = 0;
+		
+		/* @var $db MySQLConnection */
+		
+		// var_dump(array_sum(array_map('count', [$this->_mPool, $this->_mUsed, $this->_sPool, $this->_sUsed])));
+		
+		foreach($this->_mPool as $i => $db) {
+			if($db->getTime() < $time) {
+				$db->reset();
+				$db->close();
+				unset($this->_mPool[$i]);
+				$n ++;
+			}
+		}
+		
+		foreach($this->_mUsed as $i => $db) {
+			if($db->getTime() < $time && !$db->isUsing()) {
+				$db->reset();
+				$db->close();
+				unset($this->_mUsed[$i]);
+				$n ++;
+			}
+		}
+		
+		foreach($this->_sPool as $i => $db) {
+			if($db->getTime() < $time) {
+				$db->reset();
+				$db->close();
+				unset($this->_sPool[$i]);
+				$n ++;
+			}
+		}
+		
+		foreach($this->_sUsed as $i => $db) {
+			if($db->getTime() < $time && !$db->isUsing()) {
+				$db->reset();
+				$db->close();
+				unset($this->_sUsed[$i]);
+				$n ++;
+			}
+		}
+		
+		return $n;
+	}
 }

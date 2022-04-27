@@ -103,15 +103,17 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 			];
 		}
 		
-		if($this->_success) $this->_data = call_user_func($this->_success, $this->_data, $this->_db);
+		$t = round(microtime(true) - $this->_time, 6);
+		$sql = MySQLQuery::formatSQL($this->_sql, $this->param);
+		\Fwe::$app->info("Run time $t second, SQL: {$sql}", 'mysql-stmt');
 		
-		\Fwe::$app->info($this->_sql, 'mysql-stmt');
+		if($this->_success) $this->_data = call_user_func($this->_success, $this->_data, $this->_db);
 	}
 
 	public function send() {
 		$types = null;
 		$this->_db->bindParam($this->param, $types);
-		
+		$this->_time = microtime(true);
 		$this->_stmt = $this->_db->prepare($this->_sql);
 		if($this->_stmt) {
 			$this->_stmt->bind_param($types, ...$this->param);
@@ -127,8 +129,9 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 	
 	public function error(\Throwable $e) {
 		$err = $e->getMessage();
+		$t = round(microtime(true) - $this->_time, 6);
 		$sql = MySQLQuery::formatSQL($this->_sql, $this->param);
-		\Fwe::$app->error("{$sql}, ERROR: $err", 'mysql-stmt');
+		\Fwe::$app->error("Run time $t second, SQL: {$sql}, ERROR: $err", 'mysql-stmt');
 		
 		$this->_data = $e;
 		if($this->_error) {

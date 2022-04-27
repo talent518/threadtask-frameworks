@@ -1,9 +1,9 @@
 <?php
 define('FWE_PATH', __DIR__);
 
+use fwe\base\Application;
 use fwe\base\Exception;
 use fwe\base\TsVar;
-use fwe\base\Application;
 
 /**
  * getAlias/getRootAlias/setAlias/autoload 来自yii2
@@ -323,16 +323,19 @@ abstract class Fwe {
 		}
 
 		static::$base = new EventBase();
+		
 		static::createObject(static::$config->getOrSet(static::$name, function () {
 			return include static::getAlias('@app/config/' . static::$name . '.php');
 		}))->boot();
-		static::$base->dispatch();
-
+		
 		if(!defined('THREAD_TASK_NAME')) {
-			$sig = static::$app->exitSig();
-			task_wait($sig);
-			static::$app->logAll();
+			register_shutdown_function(function() {
+				task_wait(static::$app->exitSig());
+				static::$app->logAll();
+			});
 		}
+
+		static::$base->dispatch();
 	}
 }
 

@@ -56,16 +56,14 @@ class Application extends \fwe\base\Application {
 				$this->signalEvent(function() use($ret) {
 					if($this->events <= 0) \Fwe::$base->exit();
 				});
-				$this->logInit();
-			} else {
-				$this->logAll();
+				if(!defined('THREAD_TASK_NAME')) $this->logInit();
+			} elseif(!$this->events) {
+				\Fwe::$base->exit();
 			}
 			return $ret;
 		} catch(RouteException $e) {
 			$e = $e->getMessage();
 			echo "$e\n";
-		} catch(\Throwable $e) {
-			$this->error($e, 'console');
 		}
 	}
 }

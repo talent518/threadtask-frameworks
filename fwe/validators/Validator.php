@@ -64,9 +64,12 @@ class Validator {
 	}
 
 	public function getValidator(string $id) {
-		$ret = $this->component->get($id, false);
-		if($ret) return $ret;
-		else trigger_error("$id 验证器不存在", E_USER_ERROR);
+		$ret = $this->component->def($id);
+		if($ret) {
+			return $ret;
+		} else {
+			trigger_error("$id 验证器不存在", E_USER_ERROR);
+		}
 	}
 
 	public function getValidators() {

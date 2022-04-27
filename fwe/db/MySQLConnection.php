@@ -213,11 +213,18 @@ class MySQLConnection extends AsyncConnection {
 	 * @return \fwe\db\MySQLConnection
 	 */
 	public function asyncPrepare(string $sql, array $param, array $options = []) {
-		$event = \Fwe::createObject(MySQLStmtEvent::class, [
-			'db' => $this,
-			'sql' => $sql,
-			'param' => $param,
-		] + $options);
+		if($param) {
+			$event = \Fwe::createObject(MySQLStmtEvent::class, [
+				'db' => $this,
+				'sql' => $sql,
+				'param' => $param,
+			] + $options);
+		} else {
+			$event = \Fwe::createObject(MySQLQueryEvent::class, [
+				'db' => $this,
+				'sql' => $sql,
+			] + $options);
+		}
 		$this->_events[] = $event;
 		return $this;
 	}
@@ -241,10 +248,6 @@ class MySQLConnection extends AsyncConnection {
 	
 	public function isClosed(): bool {
 		return !$this->_mysqli;
-	}
-	
-	public function __destruct() {
-		$this->reset();
 	}
 }
 

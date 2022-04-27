@@ -61,9 +61,10 @@ class Boot {
 	protected $_events = 0;
 	protected $_call = [];
 	public function make(IRequest $req, callable $call) {
-		if(!$this->_events++) $this->_event->add();
-		
-		\Fwe::$app->events++;
+		if(!$this->_events++) {
+			$this->_event->add();
+			\Fwe::$app->events++;
+		}
 		
 		\Fwe::$app->stat('curl:act');
 		$key = \Fwe::$app->stat('curl:req') - 1;
@@ -84,28 +85,27 @@ class Boot {
 		if(($n = $this->_var->read(128)) === false) return;
 
 		for($j=0; $j<$n; $j++) {
-			if(!--$this->_events) $this->_event->del();
-
-			\Fwe::$app->events--;
-			
 			\Fwe::$app->stat('curl:act', -1);
 			\Fwe::$app->stat('curl:res');
 
 			$key = null;
 			$res = $this->_var->shift(true, $key);
 
-			if(!isset($this->_call[$key])) {
-				return;
-			}
-
-			list($req, $call, $i) = $this->_call[$key];
-			unset($this->_call[$key]);
-			$this->_stat->inc($i, -1);
-			
-			try {
-				$call($res, $req);
-			} catch(\Throwable $ex) {
-				\Fwe::$app->error($ex, 'curl');
+			if(isset($this->_call[$key])) {
+				list($req, $call, $i) = $this->_call[$key];
+				unset($this->_call[$key]);
+				$this->_stat->inc($i, -1);
+				
+				try {
+					$call($res, $req);
+				} catch(\Throwable $ex) {
+					\Fwe::$app->error($ex, 'curl');
+				}
+				
+				if(!--$this->_events) {
+					$this->_event->del();
+					\Fwe::$app->events--;
+				}
 			}
 		}
 	}
@@ -115,13 +115,16 @@ class Boot {
 			return;
 		}
 	
-		if(!--$this->_events) $this->_event->del();
+		if(!--$this->_events) {
+			$this->_event->del();
+			\Fwe::$app->events--;
+		}
 		
 		$i = $this->_call[$key][2];
 		unset($this->_call[$key]);
 		$this->_stat->inc($i, -1);
 		
-		\Fwe::$app->events--;
+		
 		\Fwe::$app->stat('curl:act', -1);
 		\Fwe::$app->stat('curl:res');
 		

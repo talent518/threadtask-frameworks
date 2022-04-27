@@ -17,6 +17,7 @@ class ServeController extends Controller {
 	 * @param string $route
 	 */
 	public function actionIndex(string $name = 'web', int $maxThreads = 16, int $backlog = 128) {
+		\Fwe::$app->events = -1;
 		\Fwe::$name = $name;
 		$config = \Fwe::$config->getOrSet(\Fwe::$name, function () use($maxThreads, $backlog) {
 			$cfg = include \Fwe::getAlias('@app/config/' . \Fwe::$name . '.php');
@@ -24,6 +25,8 @@ class ServeController extends Controller {
 			$cfg['backlog'] = $backlog;
 			return $cfg;
 		});
+		restore_error_handler();
+		restore_exception_handler();
 		$ret = \Fwe::createObject($config)->boot();
 		unset($config);
 		if($ret) {

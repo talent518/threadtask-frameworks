@@ -73,4 +73,33 @@ class RedisPool implements IPool {
 		
 		$db->iUsed = null;
 	}
+	
+	public function clean(float $time): int {
+		$n = 0;
+
+		/* @var $redis RedisConnection */
+		
+		// var_dump(array_sum(array_map('count', [$this->_pool, $this->_used])));
+
+		foreach($this->_pool as $i => $redis) {
+			if($redis->getTime() < $time) {
+				$redis->reset();
+				$redis->close();
+				unset($this->_pool[$i]);
+				$n ++;
+			}
+		}
+		
+		foreach($this->_used as $i => $redis) {
+			if($redis->getTime() < $time && !$redis->isUsing()) {
+				$redis->reset();
+				$redis->close();
+				unset($this->_used[$i]);
+				$n ++;
+			}
+		}
+		
+		return $n;
+	}
+
 }

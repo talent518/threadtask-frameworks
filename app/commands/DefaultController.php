@@ -8,6 +8,7 @@ use fwe\curl\Request;
 use fwe\db\IEvent;
 use fwe\db\MySQLConnection;
 use fwe\utils\StringHelper;
+use fwe\base\Application;
 
 class DefaultController extends Controller {
 
@@ -61,7 +62,7 @@ class DefaultController extends Controller {
 	 */
 	public function actionPrepare(int $id = 0, string $table='clazz', int $newId=5, string $newName='Async Prepare', string $newDesc='Test Insert') {
 		$t = microtime(true);
-		db()->pop()->asyncPrepare("SELECT * FROM clazz WHERE cno>?", [$id], ['style'=>IEvent::FETCH_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->asyncPrepare("SELECT * FROM clazz WHERE cno>?", [$id], ['keyBy'=>'cname', 'valueBy' => 'cdesc', 'style'=>IEvent::FETCH_ALL])->goAsync(function($select, $replace, $clazz) use($t) {
+		db()->pop()->asyncPrepare("SELECT * FROM `$table` WHERE cno>?", [$id], ['style'=>IEvent::FETCH_ALL])->asyncPrepare("REPLACE INTO clazz (cno,cname,cdesc)VALUES(?,?,?)", [$newId,$newName,$newDesc])->asyncPrepare("SELECT * FROM clazz WHERE cno>?", [$id], ['keyBy'=>'cname', 'valueBy' => 'cdesc', 'style'=>IEvent::FETCH_ALL])->goAsync(function($select, $replace, $clazz) use($t) {
 			$this->formatColor('DATA1: ', self::FG_GREEN);
 
 			$t = microtime(true) - $t;
@@ -72,7 +73,6 @@ class DefaultController extends Controller {
 			$t = microtime(true) - $t;
 			var_dump(compact('data', 't'));
 
-			if($db->iUsed === null) $db = $db->pool->pop();
 			$db->reset()->asyncQuery("SHOW TABLES", ['style'=>IEvent::FETCH_COLUMN_ALL])->goAsync(function($tables = null) {
 				$this->formatColor('DATA2: ', self::FG_GREEN);
 				var_dump($tables);
@@ -314,6 +314,21 @@ class DefaultController extends Controller {
 		};
 		$task->push($url);
 		return false;
+	}
+	
+	/**
+	 * 测试日志相关函数
+	 */
+	public function actionLog() {
+		\Fwe::$app->log('test log', Application::LOG_INFO);
+		\Fwe::$app->error('test log');
+		\Fwe::$app->warn('test log');
+		\Fwe::$app->info('test log');
+		\Fwe::$app->debug('test log');
+		\Fwe::$app->verbose('test log');
+		
+		$n = \Fwe::$app->logCount();
+		echo "logCount: $n\n";
 	}
 
 }
