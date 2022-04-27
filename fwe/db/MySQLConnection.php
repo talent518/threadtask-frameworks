@@ -118,6 +118,7 @@ class MySQLConnection extends AsyncConnection {
 					$this->open();
 					return $this->_mysqli->ping();
 				} catch(\Throwable $e) {
+					\Fwe::$app->error($e, 'mysql-ping');
 					$this->close();
 					return false;
 				}

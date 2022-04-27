@@ -13,6 +13,13 @@ class MySQLQuery {
 		"\r" => '\r',
 		"\n" => '\n',
 	];
+	
+	/**
+	 * 自增ID: 用于生成异步查询结果的数据键
+	 * 
+	 * @var integer
+	 */
+	protected static $__query = 0;
 
 	/**
 	 * 用于继承于MySQLModel类对的查询结果数据行的对象实例化
@@ -392,6 +399,7 @@ class MySQLQuery {
 		
 		if($success) $options['success'] = $success;
 		if($error) $options['error'] = $error;
+		if(!isset($options['key'])) $options['key'] = 'q-' . (static::$__query++);
 		
 		return $db->asyncPrepare($this->sql, $this->params, $options);
 	}

@@ -104,6 +104,8 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 		}
 		
 		if($this->_success) $this->_data = call_user_func($this->_success, $this->_data, $this->_db);
+		
+		\Fwe::$app->info($this->_sql, 'mysql-stmt');
 	}
 
 	public function send() {
@@ -124,14 +126,15 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 	}
 	
 	public function error(\Throwable $e) {
-		$sql = $this->_sql;
-
-		try {
-			$this->_sql = MySQLQuery::formatSQL($this->_sql, $this->param);
-			
-			parent::error($e);
-		} finally {
-			$this->_sql = $sql;
+		$err = $e->getMessage();
+		$sql = MySQLQuery::formatSQL($this->_sql, $this->param);
+		\Fwe::$app->error("{$sql}, ERROR: $err", 'mysql-stmt');
+		
+		$this->_data = $e;
+		if($this->_error) {
+			$this->_data = call_user_func($this->_error, $this->_data, $this->_db);
+		} else {
+			throw $e;
 		}
 	}
 	

@@ -81,7 +81,7 @@ class WsEvent {
 		if($event & (\EventBufferEvent::EOF | \EventBufferEvent::ERROR)) {
 			$this->free();
 		} else {
-			echo "key: {$this->key}, event: {$event}\n";
+			\Fwe::$app->debug("key: {$this->key}, event: {$event}", 'web-socket');
 		}
 	}
 	
@@ -210,7 +210,7 @@ class WsEvent {
 			try {
 				$this->doObj->read($buf);
 			} catch(\Throwable $ex) {
-				echo "$ex\n";
+				\Fwe::$app->error($ex, 'web-socket');
 			}
 		} else {
 			\Fwe::$app->sendWs($this->mask($buf));

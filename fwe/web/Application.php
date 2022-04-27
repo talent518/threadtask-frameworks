@@ -38,7 +38,7 @@ class Application extends \fwe\base\Application {
 				gc_collect_cycles();
 				$size = memory_get_usage() - $memsize;
 				$memsize += $size;
-				echo "$name memory: $size\n";
+				$this->debug((string) $size, 'memory');
 			}
 		});
 	}
@@ -204,6 +204,8 @@ class Application extends \fwe\base\Application {
 			$this->_reqVars[$i] = new TsVar("req:$i", 0, null, true);
 			$this->_connStatVar[$i] = 0;
 		}
+		
+		$this->logInit();
 		
 		echo "Listened on {$this->host}:{$this->port}\n";
 		

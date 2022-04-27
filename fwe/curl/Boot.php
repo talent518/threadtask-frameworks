@@ -105,7 +105,7 @@ class Boot {
 			try {
 				$call($res, $req);
 			} catch(\Throwable $ex) {
-				echo "$ex\n";
+				\Fwe::$app->error($ex, 'curl');
 			}
 		}
 	}

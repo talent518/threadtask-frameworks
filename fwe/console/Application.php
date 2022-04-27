@@ -52,12 +52,20 @@ class Application extends \fwe\base\Application {
 			if($ret === false) {
 				$this->isExitNow = true;
 			}
-			if($this->events > 0) $this->signalEvent(function() use($ret) {
-				if($this->events <= 0) \Fwe::$base->exit();
-			});
+			if($this->events > 0) {
+				$this->signalEvent(function() use($ret) {
+					if($this->events <= 0) \Fwe::$base->exit();
+				});
+				$this->logInit();
+			} else {
+				$this->logAll();
+			}
 			return $ret;
 		} catch(RouteException $e) {
-			echo $e;
+			$e = $e->getMessage();
+			echo "$e\n";
+		} catch(\Throwable $e) {
+			$this->error($e, 'console');
 		}
 	}
 }

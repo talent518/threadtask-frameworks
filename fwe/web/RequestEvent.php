@@ -292,7 +292,7 @@ class RequestEvent {
 				$ret = $this->runAction($response);
 				if(is_string($ret)) $response->end($ret);
 				elseif(!$response->isHeadSent() && $events == \Fwe::$app->events) {
-					echo "Not Content in the route({$this->key}): '{$this->action->route}'\n";
+					\Fwe::$app->error("Not Content in the route({$this->key}): {$this->action->route}", 'web');
 					$response->setStatus(501);
 					$response->end();
 				}
@@ -328,7 +328,7 @@ class RequestEvent {
 				$response->end($ex->getMessage());
 			}
 		} catch(\Throwable $ex) {
-			echo "{$this->key}: $ex\n";
+			\Fwe::$app->error($ex, 'web');
 			
 			if($this->bodylen !== $this->bodyoff) {
 				$this->isKeepAlive = false;
@@ -559,7 +559,7 @@ class RequestEvent {
 						}
 						
 						if($this->bodyoff >= $this->bodylen && $this->mode !== self::MODE_END) {
-							echo "BODYOFF: $buf\n";
+							\Fwe::$app->error("BODYOFF: $buf", 'web');
 							return 0;
 						}
 					} elseif($this->fp) {
@@ -623,12 +623,12 @@ class RequestEvent {
 	
 	public function send(string $data): bool {
 		if($this->isFree) {
-			echo "Write freed({$this->key}): $data\n";
+			\Fwe::$app->debug("Write freed({$this->key}): $data", 'web');
 			return true;
 		}
 
 		$ret = $this->event->write($data);
-		if(!$ret) echo "Writed error({$this->key}): $data\n";		
+		if(!$ret) \Fwe::$app->error("Writed error({$this->key}): $data");
 		return $ret;
 	}
 }

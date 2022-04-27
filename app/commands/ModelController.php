@@ -112,9 +112,9 @@ class ModelController extends Controller {
 		$model->save(
 			$db,
 			function(\stdClass $status) use($model) {
-			echo "=========== SAVE ===========\n";
-			
-			$this->dump($status);
+				echo "=========== SAVE ===========\n";
+				
+				$this->dump($status);
 			},
 			function(\stdClass $status) use($model) {
 				echo "=========== SAVE ===========\n";
@@ -175,7 +175,7 @@ class ModelController extends Controller {
 			function($e) {
 				echo "======== FETCH ONE =========\n";
 				
-				echo "$e\n";
+				throw $e;
 			}
 		);
 		
@@ -190,13 +190,13 @@ class ModelController extends Controller {
 			function($e) {
 				echo "======== FETCH ALL =========\n";
 				
-				echo "$e\n";
+				throw $e;
 			}
 		);
 		
 		MySQLDemo::findById(
 			$db,
-			$uid,
+			$uid?:0,
 			function(?MySQLDemo $row) use($db, $error) {
 				echo "======== FIND BY ID ========\n";
 				
@@ -229,16 +229,18 @@ class ModelController extends Controller {
 			function($e) {
 				echo "======== FIND BY ID ========\n";
 				
-				echo "$e\n";
+				throw $e;
 			}
 		);
 		
 		$db->goAsync(function($data) {
 			$this->formatColor("OK:\n", static::FG_GREEN);
-			var_dump($data);
+			$this->dump($data);
 		}, function($data, $error) {
-			$this->formatColor("ERROR:\n", static::FG_GREEN);
-			echo "\e";
+			$this->formatColor("ERROR:\n", static::FG_RED);
+			echo "$error\n";
+			$this->formatColor("DATA:\n", static::FG_GREEN);
+			$this->dump($data);
 		});
 	}
 

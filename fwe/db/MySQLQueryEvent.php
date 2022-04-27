@@ -146,6 +146,8 @@ class MySQLQueryEvent implements IEvent {
 		}
 		
 		if($this->_success) $this->_data = call_user_func($this->_success, $this->_data, $this->_db);
+		
+		\Fwe::$app->info($this->_sql, 'mysql-query');
 	}
 
 	public function send() {
@@ -157,7 +159,8 @@ class MySQLQueryEvent implements IEvent {
 	
 	public function error(\Throwable $e) {
 		$err = $e->getMessage();
-		echo "SQL ERROR($this->_sql): $sql\n";
+		\Fwe::$app->error("{$this->_sql}, ERROR: $err", 'mysql-query');
+
 		$this->_data = $e;
 		if($this->_error) {
 			$this->_data = call_user_func($this->_error, $this->_data, $this->_db);

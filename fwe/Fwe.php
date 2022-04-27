@@ -331,6 +331,7 @@ abstract class Fwe {
 		if(!defined('THREAD_TASK_NAME')) {
 			$sig = static::$app->exitSig();
 			task_wait($sig);
+			static::$app->logAll();
 		}
 	}
 }

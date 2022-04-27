@@ -594,7 +594,7 @@ class RedisConnection extends AsyncConnection {
 					$ret = $error($e);
 				} else {
 					$ret = false;
-					echo "$e\n";
+					\Fwe::$app->error($e, 'redis');
 				}
 			}
 			if($ret === false) {
@@ -605,7 +605,7 @@ class RedisConnection extends AsyncConnection {
 		\Fwe::$app->events++;
 	}
 	
-	public function isClosed() {
+	public function isClosed(): bool {
 		return false;
 	}
 }

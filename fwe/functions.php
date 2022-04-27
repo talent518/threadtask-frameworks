@@ -1,8 +1,6 @@
 <?php
 
 /**
- * 
- * 
  * @param array $array
  * @return boolean
  */

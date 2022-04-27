@@ -237,8 +237,7 @@ class ResponseEvent {
 	public function read() {
 		if($this->fp) {
 			if(feof($this->fp) || (!$this->size && !$this->rsize)) {
-				$e = new \Exception('Send file is complete');
-				echo "$e\n";
+				\Fwe::$app->error('Send file is complete', 'web');
 
 				$this->isEnd = true;
 				fclose($this->fp);

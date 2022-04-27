@@ -7,6 +7,9 @@ abstract class MySQLModel extends Model {
 	 *
 	 * @var integer $__findById
 	 * @var integer $__unique
+	 * @var integer $__insert
+	 * @var integer $__update
+	 * @var integer $__delete
 	 */
 	protected static $__findById = 0, $__unique = 0, $__insert = 0, $__update = 0, $__delete = 0;
 	
@@ -43,7 +46,7 @@ abstract class MySQLModel extends Model {
 			$attrs = [];
 			$ids = (array) $id;
 			foreach(static::priKeys() as $i => $key) {
-				$attrs[$key] = $ids[$i];
+				$attrs[$key] = $ids[$i]??'';
 			}
 			unset($ids);
 		}
