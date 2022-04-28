@@ -9,7 +9,15 @@ class StaticAction implements IAction {
 	public $id, $controller, $callback, $funcName, $route;
 
 	public $prefix, $path, $file;
-
+	
+	public function init() {
+		\Fwe::debug(get_called_class(), $this->path, false);
+	}
+	
+	public function __destruct() {
+		\Fwe::debug(get_called_class(), $this->path, true);
+	}
+	
 	public function beforeAction(array $params = []): bool {
 		return $this->params['request']->bodylen === 0;
 	}

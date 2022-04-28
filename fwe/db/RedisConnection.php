@@ -287,14 +287,6 @@ class RedisConnection extends AsyncConnection {
 	public $connectionTimeout;
 	public $dataTimeout;
 	
-	/**
-	 * @see RedisPool::push()
-	 * @see RedisPool::pop()
-	 *
-	 * @var int
-	 */
-	public $iUsed;
-	
 	protected $_socket = false;
 	protected $_isAsync = false;
 
@@ -494,6 +486,12 @@ class RedisConnection extends AsyncConnection {
 		}
 	}
 	
+	public function formatCommandParams(array $params) {
+		return implode(' ', array_map(function($param) {
+			return ($param === null || $param === '' || preg_match('/[\s\']+/', $param)) ? "'$param'" : $param;
+		}, $params));
+	}
+	
 	/**
 	 * 读取并分析响应结果
 	 * 
@@ -502,9 +500,9 @@ class RedisConnection extends AsyncConnection {
 	 * @throws Exception on error
 	 * @throws SocketException
 	 */
-	public function parseResponse($params) {
+	public function parseResponse(array $params) {
 		if (($line = fgets($this->_socket)) === false) {
-			throw new SocketException("Failed to read from socket.\nRedis command was: " . implode(' ', $params));
+			throw new SocketException("Failed to read from socket.\nRedis command was: " . $this->formatCommandParams($params));
 		}
 		$type = $line[0];
 		$line = mb_substr($line, 1, -2, '8bit');
@@ -516,7 +514,7 @@ class RedisConnection extends AsyncConnection {
 				
 				return $line;
 			case '-': // Error reply
-				throw new Exception("Redis error: " . $line . "\nRedis command was: " . implode(' ', $params));
+				throw new Exception("Redis error: " . $line . "\nRedis command was: " . $this->formatCommandParams($params));
 			case ':': // Integer reply
 				// no cast to int as it is in the range of a signed 64 bit integer
 				return $line;
@@ -528,7 +526,7 @@ class RedisConnection extends AsyncConnection {
 				$data = '';
 				while ($length > 0) {
 					if (($block = fread($this->_socket, $length)) === false) {
-						throw new SocketException("Failed to read from socket.\nRedis command was: " . implode(' ', $params));
+						throw new SocketException("Failed to read from socket.\nRedis command was: " . $this->formatCommandParams($params));
 					}
 					$data .= $block;
 					$length -= strlen($block);
@@ -544,7 +542,7 @@ class RedisConnection extends AsyncConnection {
 				
 				return $data;
 			default:
-				throw new Exception('Received illegal data from redis: ' . $line . "\nRedis command was: " . implode(' ', $params));
+				throw new Exception('Received illegal data from redis: ' . $line . "\nRedis command was: " . $this->formatCommandParams($params));
 		}
 	}
 	

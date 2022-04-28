@@ -122,14 +122,14 @@ class MySQLPool implements IPool {
 		$db->iUsed = null;
 	}
 	
-	public function clean(float $time): int {
-		$n = 0;
-		
+	public function clean(float $time): string {
 		/* @var $db MySQLConnection */
 		
-		// var_dump(array_sum(array_map('count', [$this->_mPool, $this->_mUsed, $this->_sPool, $this->_sUsed])));
+		$rets = [];
 		
+		$n = $t = 0;
 		foreach($this->_mPool as $i => $db) {
+			$t ++;
 			if($db->getTime() < $time) {
 				$db->reset();
 				$db->close();
@@ -137,8 +137,11 @@ class MySQLPool implements IPool {
 				$n ++;
 			}
 		}
+		$rets[] = "mp: $n/$t";
 		
+		$n = $t = 0;
 		foreach($this->_mUsed as $i => $db) {
+			$t ++;
 			if($db->getTime() < $time && !$db->isUsing()) {
 				$db->reset();
 				$db->close();
@@ -146,8 +149,11 @@ class MySQLPool implements IPool {
 				$n ++;
 			}
 		}
+		$rets[] = "mu: $n/$t";
 		
+		$n = $t = 0;
 		foreach($this->_sPool as $i => $db) {
+			$t ++;
 			if($db->getTime() < $time) {
 				$db->reset();
 				$db->close();
@@ -155,8 +161,11 @@ class MySQLPool implements IPool {
 				$n ++;
 			}
 		}
+		$rets[] = "sp: $n/$t";
 		
+		$n = $t = 0;
 		foreach($this->_sUsed as $i => $db) {
+			$t ++;
 			if($db->getTime() < $time && !$db->isUsing()) {
 				$db->reset();
 				$db->close();
@@ -164,7 +173,8 @@ class MySQLPool implements IPool {
 				$n ++;
 			}
 		}
+		$rets[] = "su: $n/$t";
 		
-		return $n;
+		return implode(', ', $rets);
 	}
 }

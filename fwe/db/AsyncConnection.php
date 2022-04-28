@@ -33,6 +33,14 @@ abstract class AsyncConnection {
 	 * @var int
 	 */
 	public $eventKey = 0;
+
+	/**
+	 * @see MySQLPool::push()
+	 * @see MySQLPool::pop()
+	 *
+	 * @var int
+	 */
+	public $iUsed;
 	
 	public function reset() {
 		$this->eventKey = 0;
@@ -158,8 +166,13 @@ abstract class AsyncConnection {
 		return $this->_event && $this->_events;
 	}
 	
+	public function init() {
+		\Fwe::debug(get_called_class(), '', false);
+	}
+	
 	public function __destruct() {
 		$this->reset();
+		\Fwe::debug(get_called_class(), '', true);
 	}
 	
 	abstract public function open();

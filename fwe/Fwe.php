@@ -313,6 +313,10 @@ abstract class Fwe {
 	 */
 	public static $names;
 	
+	public static function debug(string $class, $suffix, bool $free) {
+		// printf("%40s::%s %s\n", $class, $free ? '__destruct' : '__construct', $suffix);
+	}
+	
 	public static function boot() {
 		if(defined('THREAD_TASK_NAME')) {
 			static::$names = explode(':', THREAD_TASK_NAME);
@@ -329,13 +333,15 @@ abstract class Fwe {
 		}))->boot();
 		
 		if(!defined('THREAD_TASK_NAME')) {
-			register_shutdown_function(function() {
-				task_wait(static::$app->exitSig());
-				static::$app->logAll();
-			});
+			register_shutdown_function(function($app) {
+				task_wait($app->exitSig());
+				$app->logAll();
+			}, static::$app);
 		}
 
 		static::$base->dispatch();
+		
+		call_and_free_shutdown();
 	}
 }
 

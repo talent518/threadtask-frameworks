@@ -40,14 +40,6 @@ class MySQLConnection extends AsyncConnection {
 	 */
 	protected $_isMaster;
 	
-	/**
-	 * @see MySQLPool::push()
-	 * @see MySQLPool::pop()
-	 * 
-	 * @var int
-	 */
-	public $iUsed;
-	
 	public function __construct(MySQLPool $pool, string $host, int $port, string $username, string $password, string $database, ?string $socket = null, string $charset = 'utf8', bool $isMaster = false) {
 		$this->_pool = $pool;
 

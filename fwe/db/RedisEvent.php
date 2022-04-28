@@ -12,6 +12,8 @@ class RedisEvent implements IEvent {
 	protected $_success, $_error;
 	protected $_data;
 
+	protected $_time;
+	
 	public function __construct(RedisConnection $db, string $name, string $command, array $params, $key, ?callable $success = null, ?callable $error = null) {
 		$this->_db = $db;
 		$this->_name = $name;
@@ -36,16 +38,26 @@ class RedisEvent implements IEvent {
 	}
 	
 	public function send() {
+		$this->_time = microtime(true);
 		$this->_db->sendCommandInternal($this->_command, $this->_params);
 	}
 	
 	public function recv() {
 		$this->_data = $this->_db->multiParseResponse($this->_params);
 
+		$t = round(microtime(true) - $this->_time, 6);
+		$cmd = $this->_db->formatCommandParams($this->_params);
+		\Fwe::$app->info("Run time $t second, Command: {$cmd}", 'redis');
+		
 		if($this->_success) $this->_data = call_user_func($this->_success, $this->_data, $this->_db);
 	}
 	
 	public function error(\Throwable $e) {
+		$err = $e->getMessage();
+		$t = round(microtime(true) - $this->_time, 6);
+		$cmd = $this->_db->formatCommandParams($this->_params);
+		\Fwe::$app->error("Run time $t second, Command: {$cmd}, ERROR: $err", 'redis');
+		
 		if($e instanceof SocketException) {
 			$this->_db->close();
 		}

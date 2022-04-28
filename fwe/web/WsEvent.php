@@ -47,7 +47,7 @@ class WsEvent {
 			\Fwe::$app->sendWs($msg);
 		}
 
-		// echo __METHOD__ . ":{$this->key}\n";
+		\Fwe::debug(get_called_class(), $this->key, false);
 	}
 	
 	public function init() {
@@ -55,7 +55,7 @@ class WsEvent {
 	}
 	
 	public function __destruct() {
-		// echo __METHOD__ . ":{$this->key}\n";
+		\Fwe::debug(get_called_class(), $this->key, true);
 	}
 	
 	protected $isFree = false;

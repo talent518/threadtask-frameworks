@@ -15,6 +15,14 @@ use fwe\traits\MethodProperty;
  */
 abstract class Model {
 	use MethodProperty;
+	
+	public function init() {
+		\Fwe::debug(get_called_class(), '', false);
+	}
+	
+	public function __destruct() {
+		\Fwe::debug(get_called_class(), '', true);
+	}
 
 	/**
 	 * 错误消息

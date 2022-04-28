@@ -74,14 +74,14 @@ class RedisPool implements IPool {
 		$db->iUsed = null;
 	}
 	
-	public function clean(float $time): int {
-		$n = 0;
-
+	public function clean(float $time): string {
 		/* @var $redis RedisConnection */
 		
-		// var_dump(array_sum(array_map('count', [$this->_pool, $this->_used])));
+		$rets = [];
 
+		$n = $t = 0;
 		foreach($this->_pool as $i => $redis) {
+			$t ++;
 			if($redis->getTime() < $time) {
 				$redis->reset();
 				$redis->close();
@@ -89,8 +89,11 @@ class RedisPool implements IPool {
 				$n ++;
 			}
 		}
+		$rets[] = "p: $n/$t";
 		
+		$n = $t = 0;
 		foreach($this->_used as $i => $redis) {
+			$t ++;
 			if($redis->getTime() < $time && !$redis->isUsing()) {
 				$redis->reset();
 				$redis->close();
@@ -98,8 +101,9 @@ class RedisPool implements IPool {
 				$n ++;
 			}
 		}
+		$rets[] = "u: $n/$t";
 		
-		return $n;
+		return implode(', ', $rets);
 	}
 
 }

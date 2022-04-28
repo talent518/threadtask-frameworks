@@ -235,12 +235,13 @@ class DefaultController extends Controller {
 			$response->end(json_encode(compact('tables', 'sleep', 'variables', 't'), JSON_PRETTY_PRINT));
 			$request->data = null;
 			$db->push();
-		}, function($data) use($t, $request) {
+		}, function($data) use($t, $request, $db) {
 			$t = microtime(true) - $t;
 			$response = $request->getResponse();
 			$response->setContentType('text/plain; charset=utf-8');
 			$response->end(json_encode(compact('data', 't'), JSON_PRETTY_PRINT));
 			$request->data = null;
+			$db->push();
 			return false;
 		});
 		$request->onFree(function(RequestEvent $req) {
@@ -248,6 +249,31 @@ class DefaultController extends Controller {
 
 			$req->data->remove();
 		});
+	}
+	public function actionRedis(RequestEvent $request, bool $isAsync = false) {
+		if($isAsync) {
+			$redis = redis()->pop()->beginAsync();
+			$redis->setAsyncKey('keys')
+			->keys('*')
+			->setAsyncKey('cmdInfo')
+			->commandInfo("keys", "info")
+			->get('inc')
+			->incrby('inc', 1)
+			->goAsync(function($data, $keys, $cmdInfo, $get, $incr) use($redis, $request) {
+				$request->getResponse()->json(get_defined_vars());
+				$redis->push();
+			}, function($data) use($redis, $request) {
+				$request->getResponse()->setStatus(500)->json($data);
+				$redis->push();
+			});
+		} else {
+			$db = redis()->pop();
+			$request->getResponse()->json([
+				'keys' => $db->keys('*'),
+				'cmdInfo' => $db->commandInfo("keys", "info"),
+			]);
+			$db->push($db);
+		}
 	}
 	public function actionAttach(RequestEvent $request) {
 		$response = $request->getResponse();

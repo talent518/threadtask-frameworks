@@ -40,6 +40,12 @@ class Action implements IAction {
 		$this->controller = $controller;
 		$this->_route = "{$controller->route}{$id}";
 		$this->callback = [$this, 'runWithParams'];
+		
+		\Fwe::debug(get_called_class(), $this->_route, false);
+	}
+	
+	public function __destruct() {
+		\Fwe::debug(get_called_class(), $this->_route, true);
 	}
 	
 	public function getRoute() {

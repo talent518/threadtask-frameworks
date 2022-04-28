@@ -45,7 +45,7 @@ class Application extends \fwe\base\Application {
 				foreach($this->_cleanPools as $id) { /* @var $pool IPool */
 					if(($pool = $this->get($id, false)) !== null) {
 						$n = $pool->clean($time);
-						$pools[] = "$id: $n";
+						$pools[] = "$id: [$n]";
 					}
 				}
 				unset($pool);
@@ -54,7 +54,7 @@ class Application extends \fwe\base\Application {
 				gc_collect_cycles();
 				$size = memory_get_usage() - $memsize;
 				$memsize += $size;
-				$this->info("pools: {{$pools}}, Memory: $size", 'memory');
+				$this->debug("pools: {{$pools}}, Memory: $size", 'memory');
 			}
 		});
 	}
@@ -196,8 +196,9 @@ class Application extends \fwe\base\Application {
 		});
 		$this->_statEvent->addTimer(1);
 		
+		$fmt = '%s:req:%0' . strlen((string) $this->maxThreads) . 'd';
 		$reqTasks = [];
-		$this->_lstEvent = new \Event(\Fwe::$base, $this->_fd, \Event::READ | \Event::PERSIST, function() use(&$reqTasks) {
+		$this->_lstEvent = new \Event(\Fwe::$base, $this->_fd, \Event::READ | \Event::PERSIST, function() use(&$reqTasks, $fmt) {
 			$addr = $port = null;
 			$fd = socket_accept_ex($this->_fd, $addr, $port);
 			if(!$fd) return;
@@ -218,7 +219,7 @@ class Application extends \fwe\base\Application {
 			
 			if(empty($reqTasks[$i])) {
 				$reqTasks[$i] = 1;
-				create_task(\Fwe::$name . ":req:$i", INFILE, [$i]);
+				create_task(sprintf($fmt, \Fwe::$name, $i), INFILE, [$i]);
 			}
 		});
 		$this->_lstEvent->add();
@@ -277,7 +278,8 @@ class Application extends \fwe\base\Application {
 		
 		if(empty($this->_wsTasks[$index])) {
 			$this->_wsTasks[$index] = 1;
-			$name = \Fwe::$name . ":ws:$index";
+			$n = strlen((string)$this->maxWsGroups);
+			$name = sprintf("%s:ws:%0{$n}d", \Fwe::$name, $index);
 			\Fwe::$config->getOrSet($name, function() use($name, $index) {
 				return create_task($name, INFILE, [$index]);
 			});

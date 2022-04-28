@@ -41,6 +41,12 @@ class Controller {
 		$this->id = $id;
 		$this->module = $module;
 		$this->_route = "{$module->route}{$id}/";
+		
+		\Fwe::debug(get_called_class(), $this->_route, false);
+	}
+	
+	public function __destruct() {
+		\Fwe::debug(get_called_class(), $this->_route, true);
 	}
 
 	public function init() {

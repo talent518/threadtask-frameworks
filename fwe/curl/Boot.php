@@ -48,9 +48,10 @@ class Boot {
 		}
 
 		\Fwe::$config->getOrSet(__CLASS__, function() {
+			$fmt = 'curl:%0' . strlen((string) $this->maxThreads) . 'd';
 			for($i=0; $i<$this->maxThreads; $i++) {
 				$this->_stat[$i] = 0;
-				create_task("curl:$i", INFILE, [$i]);
+				create_task(sprintf($fmt, $i), INFILE, [$i]);
 			}
 			return true;
 		});

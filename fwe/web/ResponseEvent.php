@@ -24,6 +24,12 @@ class ResponseEvent {
 		$this->protocol = $protocol;
 		$this->status = $status;
 		$this->statusText = $statusText;
+		
+		\Fwe::debug(get_called_class(), $this->protocol, false);
+	}
+	
+	public function __destruct() {
+		\Fwe::debug(get_called_class(), $this->protocol, true);
 	}
 	
 	public function setStatus(int $status, ?string $statusText = null) {
@@ -522,4 +528,16 @@ class ResponseEvent {
 		'odt' => 'application/vnd.oasis.opendocument.text',
 		'ods' => 'application/vnd.oasis.opendocument.spreadsheet',
 	];
+	
+	public function text(?string $str) {
+		$this->setContentType('text/plain; charset=utf-8');
+		$this->end($str);
+		return $this;
+	}
+	
+	public function json($data) {
+		$this->setContentType('application/json; charset=utf-8');
+		$this->end(json_encode($data, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
+		return $this;
+	}
 }

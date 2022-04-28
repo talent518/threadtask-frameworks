@@ -1,12 +1,12 @@
 <?php
 namespace fwe\console;
 
+use fwe\base\Action;
 use fwe\base\RouteException;
 
 class Application extends \fwe\base\Application {
 
 	public $controllerNamespace = 'app\commands';
-	public $runActionMethod = 'runWithEvent';
 	public $signalTimeout = 0.01;
 	public $isExitNow = false;
 
@@ -23,6 +23,23 @@ class Application extends \fwe\base\Application {
 		parent::signalHandler($sig);
 		
 		if(!$this->_running && $this->isExitNow) {
+			\Fwe::$base->exit();
+		}
+	}
+	
+	public function beforeAction(Action $action, array $params = []): bool {
+		if(!defined('THREAD_TASK_NAME')) $this->logInit();
+		return parent::beforeAction($action, $params);
+	}
+	
+	public function afterAction(Action $action, array $params = []) {
+		parent::afterAction($action, $params);
+
+		if($this->events > 0) {
+			$this->signalEvent(function() {
+				if($this->events <= 0) \Fwe::$base->exit();
+			});
+		} else {
 			\Fwe::$base->exit();
 		}
 	}
@@ -47,18 +64,9 @@ class Application extends \fwe\base\Application {
 		}
 		try {
 			$action = $this->getAction($route, $params);
-			$method = $this->runActionMethod;
-			$ret = $action->$method($params);
+			$ret = $action->runWithEvent($params);
 			if($ret === false) {
 				$this->isExitNow = true;
-			}
-			if($this->events > 0) {
-				$this->signalEvent(function() use($ret) {
-					if($this->events <= 0) \Fwe::$base->exit();
-				});
-				if(!defined('THREAD_TASK_NAME')) $this->logInit();
-			} elseif(!$this->events) {
-				\Fwe::$base->exit();
 			}
 			return $ret;
 		} catch(RouteException $e) {

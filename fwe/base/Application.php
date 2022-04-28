@@ -48,6 +48,8 @@ abstract class Application extends Module {
 			'redis' => RedisPool::class,
 			'validator' => Validator::class,
 		]);
+		
+		\Fwe::debug(get_called_class(), $this->id, false);
 	}
 	
 	/**
@@ -76,6 +78,10 @@ abstract class Application extends Module {
 		ini_set('display_errors', false);
 		set_exception_handler([$this, 'handleException']);
 		set_error_handler([$this, 'handleError']);
+	}
+	
+	public function __destruct() {
+		\Fwe::debug(get_called_class(), $this->id, true);
 	}
 	
 	public function handleException(\Throwable $e) {

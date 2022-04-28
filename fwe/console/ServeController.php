@@ -1,7 +1,21 @@
 <?php
 namespace fwe\console;
 
+use fwe\base\Action;
+
 class ServeController extends Controller {
+	
+	public function beforeAction(Action $action, array $params = []): bool {
+		// 强制覆盖父类
+		restore_error_handler();
+		restore_exception_handler();
+		\Fwe::$base = new \EventBase();
+		return true;
+	}
+	
+	public function afterAction(Action $action, array $params = []) {
+		// 强制覆盖父类
+	}
 	
 	public function afterActionIndex() {
 		$this->module->controllerObjects = [];
@@ -16,19 +30,22 @@ class ServeController extends Controller {
 	 * @param array $__params__
 	 * @param string $route
 	 */
-	public function actionIndex(string $name = 'web', int $maxThreads = 16, int $backlog = 128) {
-		\Fwe::$app->events = -1;
+	public function actionIndex(string $name = 'web', ?int $maxThreads = null, int $backlog = null, ?int $logLevel = null, ?int $traceLevel = null, ?int $logMax = null, ?string $logFormat = null) {
 		\Fwe::$name = $name;
-		$config = \Fwe::$config->getOrSet(\Fwe::$name, function () use($maxThreads, $backlog) {
+		$config = \Fwe::$config->getOrSet(\Fwe::$name, function () use($maxThreads, $backlog, $logLevel, $traceLevel, $logMax, $logFormat) {
 			$cfg = include \Fwe::getAlias('@app/config/' . \Fwe::$name . '.php');
-			$cfg['maxThreads'] = $maxThreads;
-			$cfg['backlog'] = $backlog;
+			if($maxThreads !== null) $cfg['maxThreads'] = $maxThreads;
+			if($backlog !== null) $cfg['backlog'] = $backlog;
+			if($logLevel !== null) $cfg['logLevel'] = $logLevel;
+			if($traceLevel !== null) $cfg['traceLevel'] = $traceLevel;
+			if($logMax !== null) $cfg['logMax'] = $logMax;
+			if($logFormat !== null) $cfg['logFormat'] = $logFormat;
 			return $cfg;
 		});
-		restore_error_handler();
-		restore_exception_handler();
+		$app = \Fwe::$app;
 		$ret = \Fwe::createObject($config)->boot();
-		unset($config);
+		$app->logAll();
+		unset($config, $app);
 		if($ret) {
 			$pidFile = \Fwe::getAlias('@app/runtime/' . $name . '.pid');
 			$pidPath = dirname($pidFile);
@@ -36,14 +53,17 @@ class ServeController extends Controller {
 			$pid = @file_get_contents($pidFile);
 			if($pid == posix_getpid()) {
 				echo "Service restart\n";
+				\Fwe::$app->info('restart', 'service');
 			} else {
 				file_put_contents($pidFile, posix_getpid());
 				echo "Service started\n";
+				\Fwe::$app->info('started', 'service');
 			}
-			register_shutdown_function((function($file) {
+			register_shutdown_function((function($file, $app) {
 				@unlink($file);
 				echo "Service stopped\n";
-			})->bindTo(null), $pidFile);
+				$app->info('started', 'service');
+			})->bindTo(null), $pidFile, \Fwe::$app);
 		}
 		return $ret;
 	}

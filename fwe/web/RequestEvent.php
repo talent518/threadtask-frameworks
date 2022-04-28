@@ -104,7 +104,7 @@ class RequestEvent {
 		$this->event = new \EventBufferEvent(\Fwe::$base, $this->fd, 0, [$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler'], $this->key);
 		\Fwe::$app->events++;
 
-		// echo __METHOD__ . ":{$this->key}\n";
+		\Fwe::debug(get_called_class(), $this->key, false);
 	}
 	
 	public function init() {
@@ -113,7 +113,7 @@ class RequestEvent {
 	}
 	
 	public function __destruct() {
-		// echo __METHOD__ . ":{$this->key}\n";
+		\Fwe::debug(get_called_class(), $this->key, true);
 
 		if($this->fp) {
 			fclose($this->fp);

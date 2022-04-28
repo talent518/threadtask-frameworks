@@ -53,6 +53,8 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 		$this->_var = ts_var_declare($key, $parent ? $parent->_var : null, $isFd);
 		$this->setExpire($expire);
 		$this->_isFd = $isFd;
+		
+		\Fwe::debug(get_called_class(), $this->_key, false);
 	}
 	
 	public function getKey() {
@@ -274,5 +276,7 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 		
 		$this->_var = null;
 		$this->_parent = null;
+		
+		\Fwe::debug(get_called_class(), $this->_key, true);
 	}
 }

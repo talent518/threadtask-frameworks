@@ -148,31 +148,34 @@ class DefaultController extends Controller {
 	 */
 	public function actionRedis(bool $isAsync = false) {
 		if($isAsync) {
-			redis()->pop()->beginAsync()->setAsyncKey('keys')->keys('*')->setAsyncKey('cmdInfo')->commandInfo("keys", "info")->get('inc')->incrby('inc', 1)->goAsync(function($data, $keys, $cmdInfo, $get, $incr) {
+			$redis = redis()->pop();
+			$redis->beginAsync()->setAsyncKey('keys')->keys('*')->setAsyncKey('cmdInfo')->commandInfo("keys", "info")->get('inc')->incrby('inc', 1)->goAsync(function($data, $keys, $cmdInfo, $get, $incr) use($redis) {
 				$this->formatColor('CALL: ', self::FG_BLUE);
 				var_dump(get_defined_vars());
-			}, function($data) {
+				$redis->push();
+			}, function($data) use($redis) {
 				$this->formatColor('ERR: ', self::FG_BLUE);
 				var_dump($data);
+				$redis->push();
 			});
 		} else {
 			$db = redis()->pop();
 			var_dump($db->keys('*'), $db->commandInfo("keys", "info"));
-			$db->pool->push($db);
+			$db->push($db);
 		}
 	}
 	
 	/**
 	 * Redis订阅
 	 */
-	public function actionPsubscribe() {
+	public function actionPsubscribe(float $timeout = -1) {
 		$db = redis()->pop();
 		var_dump($db->psubscribe("__keyspace@{$db->database}__:*", "__keyevent@{$db->database}__:*"));
 		$db->bindReadEvent(function($arg) {
 			$t = microtime(true);
 			echo "$t\n";
 			var_dump($arg);
-		});
+		}, null, $timeout);
 		return false;
 	}
 	
