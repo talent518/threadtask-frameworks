@@ -54,17 +54,18 @@ class ServeController extends Controller {
 			$pid = @file_get_contents($pidFile);
 			if($pid == posix_getpid()) {
 				echo "Service restart\n";
-				\Fwe::$app->info('restart', 'service');
+				\Fwe::$app->info('Restart', 'service');
 			} else {
 				file_put_contents($pidFile, posix_getpid());
 				echo "Service started\n";
-				\Fwe::$app->info('started', 'service');
+				\Fwe::$app->info('Started', 'service');
 			}
-			register_shutdown_function((function($file, $app) {
+			register_shutdown_function((function($file, $app, $t) {
 				@unlink($file);
-				echo "Service stopped\n";
-				$app->info('started', 'service');
-			})->bindTo(null), $pidFile, \Fwe::$app);
+				$t = round(microtime(true) - $t, 6);
+				echo "Service stopped, run time is $t seconds\n";
+				$app->info("Stopped, run time is $t seconds", 'service');
+			})->bindTo(null), $pidFile, \Fwe::$app, microtime(true));
 		}
 		return $ret;
 	}

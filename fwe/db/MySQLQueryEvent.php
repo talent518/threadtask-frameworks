@@ -148,7 +148,7 @@ class MySQLQueryEvent implements IEvent {
 		}
 		
 		$t = round(microtime(true) - $this->_time, 6);
-		\Fwe::$app->info("Run time $t second, SQL: {$this->_sql}", 'mysql-query');
+		\Fwe::$app->info("Run time $t seconds, SQL: {$this->_sql}", 'mysql-query');
 		
 		if($this->_success) $this->_data = call_user_func($this->_success, $this->_data, $this->_db);
 	}
@@ -164,7 +164,7 @@ class MySQLQueryEvent implements IEvent {
 	public function error(\Throwable $e) {
 		$err = $e->getMessage();
 		$t = round(microtime(true) - $this->_time, 6);
-		\Fwe::$app->error("Run time $t second, SQL: {$this->_sql}, ERROR: $err", 'mysql-query');
+		\Fwe::$app->error("Run time $t seconds, SQL: {$this->_sql}, ERROR: $err", 'mysql-query');
 
 		$this->_data = $e;
 		if($this->_error) {

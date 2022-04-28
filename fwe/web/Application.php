@@ -167,12 +167,12 @@ class Application extends \fwe\base\Application {
 		$this->_connStatVar = new TsVar("conn:stat");
 		$this->_curlStatVar = new TsVar("curl:stat");
 		
-		$statFile = \Fwe::getAlias('@app/runtime/stat.log');
-		$connFile = \Fwe::getAlias('@app/runtime/conn.log');
-		$curlFile = \Fwe::getAlias('@app/runtime/curl.log');
+		$statFp = fopen(\Fwe::getAlias('@app/runtime/stat.log'), 'a');
+		$connFp = fopen(\Fwe::getAlias('@app/runtime/conn.log'), 'a');
+		$curlFp = fopen(\Fwe::getAlias('@app/runtime/curl.log'), 'a');
 		
 		$n = $ns = $ne = 0;
-		$this->_statEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() use(&$statFile, &$connFile, &$curlFile, &$n, &$ns, &$ne) {
+		$this->_statEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() use(&$statFp, &$connFp, &$curlFp, &$n, &$ns, &$ne) {
 			$n2 = $this->stat('conns', 0);
 			$n3 = 0;
 			for($i = 0; $i < $this->maxWsGroups; $i++) {
@@ -185,11 +185,11 @@ class Application extends \fwe\base\Application {
 			$ne = $n5 - $ne;
 			$time = date('Y-m-d H:i:s');
 			$rc = $this->stat('realConns', 0);
-			file_put_contents($statFile, "[$time] $rc current connects, $n connects/second, $n3 accepts, $ns successes, $ne errors\n", FILE_APPEND);
+			fwrite($statFp, "[$time] $rc current connects, $n connects/second, $n3 accepts, $ns successes, $ne errors\n");
 			$conns = implode(' ', $this->_connStatVar->all());
-			file_put_contents($connFile, "$conns\n", FILE_APPEND);
+			fwrite($connFp, "$conns\n");
 			$curls = implode(' ', $this->_curlStatVar->all());
-			file_put_contents($curlFile, "$curls\n", FILE_APPEND);
+			fwrite($curlFp, "$curls\n");
 			$n = $n2;
 			$ns = $n4;
 			$ne = $n5;

@@ -47,7 +47,7 @@ class RedisEvent implements IEvent {
 
 		$t = round(microtime(true) - $this->_time, 6);
 		$cmd = $this->_db->formatCommandParams($this->_params);
-		\Fwe::$app->info("Run time $t second, Command: {$cmd}", 'redis');
+		\Fwe::$app->info("Run time $t seconds, Command: {$cmd}", 'redis');
 		
 		if($this->_success) $this->_data = call_user_func($this->_success, $this->_data, $this->_db);
 	}
@@ -56,7 +56,7 @@ class RedisEvent implements IEvent {
 		$err = $e->getMessage();
 		$t = round(microtime(true) - $this->_time, 6);
 		$cmd = $this->_db->formatCommandParams($this->_params);
-		\Fwe::$app->error("Run time $t second, Command: {$cmd}, ERROR: $err", 'redis');
+		\Fwe::$app->error("Run time $t seconds, Command: {$cmd}, ERROR: $err", 'redis');
 		
 		if($e instanceof SocketException) {
 			$this->_db->close();
