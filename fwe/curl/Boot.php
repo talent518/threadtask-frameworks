@@ -62,10 +62,8 @@ class Boot {
 	protected $_events = 0;
 	protected $_call = [];
 	public function make(IRequest $req, callable $call) {
-		if(!$this->_events++) {
-			$this->_event->add();
-			\Fwe::$app->events++;
-		}
+		if(!$this->_events++) $this->_event->add();
+		\Fwe::$app->events++;
 		
 		\Fwe::$app->stat('curl:act');
 		$key = \Fwe::$app->stat('curl:req') - 1;
@@ -98,15 +96,19 @@ class Boot {
 				$this->_stat->inc($i, -1);
 				
 				try {
+					$res->completed();
+				} catch(\Throwable $ex) {
+					\Fwe::$app->error($ex, 'curl');
+				}
+				
+				try {
 					$call($res, $req);
 				} catch(\Throwable $ex) {
 					\Fwe::$app->error($ex, 'curl');
 				}
 				
-				if(!--$this->_events) {
-					$this->_event->del();
-					\Fwe::$app->events--;
-				}
+				if(!--$this->_events) $this->_event->del();
+				\Fwe::$app->events--;
 			}
 		}
 	}
@@ -116,10 +118,8 @@ class Boot {
 			return;
 		}
 	
-		if(!--$this->_events) {
-			$this->_event->del();
-			\Fwe::$app->events--;
-		}
+		if(!--$this->_events) $this->_event->del();
+		\Fwe::$app->events--;
 		
 		$i = $this->_call[$key][2];
 		unset($this->_call[$key]);

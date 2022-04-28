@@ -235,7 +235,7 @@ class Request extends IRequest {
 		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $this->method);
 		$this->makeBody($ch);
 		
-		$res = \Fwe::createObject($this->responseClass);
+		$res = \Fwe::createObject($this->responseClass, ['url' => $this->url]);
 
 		if($this->method === 'HEAD') {
 			curl_setopt($ch, CURLOPT_NOBODY, true);

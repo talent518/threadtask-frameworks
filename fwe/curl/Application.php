@@ -158,7 +158,7 @@ class Application extends \fwe\base\Application {
 
 		if(!($res instanceof IResponse)) {
 			curl_close($ch);
-			printf("class %s is not instanceof %s\n", get_class($res), IResponse::class);
+			\Fwe::$app->error(sprintf("class %s is not instanceof %s", get_class($res), IResponse::class), 'curl');
 			$this->write($var, $key, $res);
 			return;
 		}
@@ -173,7 +173,6 @@ class Application extends \fwe\base\Application {
 		$ret = curl_multi_add_handle($this->_mh, $ch);
 		if($ret != CURLM_OK) {
 			$err = curl_multi_strerror($ret);
-			\Fwe::$app->error("$err, errno: $ret", 'curl');
 
 			curl_close($ch);
 			$res->setError($ret, $err);

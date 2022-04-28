@@ -64,4 +64,8 @@ class Response extends IResponse {
 		$this->upTotal = $upTotal;
 		$this->upBytes = $upBytes;
 	}
+	
+	public function completed() {
+		if($this->status < 200 || $this->status >= 400 ) \Fwe::$app->verbose("URL: {$this->url}, status: {$this->status}, data: {$this->data}", 'curl');
+	}
 }

@@ -11,6 +11,8 @@ namespace fwe\curl;
  * @property-read string $error
  */
 abstract class IResponse {
+	public $url;
+
 	protected $beginTime;
 	protected $endTime;
 	protected $wakeupTime;
@@ -38,6 +40,8 @@ abstract class IResponse {
 		$this->endTime = microtime(true);
 		$this->errno = $errno;
 		$this->error = $error;
+
+		if($errno) \Fwe::$app->debug("error: $error, errno: $errno", 'curl');
 	}
 
 	abstract public function headerHandler($ch, $header);
@@ -45,5 +49,7 @@ abstract class IResponse {
 	abstract public function writeHandler($ch, $data);
 
 	abstract public function progressHandler($ch, int $dlTotal, int $dlBytes, int $upTotal, int $upBytes);
+	
+	abstract public function completed();
 }
 
