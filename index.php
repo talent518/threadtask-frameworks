@@ -14,7 +14,5 @@ defined('APP_PATH') or define('APP_PATH', ROOT . '/app');
 
 include_once ROOT . '/fwe/Fwe.php';
 Fwe::setAlias('@app', APP_PATH);
-Fwe::setAlias('@runtime', ROOT . '/runtime');
-Fwe::setAlias('@web', ROOT . '/web');
 
 Fwe::boot();

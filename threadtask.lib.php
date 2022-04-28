@@ -12,6 +12,13 @@
 //////////////////////////////////////////////////////////////////////////////
 
 /**
+ * 主线程为main, 其他线程是create_task函数的$taskname参数值
+ * 
+ * @var string
+ */
+define('THREAD_TASK_NAME', 'main');
+
+/**
  * 创建任务/线程
  *
  * @param string $taskname 任务名称，并且会在目标线程创建一个THREAD_TASK_NAME常量
@@ -170,6 +177,20 @@ function pthread_yield(): bool {}
  * @return bool
  */
 function task_set_debug(bool $isDebug) {}
+
+/**
+ * 是否是主线程: 一般用于判断task_wait是否可用
+ * 
+ * @return bool
+ */
+function is_main_task(): bool {}
+
+/**
+ * is_main_task的别名
+ * 
+ * @return bool
+ */
+function is_main_thread(): bool {}
 
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// 共享变量相关 ///////////////////////////////////
@@ -605,7 +626,7 @@ function call_and_free_shutdown() {}
  *
  * @return bool
  */
-function redefine(string $name, $value, bool $case_insensitive): bool {}
+function redefine(string $name, $value, bool $case_insensitive = false): bool {}
 
 /**
  * go的$call函数执行时遇到die函数或exit语句时抛出

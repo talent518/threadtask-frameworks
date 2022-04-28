@@ -8,7 +8,7 @@ class ResponseEvent {
 	
 	protected $isHeadSent = false;
 
-	public $headers = ['Content-Type'=>'text/html; charset=utf-8', 'Task-Name'=>THREAD_TASK_NAME];
+	public $headers = ['Content-Type'=>'text/html; charset=utf-8','Task-Name'=>THREAD_TASK_NAME];
 	public $isChunked = false;
 	public $isEnd = false;
 	public $isWebSocket = false;

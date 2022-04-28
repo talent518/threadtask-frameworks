@@ -1,7 +1,7 @@
 <?php
 return [
 	'class' => 'fwe\web\Application',
-	'id' => 'fwe',
+	'id' => 'web',
 	'name' => 'FWE框架',
 	'bootstrap' => [],
 	'components' => [

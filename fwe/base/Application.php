@@ -135,30 +135,35 @@ abstract class Application extends Module {
 	protected $_logFile, $_logIdxFile, $_logFormat;
 	protected $_logEvent, $_logFp;
 	
-	protected function logInit() {
+	protected function logInit(bool $isEvent = true) {
+		if(!is_main_task()) return;
+
 		$name = \Fwe::$name;
 		
 		$this->_logFile = \Fwe::getAlias("@app/runtime/{$name}.log");
 		$this->_logIdxFile = \Fwe::getAlias("@app/runtime/{$name}.idx");
 		$this->_logFormat = \Fwe::getAlias("@app/runtime/{$name}-{$this->logFormat}.log");
 		
-		$this->_logEvent = $this->_logVar->newReadEvent([$this, 'logEvent']);
-		$this->_logEvent->add();
+		if($isEvent) {
+			$this->_logEvent = $this->_logVar->newReadEvent([$this, 'logEvent']);
+			$this->_logEvent->add();
+		}
+
 		$this->_logFp = fopen($this->_logFile, 'a');
 		$this->_logIdx = (int) @file_get_contents($this->_logIdxFile);
 	}
 	
 	protected function logRead(int $n) {
-		if($n <= 0) return;
+		if($n <= 0 || !is_main_task()) return;
 
-		if(!$this->_logFp) $this->logInit();
+		if(!$this->_logFp) $this->logInit(false);
 
 		for($i=0; $i<$n; $i++) {
 			$log = $this->_logVar->shift();
 			if(!$log) continue;
 			
 			$time = date('Y-m-d H:i:s.', $log['time']) . sprintf('%06d', ($log['time'] * 1000000) % 1000000);
-			fwrite($this->_logFp, "[$time][{$log['level']}][{$log['category']}][{$log['memory']}][{$log['thread']}] {$log['message']}\n");
+			fwrite($this->_logFp, "[$time][{$log['level']}][{$log['category']}][{$log['memory']}][{$log['taskName']}] {$log['message']}\n");
 			if(isset($log['traces'])) {
 				fwrite($this->_logFp, "TRACE:\n{$log['traces']}\n");
 			}
@@ -172,8 +177,8 @@ abstract class Application extends Module {
 			if($this->_logIdx > $this->logMax) {
 				$this->_logIdx = 1;
 			}
-			file_put_contents($this->_logIdxFile, $nlog);
-			rename($this->_logFile, sprintf($this->_logFormat, $nlog));
+			file_put_contents($this->_logIdxFile, $this->_logIdx);
+			rename($this->_logFile, sprintf($this->_logFormat, $this->_logIdx));
 			$this->_logFp = fopen($this->_logFile, 'a');
 		}
 	}
@@ -183,20 +188,24 @@ abstract class Application extends Module {
 	}
 	
 	public function logEvent() {
-		$this->logRead($this->_logVar->read(128));
+		if(is_main_task()) {
+			$this->logRead($this->_logVar->read(128));
+		}
 	}
 	
 	public function logAll() {
-		$this->logRead($this->_logVar->count());
+		if(is_main_task()) {
+			$this->logRead($this->_logVar->count());
+		}
 	}
 	
 	public function log($message, int $level, string $category = 'app') {
 		if(!($level & $this->logLevel)) return;
 		
-		$time = microtime(true);
-		$memory = memory_get_usage();
-		$thread = (defined('THREAD_TASK_NAME') ? THREAD_TASK_NAME : 'main');
-		$log = compact('message', 'category', 'time', 'memory', 'thread');
+		$log = compact('message', 'category');
+		$log['time'] = microtime(true);
+		$log['memory'] = memory_get_usage();
+		$log['taskName'] = THREAD_TASK_NAME;
 		
 		switch($level & 0xff) {
 			case self::LOG_ERROR:
@@ -383,14 +392,10 @@ abstract class Application extends Module {
 			return;
 		}
 
-		// $name = (defined('THREAD_TASK_NAME') ? THREAD_TASK_NAME : 'main');
-		// echo "$name signal: $sig\n";
+		\Fwe::$app->verbose($sig, 'signal');
 
 		$this->_exitSig = $sig;
 		$this->_running = false;
-		
-		if(!defined('THREAD_TASK_NAME'))
-			task_set_run(false);
 	}
 	
 	public function stat($key, int $inc = 1) {

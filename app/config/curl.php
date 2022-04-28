@@ -1,7 +1,7 @@
 <?php
 return [
 	'class' => 'fwe\curl\Application',
-	'id' => 'fwe',
+	'id' => 'curl',
 	'name' => 'FWE框架',
-	'verbose' => (getenv("CURL_VERBOSE") ? true : false),
+	'verbose' => (getenv('CURL_VERBOSE') ? true : false),
 ];

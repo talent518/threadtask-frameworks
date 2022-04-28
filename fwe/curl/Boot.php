@@ -37,11 +37,8 @@ class Boot {
 			$this->_vars[$i] = new TsVar("__curl{$i}__", 0, null, true);
 		}
 		
-		if(defined('THREAD_TASK_NAME')) {
-			$this->_var = new TsVar('curl:' . THREAD_TASK_NAME, 0, null, true);
-		} else {
-			$this->_var = new TsVar('curl:main', 0, null, true);
-
+		$this->_var = new TsVar('curl:' . THREAD_TASK_NAME, 0, null, true);
+		if(\Fwe::$app->id === THREAD_TASK_NAME) {
 			$name = \Fwe::$name;
 			\Fwe::$config->set('__app__', $name);
 			foreach(glob(\Fwe::getAlias("@app/runtime/curl-$name-*.log")) as $filename) @unlink($filename);

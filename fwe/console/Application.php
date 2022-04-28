@@ -28,7 +28,8 @@ class Application extends \fwe\base\Application {
 	}
 	
 	public function beforeAction(Action $action, array $params = []): bool {
-		if(!defined('THREAD_TASK_NAME')) $this->logInit();
+		$this->logInit();
+
 		return parent::beforeAction($action, $params);
 	}
 	

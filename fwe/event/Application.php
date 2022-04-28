@@ -37,15 +37,6 @@ class Application extends \fwe\base\Application {
 
 		if(!$this->_running) {
 			\Fwe::$base->exit();
-			if(!defined('THREAD_TASK_NAME')) {
-				task_wait($this->_exitSig);
-
-				if($this->_sock) {
-					@socket_shutdown($this->_sock, 2);
-					@socket_close($this->_sock);
-					$this->_sock = null;
-				}
-			}
 		}
 	}
 	
@@ -58,7 +49,7 @@ class Application extends \fwe\base\Application {
 		ob_implicit_flush(false);
 		debug_print_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
 		$trace = ob_get_clean();
-		printf("[%s] %s(%d): %s\n%s", defined('THREAD_TASK_NAME') ? THREAD_TASK_NAME : 'main', $msg, $err, socket_strerror($err), $trace);
+		printf("[%s] %s(%d): %s\n%s", THREAD_TASK_NAME, $msg, $err, socket_strerror($err), $trace);
 		
 		if($isExit) exit; else return true;
 	}

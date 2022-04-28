@@ -31,7 +31,9 @@ class ServeController extends Controller {
 	 * @param string $route
 	 */
 	public function actionIndex(string $name = 'web', ?int $maxThreads = null, int $backlog = null, ?int $logLevel = null, ?int $traceLevel = null, ?int $logMax = null, ?string $logFormat = null) {
+		redefine('THREAD_TASK_NAME', $name);
 		\Fwe::$name = $name;
+		\Fwe::$names = [];
 		$config = \Fwe::$config->getOrSet(\Fwe::$name, function () use($maxThreads, $backlog, $logLevel, $traceLevel, $logMax, $logFormat) {
 			$cfg = include \Fwe::getAlias('@app/config/' . \Fwe::$name . '.php');
 			if($maxThreads !== null) $cfg['maxThreads'] = $maxThreads;
@@ -42,10 +44,9 @@ class ServeController extends Controller {
 			if($logFormat !== null) $cfg['logFormat'] = $logFormat;
 			return $cfg;
 		});
-		$app = \Fwe::$app;
+		\Fwe::$app->logAll();
 		$ret = \Fwe::createObject($config)->boot();
-		$app->logAll();
-		unset($config, $app);
+		unset($config);
 		if($ret) {
 			$pidFile = \Fwe::getAlias('@app/runtime/' . $name . '.pid');
 			$pidPath = dirname($pidFile);

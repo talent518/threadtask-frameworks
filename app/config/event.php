@@ -1,6 +1,6 @@
 <?php
 return [
 	'class' => 'fwe\event\Application',
-	'id' => 'fwe',
+	'id' => 'event',
 	'name' => 'FWE框架'
 ];

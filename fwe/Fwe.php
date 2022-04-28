@@ -318,13 +318,8 @@ abstract class Fwe {
 	}
 	
 	public static function boot() {
-		if(defined('THREAD_TASK_NAME')) {
-			static::$names = explode(':', THREAD_TASK_NAME);
-			static::$name = array_shift(static::$names);
-		} else {
-			static::$name = 'main';
-			static::$names = [];
-		}
+		static::$names = explode(':', THREAD_TASK_NAME);
+		static::$name = array_shift(static::$names);
 
 		static::$base = new EventBase();
 		
@@ -332,7 +327,7 @@ abstract class Fwe {
 			return include static::getAlias('@app/config/' . static::$name . '.php');
 		}))->boot();
 		
-		if(!defined('THREAD_TASK_NAME')) {
+		if(is_main_task()) {
 			register_shutdown_function(function($app) {
 				task_wait($app->exitSig());
 				$app->logAll();
