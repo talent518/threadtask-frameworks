@@ -31,11 +31,6 @@ class MySQLConnection extends AsyncConnection {
 	protected $_mysqli;
 	
 	/**
-	 * @var float
-	 */
-	protected $_time;
-	
-	/**
 	 * @var bool
 	 */
 	protected $_isMaster;
@@ -54,6 +49,61 @@ class MySQLConnection extends AsyncConnection {
 		$this->_isMaster = $isMaster;
 		
 		$this->open();
+	}
+	
+	
+	
+	/**
+	 * @return string
+	 */
+	public function getHost() {
+		return $this->_host;
+	}
+	
+	/**
+	 * @return number
+	 */
+	public function getPort() {
+		return $this->_port;
+	}
+	
+	/**
+	 * @return string
+	 */
+	public function getUsername() {
+		return $this->_username;
+	}
+	
+	/**
+	 * @return string
+	 */
+	public function getPassword() {
+		return $this->_password;
+	}
+	
+	/**
+	 * @return string
+	 */
+	public function getDatabase() {
+		return $this->_database;
+	}
+	
+	/**
+	 * @return \fwe\db\?string
+	 */
+	public function getSocket() {
+		return $this->_socket;
+	}
+	
+	/**
+	 * @return string
+	 */
+	public function getCharset() {
+		return $this->_charset;
+	}
+	
+	public function isMaster() {
+		return $this->_isMaster;
 	}
 	
 	public function open() {
@@ -78,14 +128,6 @@ class MySQLConnection extends AsyncConnection {
 	
 	public function rollback() {
 		return $this->_mysqli->rollback();
-	}
-
-	public function getTime() {
-		return $this->_time;
-	}
-	
-	public function isMaster() {
-		return $this->_isMaster;
 	}
 	
 	public function getAffectedRows() {
@@ -186,8 +228,6 @@ class MySQLConnection extends AsyncConnection {
 	}
 	
 	/**
-	 * @see MySQLQueryEvent::__construct()
-	 * 
 	 * @param string $sql
 	 * @param array $options
 	 * @return \fwe\db\MySQLConnection
@@ -202,6 +242,9 @@ class MySQLConnection extends AsyncConnection {
 	}
 	
 	/**
+	 * @param string $sql
+	 * @param array $param
+	 * @param array $options
 	 * @return \fwe\db\MySQLConnection
 	 */
 	public function asyncPrepare(string $sql, array $param, array $options = []) {

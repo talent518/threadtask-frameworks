@@ -50,6 +50,8 @@ abstract class Application extends Module {
 		]);
 		
 		\Fwe::debug(get_called_class(), $this->id, false);
+		
+		$this->setBasePath('@app');
 	}
 	
 	/**
@@ -120,8 +122,17 @@ abstract class Application extends Module {
 			default:
 				return;
 		}
-		if(!strncmp($file, ROOT, $n = strlen(ROOT))) {
-			$file = substr($file, $n + 1);
+		$rootDir = ROOT . '/';
+		$rootLen = strlen($rootDir);
+		if(!strncmp($file, $rootDir, $rootLen)) {
+			$file = substr($file, $rootLen);
+		}
+		if($rootLen > 10) {
+			$message = str_replace(ROOT . '/', '', $message);
+		}
+		if($level & (static::LOG_ERROR|static::LOG_WARN)) {
+			$type = ($level === static::LOG_ERROR) ? 'Error' : 'Warning';
+			echo "$type: $message in $file:$line\n";
 		}
 		$this->log("$message in $file:$line", $level | static::LOG_SKIP, 'handleError');
 	}
@@ -227,6 +238,9 @@ abstract class Application extends Module {
 				$log['level'] = 'unknown';
 				break;
 		}
+		
+		$rootDir = ROOT . '/';
+		$rootLen = strlen($rootDir);
 
 		if($message instanceof \Throwable) {
 			$log['message'] =  get_class($message) . ': ' . $message->getMessage();
@@ -234,8 +248,8 @@ abstract class Application extends Module {
 			
 		trace:
 			foreach($message->getTrace() as $trace) {
-				if(isset($trace['file'], $trace['line']) && !strncmp($trace['file'], ROOT . '/', $n = strlen(ROOT) + 1)) {
-					$file = substr($trace['file'], $n);
+				if(isset($trace['file'], $trace['line']) && !strncmp($trace['file'], $rootDir, $rootLen)) {
+					$file = substr($trace['file'], $rootLen);
 					$traces[] = "  {$trace['class']}{$trace['type']}{$trace['function']} in {$file}:{$trace['line']}";
 				}
 			}
@@ -252,8 +266,8 @@ abstract class Application extends Module {
 				array_shift($ts);
 			}
 			foreach ($ts as $trace) {
-				if (isset($trace['file'], $trace['line']) && !strncmp($trace['file'], ROOT . '/', $n = strlen(ROOT) + 1)) {
-					$file = substr($trace['file'], $n);
+				if (isset($trace['file'], $trace['line']) && !strncmp($trace['file'], $rootDir, $rootLen)) {
+					$file = substr($trace['file'], $rootLen);
 					$traces[] = "  {$trace['class']}{$trace['type']}{$trace['function']} in {$file}:{$trace['line']}";
 					if (++$count >= $this->traceLevel) {
 						break;

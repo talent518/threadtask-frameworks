@@ -4,6 +4,9 @@ namespace app\models\forms;
 use fwe\base\Model;
 use fwe\curl\Request;
 
+/**
+ * @method static Demo create(array $params = [])
+ */
 class Demo extends Model {
 	public $email;
 	public $reply;

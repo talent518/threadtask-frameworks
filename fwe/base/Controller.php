@@ -6,6 +6,10 @@ use fwe\traits\MethodProperty;
 /**
  * @author abao
  * @property-read string $route 控制器的路由
+ * @property string $basePath
+ * @property string $viewPath
+ * @property string $layoutView
+ * @property callable $layoutCall
  */
 class Controller {
 	use MethodProperty;
@@ -151,6 +155,106 @@ class Controller {
 			}
 		} else {
 			throw new RouteException($id, "没有发现操作\"$id\"");
+		}
+	}
+	
+	protected $viewExtension = 'php';
+	
+	public function getViewFile(string $view) {
+		if(!strncmp($view, '@', 1)) {
+			$file = \Fwe::getAlias($view);
+		} elseif(!strncmp($view, '//', 2)) {
+			$file = \Fwe::$app->getViewPath() . '/' . ltrim($view, '/');
+		} elseif(!strncmp($view, '/', 1)) {
+			$file = $this->module->getViewPath() . '/' . ltrim($view, '/');
+		} else {
+			$file = $this->module->getViewPath() . "/{$this->id}/$view";
+		}
+		
+		if(pathinfo($file, PATHINFO_EXTENSION) !== '') {
+			return $file;
+		} else {
+			return "{$file}.{$this->viewExtension}";
+		}
+	}
+	
+	public function render(string $view, array $params = [], ?callable $ok = null) {
+		$file = $this->getViewFile($view);
+		
+		return $this->renderContent($this->renderFile($file, $params), $ok);
+	}
+	
+	private $_layoutView, $_layoutCall;
+	
+	public function getLayoutView() {
+		return $this->_layoutView ?: $this->module->getLayoutView();
+	}
+	
+	public function setLayoutView(string $view) {
+		$this->_layoutView = $view;
+	}
+	
+	public function getLayoutCall() {
+		return $this->_layoutCall ?: $this->module->getLayoutCall();
+	}
+	
+	public function setLayoutCall(callable $call) {
+		$this->_layoutCall = $call;
+	}
+	
+	public function getLayoutFile(): ?string {
+		$layout = $this->getLayoutView();
+		if($layout) {
+			return $this->getViewFile($layout);
+		}
+	}
+	
+	public function renderContent(string $content, ?callable $ok = null): ?string {
+		$file = $this->getLayoutFile();
+		if($file) {
+			$call = $this->getLayoutCall();
+			if($call) {
+				if($ok === null) {
+					throw new Exception('Layout中存在需要异步获取数据时：$ok参数不能为空');
+				}
+
+				call_user_func(
+					$call,
+					function(array $params) use($ok, $content, $file) {
+						if(array_key_exists('content', $params)) {
+							\Fwe::$app->warn('Overflow params of content key', 'view');
+						}
+						$params['content'] = $content;
+						$ok($this->renderFile($file, $params));
+					}
+				);
+			} elseif($ok) {
+				$ok($this->renderFile($file, ['content'=>$content]));
+			} else {
+				return $this->renderFile($file, ['content'=>$content]);
+			}
+		} elseif($ok) {
+			$ok($content);
+		} else {
+			return $content;
+		}
+	}
+	
+	public function renderFile(string $__file__, array $__params__ = []): string {
+		$__obLevel__ = ob_get_level();
+		ob_start();
+		ob_implicit_flush(false);
+		extract($__params__, EXTR_OVERWRITE);
+		try {
+			require $__file__;
+			return ob_get_clean();
+		} catch (\Throwable $e) {
+			while (ob_get_level() > $__obLevel__) {
+				if (!@ob_end_clean()) {
+					ob_clean();
+				}
+			}
+			throw $e;
 		}
 	}
 }

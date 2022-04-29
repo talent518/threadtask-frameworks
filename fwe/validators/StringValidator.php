@@ -3,40 +3,30 @@ namespace fwe\validators;
 
 use fwe\base\Model;
 
-class MatchValidator extends IValidator {
-	public $pattern;
+class StringValidator extends IValidator {
 	public $min;
 	public $tooSmall;
 	public $max;
 	public $tooBig;
-	public $isNumeric = false;
+	public $len;
+	public $notLen;
+	public $charset;
 	
 	public function init() {
-		if(!$this->pattern) {
-			$class = get_class($this);
-			trigger_error("{$class}的pattern属性不能为空", E_USER_ERROR);
-		}
-		
 		if($this->message === null) {
 			$this->message = '{attribute} 的值无效';
 		}
 		
-		if($this->isNumeric) {
-			if($this->tooSmall === null) {
-				$this->tooSmall = '{attribute} 的值不能小于 {min}';
-			}
-			
-			if($this->tooBig === null) {
-				$this->tooBig = '{attribute} 的值不能大于 {max}';
-			}
-		} else {
-			if($this->tooSmall === null) {
-				$this->tooSmall = '{attribute} 长度不能小于 {min}';
-			}
-			
-			if($this->tooBig === null) {
-				$this->tooBig = '{attribute} 长度不能大于 {max}';
-			}
+		if($this->tooSmall === null) {
+			$this->tooSmall = '{attribute} 长度不能小于 {min}';
+		}
+		
+		if($this->tooBig === null) {
+			$this->tooBig = '{attribute} 长度不能大于 {max}';
+		}
+		
+		if($this->notLen === null) {
+			$this->notLen = '{attribute} 长度不等于 {len}';
 		}
 	}
 	
@@ -52,6 +42,7 @@ class MatchValidator extends IValidator {
 				$error = strtr($this->_message, [
 					'{attribute}' => $label,
 					'{min}' => $this->min,
+					'{len}' => $this->len,
 					'{max}' => $this->max,
 				]);
 				if($isPerOne) {
@@ -74,8 +65,14 @@ class MatchValidator extends IValidator {
 			return false;
 		}
 		
-		if($this->isNumeric) {
-			$value = (float) $value;
+		if($this->charset) {
+			if(function_exists('mb_strlen')) {
+				$value = mb_strlen((string) $value, $this->charset);
+			} elseif(function_exists('iconv_strlen')) {
+				$value = iconv_strlen((string) $value, $this->charset);
+			} else {
+				$value = strlen((string) $value);
+			}
 		} else {
 			$value = strlen((string) $value);
 		}
@@ -87,6 +84,11 @@ class MatchValidator extends IValidator {
 		
 		if($this->max !== null && $value > $this->max) {
 			$this->_message = $this->tooBig;
+			return false;
+		}
+		
+		if($this->len !== null && $value === $this->len) {
+			$this->_message = $this->notLen;
 			return false;
 		}
 		

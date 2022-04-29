@@ -20,7 +20,7 @@ class ModelController extends Controller {
 	 */
 	public function actionIndex(array $__params__) {
 		$this->formatColor("anonymous scene validator\n", static::FG_RED);
-		$model = new FormDemo();
+		$model = FormDemo::create();
 		$model->setScene('anonymous');
 		$model->validate(function(int $n) use($model, $__params__) {
 			if ($n) {
@@ -64,7 +64,7 @@ class ModelController extends Controller {
 
 		/////////////////////////////////////
 
-		$model = new FormDemo();
+		$model = FormDemo::create();
 		$model->setScene('realname');
 		$model->validate(function($n) use($model, $__params__) {
 			ob_start();
@@ -103,7 +103,7 @@ class ModelController extends Controller {
 	public function actionMysql(array $__params__, ?int $uid = null, string $username = '', string $password = '', string $email = '', string $error = '') {
 		$db = db()->pop();
 
-		$model = new MySQLDemo();
+		$model = MySQLDemo::create();
 		$model->scene = 'new';
 		$model->attributes = compact('uid', 'username', 'password', 'email', 'error');
 		$this->dump($model->attributes);

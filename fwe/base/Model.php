@@ -16,6 +16,10 @@ use fwe\traits\MethodProperty;
 abstract class Model {
 	use MethodProperty;
 	
+	public static function create(array $params = []) {
+		return \Fwe::createObject(get_called_class(), $params);
+	}
+	
 	public function init() {
 		\Fwe::debug(get_called_class(), '', false);
 	}

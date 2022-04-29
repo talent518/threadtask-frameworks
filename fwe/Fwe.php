@@ -264,9 +264,20 @@ abstract class Fwe {
 			} elseif($param->isDefaultValueAvailable()) {
 				$args[] = $param->getDefaultValue();
 			} elseif(! $param->isOptional()) {
-				if($funcName === null)
-					$funcName = $reflection->getName();
-				throw new Exception("当调用 \"$funcName()\" 时 缺少必选参数 \"$name\"。");
+				if(PHP_VERSION_ID >= 80000) {
+					$class = $param->getType();
+					$isClass = $class !== null && ! $class->isBuiltin();
+				} else {
+					$class = $param->getClass();
+					$isClass = $class !== null;
+				}
+				if($isClass) {
+					$args[] = static::createObject((string) $class);
+				} else {
+					if($funcName === null)
+						$funcName = $reflection->getName();
+					throw new Exception("当调用 \"$funcName()\" 时 缺少必选参数 \"$name\"。");
+				}
 			}
 		}
 
@@ -323,7 +334,7 @@ abstract class Fwe {
 
 		static::$base = new EventBase();
 		
-		static::createObject(static::$config->getOrSet(static::$name, function () {
+		$ret = static::createObject(static::$config->getOrSet(static::$name, function () {
 			return include static::getAlias('@app/config/' . static::$name . '.php');
 		}))->boot();
 		
@@ -337,6 +348,8 @@ abstract class Fwe {
 		static::$base->dispatch();
 		
 		call_and_free_shutdown();
+		
+		return $ret;
 	}
 }
 

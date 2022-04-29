@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>代码生成器</title>
+
+    <script type="text/javascript" src="jquery.min.js"></script>
+    <script type="text/javascript" src="diff_match_patch.min.js"></script>
+
+    <style type="text/css">
+    	*{box-sizing:border-box;}
+    	body{font-size:14px;line-height:30px;}
+    	h3{margin:0 0 10px;}
+    	input,button,select{margin-right:10px;display:inline-block;}
+    	input[type=text],select{min-width:200px;height:30px;line-height:28px;border:1px #999 solid;border-radius:3px;outline:none 0;background:white;}
+    	input[type=button],input[type=submit],button{padding:0 10px;height:30px;line-height:28px;border:1px #999 solid;border-radius:3px;outline:none 0;background:#eee;cursor:pointer;}
+    	input[type=text]:focus,select:focus,input[type=button]:focus,input[type=submit]:focus,button:focus-visible{border-color:#333;}
+    	input[type=radio],input[type=checkbox]{margin:7px;width:16px;height:16px;border-radius:3px;}
+    	label{display:inline-block;user-select:none;text-align:right;}
+    	label.chk{cursor:pointer;}
+    	label.chk:after{content:'';clear:both;}
+    	label.chk>*{float:left;}
+    	input.error,button.error,select.error{border-color:red;}
+    	span.error{color:red;}
+    	span.success{color:green;}
+    	div.row{padding:0 0 10px;}
+    	form.model label:first-child{width:6em;}
+    	.diff{line-height:20px;}
+    	.diff ins{background:green !important;text-decoration:none;color:white;}
+    	.diff del{background:red !important;text-decoration:none;color:white;}
+    </style>
+</head>
+<body>
+
+<form id="j-model" class="model">
+	<h3>MySQL表模型</h3>
+	<div class="row">
+		<label>数据库连接：</label>
+		<input id="j-db" type="text" value="db" />
+	</div>
+	<div class="row">
+		<label>表名：</label>
+		<select id="j-table"><option value="">请选择</option></select>
+		<button id="j-table-btn" type="button">刷新</button>
+		<label class="chk"><input id="j-isSplit" type="checkbox" /> 是否把表名中非字母和数字的字符替换为\</label>
+	</div>
+	<div class="row">
+		<label>命名空间：</label>
+		<input id="j-namespace" type="text" value="" />
+	</div>
+	<div class="row">
+		<label>模型类名：</label>
+		<input id="j-class" type="text" value="" />
+	</div>
+	<div class="row">
+		<label>模型基类：</label>
+		<input id="j-base" type="text" value="" />
+	</div>
+	<div class="row">
+		<label></label>
+		<label class="chk"><input id="j-isComment" type="checkbox" /> 是否使用字段注释作为标签</label>
+	</div>
+	<div class="row">
+		<label></label>
+		<button type="submit">立即生成</button>
+		<span id="j-message"></span>
+		<label class="chk"><input id="j-isOver" type="checkbox" /> 是否覆盖</label>
+	</div>
+	<pre id="j-diff" class="diff"></pre>
+</form>
+
+<script type="text/javascript">
+(function($) {
+	const genURL = '/generator/';
+	const storage = (function() {
+	let json;
+		try {
+			json = JSON.parse(localStorage.getItem('fwe-generator'));
+		} catch(e) {}
+		return $.extend({
+			db: 'db',
+			table: '',
+			namespace: 'app\\models',
+			className: '',
+			isSplit: false,
+			baseClass: 'fwe\\db\\MySQLModel',
+			isComment: false
+		}, json);
+	})();
+	
+	console.log(storage);
+	
+	const dbElem = $('#j-db').val(storage.db).change(function() {
+		storage.db = $.trim($(this).val());
+		isOverElem.attr('checked', false);
+	});
+	const tableElem = $('#j-table').change(function() {
+		storage.table = $.trim($(this).val());
+		
+		const lst = storage.table.split(/[^a-z0-9]+/);
+		const lst2 = [];
+		$.each(lst, function(i,v) {
+			lst2.push(v.charAt(0).toUpperCase() + v.substr(1).toLowerCase());
+		});
+		storage.className = lst2.join(storage.isSplit ? '\\' : '');
+		classElem.val(storage.className);
+		isOverElem.attr('checked', false);
+	});
+	const tableBtn = $('#j-table-btn').click(function() {
+		$.getJSON(genURL + 'tables', {db: dbElem.val()}, function(list) {
+			tableElem.empty();
+			$('<option />').val('').text('请选择').appendTo(tableElem);
+			$.each(list, function(i, val) {
+				$('<option />').val(val).text(val).attr('selected', val === storage.table).appendTo(tableElem);
+			});
+		});
+	}).click();
+	const isSplitElem = $('#j-isSplit').change(function() {
+		storage.isSplit = $(this).is(':checked');
+	}).attr('checked', storage.isSplit);
+	const namespaceElem = $('#j-namespace').change(function() {
+		storage.namespace = $.trim($(this).val());
+		isOverElem.attr('checked', false);
+	}).val(storage.namespace);
+	const classElem = $('#j-class').change(function() {
+		storage.className = $.trim($(this).val());
+		isOverElem.attr('checked', false);
+	}).val(storage.className);
+	const baseElem = $('#j-base').change(function() {
+		storage.baseClass = $.trim($(this).val());
+		isOverElem.attr('checked', false);
+	}).val(storage.baseClass);
+	const isCommentElem = $('#j-isComment').change(function() {
+		storage.isComment = $(this).is(':checked');
+		isOverElem.attr('checked', false);
+	}).attr('checked', storage.isComment);
+	const isOverElem = $('#j-isOver').attr('checked', false);
+	$('#j-model').submit(function() {
+		if(storage.db.length) {
+			dbElem.removeClass('error');
+		} else {
+			dbElem.addClass('error');
+		}
+		if(storage.table.length) {
+			tableElem.removeClass('error');
+		} else {
+			tableElem.addClass('error');
+		}
+		if(storage.namespace.length) {
+			namespaceElem.removeClass('error');
+		} else {
+			namespaceElem.addClass('error');
+		}
+		if(storage.className.length) {
+			classElem.removeClass('error');
+		} else {
+			classElem.addClass('error');
+		}
+		if(storage.baseClass.length) {
+			baseElem.removeClass('error');
+		} else {
+			baseElem.addClass('error');
+		}
+		
+		$.post(
+			genURL + 'model',
+			{
+				db: storage.db,
+				table: storage.table,
+				'class': (storage.namespace + '\\' + storage.className),
+				base: storage.baseClass,
+				isComment: storage.isComment ? 1 : 0,
+				isOver: isOverElem.is(':checked') ? 1 : 0,
+			},
+			function(json) {
+				isOverElem.attr('checked', false);
+				$('#j-message').removeClass('error success').addClass(json.status ? 'success' : 'error').html(json.message);
+				if(!json.status && json.source && json.target) {
+					const dmp = new diff_match_patch();
+					dmp.Diff_Timeout = 10;
+					dmp.Diff_EditCost = 4;
+					
+					const d = dmp.diff_main(json.source, json.target);
+					
+					dmp.diff_cleanupSemantic(d);
+					dmp.diff_cleanupEfficiency(d);
+					
+					$('#j-diff').html(dmp.diff_prettyHtml(d));
+				} else if(json.status && json.target) {
+					$('#j-diff').html(json.target);
+				} else {
+					$('#j-diff').empty();
+				}
+			},
+			'json'
+		);
+		
+		
+		return false;
+	});
+
+
+	$(window).unload(function() {
+		localStorage.setItem('fwe-generator', JSON.stringify(storage));
+	});
+})(jQuery);
+</script>
+</body>
+</html>

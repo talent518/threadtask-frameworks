@@ -15,4 +15,7 @@ return [
 		'/favicon.ico' => '@app/static/favicon.ico',
 		'/static/' => '@app/static/',
 	],
+	'controllerMap' => [
+		'generator' => 'fwe\web\GeneratorController', // 需要安全控制的重构该类即可
+	],
 ];

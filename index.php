@@ -15,4 +15,10 @@ defined('APP_PATH') or define('APP_PATH', ROOT . '/app');
 include_once ROOT . '/fwe/Fwe.php';
 Fwe::setAlias('@app', APP_PATH);
 
-Fwe::boot();
+$ret = Fwe::boot();
+
+if(is_scalar($ret)) {
+	is_bool($ret) or die($ret);
+} else if($ret !== null) {
+	var_export($ret);
+}

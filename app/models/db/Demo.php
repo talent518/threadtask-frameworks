@@ -3,6 +3,9 @@ namespace app\models\db;
 
 use fwe\db\MySQLModel;
 
+/**
+ * @method static Demo create(array $params = [])
+ */
 class Demo extends MySQLModel {
 	public static function tableName() {
 		return 'user';

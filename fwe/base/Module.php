@@ -5,6 +5,10 @@ use fwe\traits\MethodProperty;
 
 /**
  * @property-read string $route 控制器的路由
+ * @property string $basePath
+ * @property string $viewPath
+ * @property string $layoutView
+ * @property callable $layoutCall
  */
 class Module {
 	use MethodProperty;
@@ -219,5 +223,58 @@ class Module {
 		} while(! $controller && $route !== '');
 		
 		throw new RouteException($_route, "没有发现路由\"$_route\"");
+	}
+	
+	private $_viewPath, $_basePath;
+	
+	public function getBasePath() {
+		if ($this->_basePath === null) {
+			if($this->module) {
+				$this->_basePath = $this->module->getBasePath() . "/{$this->id}";
+			} else {
+				$class = new \ReflectionClass($this);
+				$this->_basePath = dirname($class->getFileName());
+			}
+		}
+		
+		return $this->_basePath;
+	}
+	
+	public function setBasePath(string $path) {
+		$this->_basePath = \Fwe::getAlias($path);
+	}
+
+	public function getViewPath(): string {
+		if ($this->_viewPath === null) {
+			if($this->module) {
+				$this->_viewPath = $this->module->getViewPath() . "/{$this->id}";
+			} else {
+				$this->_viewPath = $this->getBasePath() . '/views';
+			}
+		}
+
+		return $this->_viewPath;
+	}
+	
+	public function setViewPath(string $path) {
+		$this->_viewPath = \Fwe::getAlias($path);
+	}
+	
+	private $_layoutView, $_layoutCall;
+	
+	public function getLayoutView() {
+		return $this->_layoutView ?: ($this->module ? $this->module->getLayoutView() . "/{$this->id}" : null);
+	}
+	
+	public function setLayoutView(string $view) {
+		$this->_layoutView = $view;
+	}
+	
+	public function getLayoutCall() {
+		return $this->_layoutCall ?: ($this->module ? $this->module->getLayoutCall() : null);
+	}
+	
+	public function setLayoutCall(callable $call) {
+		$this->_layoutCall = $call;
 	}
 }

@@ -88,4 +88,8 @@ class FtpResponse extends IResponse {
 	public function headerHandler($ch, $header) {
 	}
 
+	public function completed() {
+	}
+
+
 }

@@ -62,19 +62,19 @@ class HelpController extends Controller {
 			foreach($reflection->getParameters() as $param) { /* @var $param \ReflectionParameter */
 				if(PHP_VERSION_ID >= 80000) {
 					$class = $param->getType();
-					$isClass = $class !== null && ! $param->getType()->isBuiltin();
+					$isClass = $class !== null && ! $class->isBuiltin();
 				} else {
 					$class = $param->getClass();
 					$isClass = $class !== null;
 				}
 				if($isClass) {
-					echo $class->getName(), 'sdf';
+					echo (string) $class;
 				} elseif($param->isArray()) {
 					echo 'array';
 				} elseif($param->isCallable()) {
 					echo 'callable';
 				} else {
-					echo $param->getType();
+					echo (string) $param->getType();
 				}
 				echo ' ';
 				if($param->isPassedByReference()) {

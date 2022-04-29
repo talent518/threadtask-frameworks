@@ -27,7 +27,20 @@ class Validator {
 				'range' => ['1', '0'],
 			],
 			'in' => InValidator::class,
+			'string' => StringValidator::class,
 			'match' => MatchValidator::class,
+			'date' => [
+				'class' => MatchValidator::class,
+				'pattern' => '/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/',
+			],
+			'time' => [
+				'class' => MatchValidator::class,
+				'pattern' => '/^[0-2][0-9]:[0-5][0-9]:[0-5][0-9]$/',
+			],
+			'datetime' => [
+				'class' => MatchValidator::class,
+				'pattern' => '/^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-2][0-9]:[0-5][0-9]:[0-5][0-9]$/',
+			],
 			'double' => [
 				'class' => MatchValidator::class,
 				'pattern' => '/^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$/',

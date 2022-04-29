@@ -14,6 +14,6 @@ return [
 		],
 	],
 	'modules' => [
-		'test' => 'app\test\Module',
+		'test' => 'app\modules\test\Module',
 	],
 ];
