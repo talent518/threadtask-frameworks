@@ -1,73 +1,142 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>代码生成器</title>
-
-    <script type="text/javascript" src="jquery.min.js"></script>
-    <script type="text/javascript" src="diff_match_patch.min.js"></script>
-
-    <style type="text/css">
-    	*{box-sizing:border-box;}
-    	body{font-size:14px;line-height:30px;}
-    	h3{margin:0 0 10px;}
-    	input,button,select{margin-right:10px;display:inline-block;}
-    	input[type=text],select{min-width:200px;height:30px;line-height:28px;border:1px #999 solid;border-radius:3px;outline:none 0;background:white;}
-    	input[type=button],input[type=submit],button{padding:0 10px;height:30px;line-height:28px;border:1px #999 solid;border-radius:3px;outline:none 0;background:#eee;cursor:pointer;}
-    	input[type=text]:focus,select:focus,input[type=button]:focus,input[type=submit]:focus,button:focus-visible{border-color:#333;}
-    	input[type=radio],input[type=checkbox]{margin:7px;width:16px;height:16px;border-radius:3px;}
-    	label{display:inline-block;user-select:none;text-align:right;}
-    	label.chk{cursor:pointer;}
-    	label.chk:after{content:'';clear:both;}
-    	label.chk>*{float:left;}
-    	input.error,button.error,select.error{border-color:red;}
-    	span.error{color:red;}
-    	span.success{color:green;}
-    	div.row{padding:0 0 10px;}
-    	form.model label:first-child{width:6em;}
-    	.diff{line-height:20px;}
-    	.diff ins{background:green !important;text-decoration:none;color:white;}
-    	.diff del{background:red !important;text-decoration:none;color:white;}
-    </style>
+	<meta charset="UTF-8">
+	<title>代码生成器</title>
+	
+	<script type="text/javascript" src="jquery.min.js"></script>
+	<script type="text/javascript" src="diff_match_patch.min.js"></script>
+	
+	<style type="text/css">
+		*{box-sizing:border-box;}
+		body{font-size:14px;line-height:30px;}
+		h3{margin:0 0 10px;}
+		input,button,select{margin-right:10px;display:inline-block;}
+		input[type=text],select{min-width:200px;height:30px;line-height:28px;border:1px #999 solid;border-radius:3px;outline:none 0;background:white;}
+		input[type=button],input[type=submit],button{padding:0 10px;height:30px;line-height:28px;border:1px #999 solid;border-radius:3px;outline:none 0;background:#eee;cursor:pointer;}
+		input[type=text]:focus,select:focus,input[type=button]:focus,input[type=submit]:focus,button:focus-visible{border-color:#333;}
+		input[type=radio],input[type=checkbox]{margin:7px;width:16px;height:16px;border-radius:3px;}
+		label{display:inline-block;user-select:none;text-align:right;}
+		label.chk{cursor:pointer;}
+		label.chk:after{content:'';clear:both;}
+		label.chk > *{float:left;}
+		input.error,button.error,select.error{border-color:red;}
+		div.error{color:red;}
+		div.success{color:green;}
+		div.row{padding:0 0 10px;}
+		form label:first-child{width:6em;}
+		.column2{overflow:hidden;border:1px #999 solid;}
+		.column2:after{content:'';clear:both;}
+		.column2 > form{margin:0 0 -10000px;padding:10px 10px 10000px;width:50%;}
+		.column2 > form.left{float:left;border-right:1px #999 solid;}
+		.column2 > form.right{float:right;}
+		.diff{line-height:20px;}
+		.diff ins{background:green !important;text-decoration:none;color:white;}
+		.diff del{background:red !important;text-decoration:none;color:white;}
+		
+		.loading {
+			display: none;
+			position: absolute;
+			margin: auto;
+			top: 0; bottom: 0; left: 0; right: 0;
+			width: 6.250em; height: 6.250em;
+			animation: rotate 2.4s linear infinite;
+		}
+		.loading > .white {
+			top: 0; bottom: 0; left: 0; right: 0; 
+			background: white; 
+			animation: flash 2.4s linear infinite;
+			opacity: 0;
+		}
+		.loading > .dot {
+			position: absolute;
+			margin: auto;
+			width: 2.4em; height: 2.4em;
+			border-radius: 100%;
+			transition: all 1s ease;
+		}
+		.loading > .dot:nth-child(2) { top: 0; bottom: 0; left: 0; background: #FF4444; animation: dotsY 2.4s linear infinite; }
+		.loading > .dot:nth-child(3) { left: 0; right: 0; top: 0; background: #FFBB33; animation: dotsX 2.4s linear infinite; }
+		.loading > .dot:nth-child(4) { top: 0; bottom: 0; right: 0; background: #99CC00; animation: dotsY 2.4s linear infinite; }
+		.loading > .dot:nth-child(5) { left: 0; right: 0; bottom: 0; background: #33B5E5; animation: dotsX 2.4s linear infinite; }
+		
+		@keyframes rotate {
+		  0% { transform: rotate( 0 ); }
+		  10% { width: 6.250em; height: 6.250em; }
+		  66% { width: 2.4em; height: 2.4em; }
+		  100%{ transform: rotate(360deg); width: 6.250em; height: 6.250em; }
+		}
+		
+		@keyframes dotsY {
+		  66% { opacity: .1; width: 2.4em; }
+		  77%{ opacity: 1; width: 0; }
+		}
+		@keyframes dotsX {
+		  66% { opacity: .1; height: 2.4em;}
+		  77%{ opacity: 1; height: 0; }
+		}
+		
+		@keyframes flash {
+		  33% { opacity: 0; border-radius: 0%; }
+		  55%{ opacity: .6; border-radius: 100%; }
+		  66%{ opacity: 0; }
+		}
+	</style>
 </head>
 <body>
-
-<form id="j-model" class="model">
-	<h3>MySQL表模型</h3>
-	<div class="row">
-		<label>数据库连接：</label>
-		<input id="j-db" type="text" value="db" />
-	</div>
-	<div class="row">
-		<label>表名：</label>
-		<select id="j-table"><option value="">请选择</option></select>
-		<button id="j-table-btn" type="button">刷新</button>
-		<label class="chk"><input id="j-isSplit" type="checkbox" /> 是否把表名中非字母和数字的字符替换为\</label>
-	</div>
-	<div class="row">
-		<label>命名空间：</label>
-		<input id="j-namespace" type="text" value="" />
-	</div>
-	<div class="row">
-		<label>模型类名：</label>
-		<input id="j-class" type="text" value="" />
-	</div>
-	<div class="row">
-		<label>模型基类：</label>
-		<input id="j-base" type="text" value="" />
-	</div>
-	<div class="row">
-		<label></label>
-		<label class="chk"><input id="j-isComment" type="checkbox" /> 是否使用字段注释作为标签</label>
-	</div>
-	<div class="row">
-		<label></label>
-		<button type="submit">立即生成</button>
-		<span id="j-message"></span>
-		<label class="chk"><input id="j-isOver" type="checkbox" /> 是否覆盖</label>
-	</div>
-	<pre id="j-diff" class="diff"></pre>
-</form>
+<div id="j-loading" class="loading">
+    <div class="dot white"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+</div>
+<div class="column2">
+	<form id="j-model-form" class="left">
+		<h3>MySQL表模型</h3>
+		<div class="row">
+			<label>数据库连接：</label>
+			<input id="j-db" type="text" value="db" />
+		</div>
+		<div class="row">
+			<label>表名：</label>
+			<select id="j-table"><option value="">请选择</option></select>
+			<button id="j-table-btn" type="button">刷新</button>
+			<label class="chk"><input id="j-isSplit" type="checkbox" /> 是否把表名中非字母和数字的字符替换为\</label>
+		</div>
+		<div class="row">
+			<label>命名空间：</label>
+			<input id="j-namespace" type="text" value="" />
+		</div>
+		<div class="row">
+			<label>模型类名：</label>
+			<input id="j-class" type="text" value="" />
+		</div>
+		<div class="row">
+			<label>模型基类：</label>
+			<input id="j-base" type="text" value="" />
+		</div>
+		<div class="row">
+			<label></label>
+			<label class="chk"><input id="j-isComment" type="checkbox" /> 是否使用字段注释作为标签</label>
+		</div>
+		<div class="row">
+			<label></label>
+			<button type="submit">立即生成</button>
+			<label class="chk"><input id="j-isOver" type="checkbox" /> 是否覆盖</label>
+		</div>
+		<div id="j-message-model"></div>
+	</form>
+	<form id="j-ctrl-form" class="right">
+		<h3>控制器与视图生成</h3>
+		<div class="row">
+			<label>引用模型：</label>
+			<input id="j-model" type="text" value="" />
+		</div>
+	</form>
+</div>
+<div id="g-message"></div>
+<pre id="j-diff" class="diff"></pre>
 
 <script type="text/javascript">
 (function($) {
@@ -89,6 +158,16 @@
 	})();
 	
 	console.log(storage);
+	
+	$(document).ajaxStart(function() {
+		$('#j-loading').show();
+		$('#g-message').hide().empty();
+	}).ajaxError(function(evt, xhr, opts, ex) {
+		$('#g-message').show().html(ex.message || xhr.responseText || xhr.statusText);
+	}).ajaxStop(function() {
+		$('#j-loading').hide();
+	});
+	$.ajaxSetup({global:true});
 	
 	const dbElem = $('#j-db').val(storage.db).change(function() {
 		storage.db = $.trim($(this).val());
@@ -135,7 +214,7 @@
 		isOverElem.attr('checked', false);
 	}).attr('checked', storage.isComment);
 	const isOverElem = $('#j-isOver').attr('checked', false);
-	$('#j-model').submit(function() {
+	$('#j-model-form').submit(function() {
 		if(storage.db.length) {
 			dbElem.removeClass('error');
 		} else {
@@ -174,11 +253,11 @@
 			},
 			function(json) {
 				isOverElem.attr('checked', false);
-				$('#j-message').removeClass('error success').addClass(json.status ? 'success' : 'error').html(json.message);
+				$('#j-message-model').removeClass('error success').addClass(json.status ? 'success' : 'error').html(json.message);
 				if(!json.status && json.source && json.target) {
 					const dmp = new diff_match_patch();
 					dmp.Diff_Timeout = 10;
-					dmp.Diff_EditCost = 4;
+					dmp.Diff_EditCost = 1;
 					
 					const d = dmp.diff_main(json.source, json.target);
 					
@@ -194,7 +273,6 @@
 			},
 			'json'
 		);
-		
 		
 		return false;
 	});

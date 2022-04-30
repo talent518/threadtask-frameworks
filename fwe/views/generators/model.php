@@ -102,7 +102,7 @@ class <?=$className?> extends \<?=$baseClass?> {
 <?php endif;endforeach;?>
 <?php foreach($indexes as $key => $index):
 foreach($index as $i=>$name):
-	if(isset($fields[$name]['autoIncrement'])) unset($index[$i]);
+	if($fields[$name]['autoIncrement']) unset($index[$i]);
 endforeach;
 if($index):
 ?>

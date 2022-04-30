@@ -148,8 +148,8 @@ class Generator {
 		clearstatcache(true, $targetFile);
 		
 		if(!$isOver && is_file($targetFile)) {
-			$target = trim(preg_replace('/[^a-zA-Z0-9_]+/', '-', $target), '-');
-			$tmpfile = \Fwe::getAlias("@app/runtime/$target.php");
+			$target = trim(preg_replace('/[^a-zA-Z0-9\.]+/', '-', $target), '-');
+			$tmpfile = \Fwe::getAlias("@app/runtime/$target");
 			file_put_contents($tmpfile, $cont);
 			$ok(false, $targetFile, $tmpfile);
 		} else {
