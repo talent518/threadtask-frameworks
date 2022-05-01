@@ -254,7 +254,7 @@
 			function(json) {
 				isOverElem.attr('checked', false);
 				$('#j-message-model').removeClass('error success').addClass(json.status ? 'success' : 'error').html(json.message);
-				if(!json.status && json.source && json.target) {
+				if(json.source && json.target) {
 					const dmp = new diff_match_patch();
 					dmp.Diff_Timeout = 10;
 					dmp.Diff_EditCost = 1;
@@ -265,7 +265,7 @@
 					dmp.diff_cleanupEfficiency(d);
 					
 					$('#j-diff').html(dmp.diff_prettyHtml(d));
-				} else if(json.status && json.target) {
+				} else if(json.target) {
 					$('#j-diff').html(json.target);
 				} else {
 					$('#j-diff').empty();

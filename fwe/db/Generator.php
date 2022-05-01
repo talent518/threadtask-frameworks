@@ -57,9 +57,9 @@ class Generator {
 	public function allTable(MySQLConnection $db, callable $success, callable $error) {
 		$db->asyncQuery('SHOW TABLES', ['key'=>'tables', 'style'=>IEvent::FETCH_COLUMN_ALL])
 		->goAsync(function($tables) use($success) {
-			return $success($tables);
+			$success($tables);
 		}, function($data, $e) use($error) {
-			return $error($data, $e);
+			$error($data, $e);
 		});
 	}
 	
@@ -134,13 +134,13 @@ class Generator {
 			// $json = json_encode($data, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE);
 			// echo "$json\n";
 			
-			return $success($data);
+			$success($data);
 		}, function($data, $e) use($error) {
-			return $error($data, $e);
+			$error($data, $e);
 		});
 	}
 	
-	public function generate(Controller $controller, string $view, string $target, array $params, callable $ok, bool $isOver = false) {
+	public function generate(Controller $controller, string $view, string $target, array $params, bool $isOver = false) {
 		$file = $controller->getViewFile($view);
 		$cont = $controller->renderFile($file, $params);
 		$targetFile = \Fwe::getAlias($target);
@@ -149,14 +149,12 @@ class Generator {
 		
 		if(!$isOver && is_file($targetFile)) {
 			$target = trim(preg_replace('/[^a-zA-Z0-9\.]+/', '-', $target), '-');
-			$tmpfile = \Fwe::getAlias("@app/runtime/$target");
-			file_put_contents($tmpfile, $cont);
-			$ok(false, $targetFile, $tmpfile);
+			$tmpFile = \Fwe::getAlias("@app/runtime/$target");
+			return [file_put_contents($tmpFile, $cont) !== false, $targetFile, $tmpFile];
 		} else {
 			$targetPath = dirname($targetFile);
 			if(!is_dir($targetPath)) mkdir($targetPath, 0755, true);
-			file_put_contents($targetFile, $cont);
-			$ok(true, $targetFile, $targetFile);
+			return [file_put_contents($targetFile, $cont) !== false, $targetFile, $targetFile];
 		}
 	}
 	

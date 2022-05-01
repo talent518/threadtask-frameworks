@@ -49,42 +49,25 @@ class GeneratorController extends Controller {
 				$params['base'] = $base;
 				$params['isComment'] = $isComment;
 				$target = '@' . str_replace('\\', '/', $class) . '.php';
-				$generator->generate($this, "{$this->genViewPath}/model.php", $target, $params, function(bool $status, string $newFile, string $oldFile) use($request, $isOver) {
-					$n = strlen(ROOT)+1;
+				
+				list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/model.php", $target, $params, $isOver);
+				
+				$n = strlen(ROOT)+1;
+				if($status) {
 					$_newFile = strncmp($newFile, ROOT . '/', $n) ? $newFile : substr($newFile, $n);
-					if($status) {
-						$status = is_file($newFile);
-						$request->getResponse()->json([
-							'status' => $status,
-							'message' => $status ? "保存成功: $_newFile" : "保存失败: $_newFile",
-							'target' => $status ? highlight_file($newFile, true) : null,
-						]);
-					} elseif(is_file($oldFile)) {
-						if($isOver) {
-							$status = rename($oldFile, $newFile);
-							$request->getResponse()->json([
-								'status' => $status,
-								'message' => $status ? "覆盖成功: $_newFile" : "覆盖失败: $_newFile",
-								'target' => $status ? highlight_file($newFile, true) : null,
-							]);
-						} else {
-							$request->getResponse()->json([
-								'status' => false,
-								'message' => "文件已存在: $_newFile",
-								'source' => file_get_contents($newFile),
-								'target' => file_get_contents($oldFile),
-							]);
-							
-							// @unlink($oldFile);
-						}
-					} else {
-						$_oldFile = strncmp($oldFile, ROOT . '/', $n) ? $oldFile : substr($oldFile, $n);
-						$request->getResponse()->json([
-							'status' => false,
-							'message' => "临时文件保存失败: $_oldFile",
-						]);
-					}
-				});
+					$request->getResponse()->json([
+						'status' => true,
+						'message' => $newFile === $oldFile ? "写入文件成功: $_newFile" : "文件已存在: $_newFile",
+						'source' => $newFile === $oldFile ? null : file_get_contents($newFile),
+						'target' => $newFile === $oldFile ? highlight_file($oldFile, true) : file_get_contents($oldFile),
+					]);
+				} else {
+					$_oldFile = strncmp($oldFile, ROOT . '/', $n) ? $oldFile : substr($oldFile, $n);
+					$request->getResponse()->json([
+						'status' => false,
+						'message' => "写入文件失败: $_oldFile",
+					]);
+				}
 			},
 			function($data, $e) use($request) {
 				$request->getResponse()->setStatus(500)->json([

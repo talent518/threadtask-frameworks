@@ -49,19 +49,17 @@ class GeneratorController extends Controller {
 				$params['base'] = $base;
 				$params['isComment'] = $isComment;
 				$target = '@' . str_replace('\\', '/', $class) . '.php';
-				$generator->generate($this, "{$this->genViewPath}/model.php", $target, $params, function(bool $status, string $newFile, string $oldFile) {
-					$n = strlen(ROOT)+1;
-					$_newFile = strncmp($newFile, ROOT . '/', $n) ? $newFile : substr($newFile, $n);
-					$_oldFile = strncmp($oldFile, ROOT . '/', $n) ? $oldFile : substr($oldFile, $n);
-					if($status) {
-						if(is_file($newFile)) {
-							$this->formatColor("保存成功: ", static::FG_GREEN);
-							echo "$_newFile\n";
-						} else {
-							$this->formatColor("保存失败: ", static::FG_RED);
-							echo "$_newFile\n";
-						}
-					} elseif(is_file($oldFile)) {
+				
+				list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/model.php", $target, $params);
+				
+				$n = strlen(ROOT)+1;
+				$_newFile = strncmp($newFile, ROOT . '/', $n) ? $newFile : substr($newFile, $n);
+				$_oldFile = strncmp($oldFile, ROOT . '/', $n) ? $oldFile : substr($oldFile, $n);
+				if($status) {
+					if($newFile === $oldFile) {
+						$this->formatColor("写入文件成功: ", static::FG_GREEN);
+						echo "$_newFile\n";
+					} else {
 						$this->formatColor("已存在: ", static::FG_RED);
 						echo "$_newFile\n";
 						do {
@@ -106,11 +104,11 @@ class GeneratorController extends Controller {
 									break;
 							}
 						} while(true);
-					} else {
-						$this->formatColor("临时文件保存失败: ", static::FG_RED);
-						echo "$_oldFile\n";
 					}
-				});
+				} else {
+					$this->formatColor("写入文件失败: ", static::FG_RED);
+					echo "$_oldFile\n";
+				}
 			},
 			function($data, $e) {
 				throw $e;
