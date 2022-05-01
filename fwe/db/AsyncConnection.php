@@ -120,11 +120,10 @@ abstract class AsyncConnection {
 			$this->_time = microtime(true);
 			try {
 				$this->_current->recv();
-			} catch(\Throwable $e) {
-				$this->trigger($e);
-			} finally {
 				$this->setData();
 				$this->send();
+			} catch(\Throwable $e) {
+				$this->trigger($e);
 			}
 		}
 	}
@@ -139,7 +138,9 @@ abstract class AsyncConnection {
 				$this->send();
 				return true;
 			} else {
-				echo new Exception("异步事件队列为空");
+				$e = new Exception("异步事件队列为空");
+				\Fwe::$app->debug($e, 'async-conn');
+				throw $e;
 				return false;
 			}
 		} else {
@@ -148,18 +149,31 @@ abstract class AsyncConnection {
 	}
 	
 	public function push() {
-		$this->reset();
-		$this->_pool->push($this);
+		if($this->_pool) {
+			$this->reset();
+			$this->_pool->push($this);
+			$this->_pool = null;
+		} else {
+			\Fwe::$app->warn(new Exception('重复调用了push'), 'async-conn');
+		}
 	}
 
 	public function remove() {
-		$this->reset();
-		$this->_pool->remove($this);
-		$this->_pool = null;
+		if($this->_pool) {
+			$this->reset();
+			$this->_pool->remove($this);
+			$this->_pool = null;
+		} else {
+			\Fwe::$app->warn(new Exception('重复调用了remove'), 'async-conn');
+		}
 	}
 	
 	public function getTime() {
 		return $this->_time;
+	}
+	
+	public function getEvents(): int {
+		return count($this->_events);
 	}
 	
 	public function isUsing(): bool {

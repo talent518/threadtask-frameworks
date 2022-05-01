@@ -1,1 +1,78 @@
 <?php
+echo "<?php\n";
+
+$modelObj = $model::create();
+$searchKeys = $model::searchKeys();
+?>
+namespace <?=$namespace?>;
+use <?=$model?> as Model;
+use fwe\db\MySQLConnection;
+
+class <?=$className?> extends \fwe\base\Model {
+	protected $_searchKeys = [
+<?php foreach($searchKeys as $attr => $oper):?>
+		'<?=$attr?>' => '<?=$oper?>',
+<?php endforeach;?>
+	];
+	public function init() {
+		$this->setScene('search');
+	}
+	
+<?php foreach($searchKeys as $key => $_):?>
+	public $<?=$key?>;
+<?php endforeach?>
+
+	protected function getLabels() {
+		return [
+<?php foreach($searchKeys as $attr => $_):?>
+			'<?=$attr?>' => '<?=$modelObj->getLabel($attr)?>',
+<?php endforeach;?>
+		];
+	}
+
+	public function getRules() {
+		return [
+			['<?=implode(', ', array_keys($searchKeys))?>', 'safe'],
+		];
+	}
+	
+	/**
+	 * @var int $page
+	 * @var int $total
+	 * @var int $size
+	 * @var int $pages
+	 */
+	public $page = 1, $total, $size = 20, $pages;
+	
+	/**
+	 * @var array
+	 */
+	public $result = [];
+
+	public function search(MySQLConnection $db, callable $success, callable $error) {
+		$args = ['and'];
+		foreach($this->_searchKeys as $attr => $oper) {
+			$val = $this->$attr;
+			if($val !== null && $val !== '') {
+				$args[] = [$oper, $attr, $val];
+			}
+		}
+		return Model::find()->select('COUNT(1)')->whereArray($args)
+		->fetchColumn(
+			$db,
+			0,
+			'searchCount',
+			function($count) use($args, $db, $success, $error) {
+				$this->total = $count;
+				Model::find()->whereArray($args)->page($this->page, $this->total, $this->size, $this->pages)->fetchAll($db, 'searchResult', function(array $result) {
+					$this->result = $result;
+					return $result;
+				});
+				return $count;
+			},
+			$error
+		)->goAsync(function() use($success) {
+			$success($this);
+		}, $error);
+	}
+}

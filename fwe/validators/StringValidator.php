@@ -60,11 +60,6 @@ class StringValidator extends IValidator {
 	
 	protected $_message;
 	protected function isValid($value) {
-		if(!preg_match($this->pattern, $value)) {
-			$this->_message = $this->message;
-			return false;
-		}
-		
 		if($this->charset) {
 			if(function_exists('mb_strlen')) {
 				$value = mb_strlen((string) $value, $this->charset);

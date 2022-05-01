@@ -15,6 +15,7 @@ abstract class MySQLModel extends Model {
 	
 	abstract public static function tableName();
 	abstract public static function priKeys();
+	abstract public static function searchKeys();
 	
 	/**
 	 * 创建查询构建器: SELECT fields... FROM tables... {LEFT|RIGHT|INNER} JOIN joinTables... ON joinCondition... WHERE conditions... GROUP BY groupFields... HAVING groupConditions... ORDER BY orderFields... LIMIT offset, size
@@ -94,7 +95,6 @@ abstract class MySQLModel extends Model {
 	}
 	
 	public function save(MySQLConnection $db, callable $success, callable $error) {
-		$this->setScene($this->isNewRecord ? 'update' : 'update');
 		$this->validate(function(int $n, ?string $errstr = null) use($db, $success, $error) {
 			if($errstr || $n) {
 				$status = new \stdClass();

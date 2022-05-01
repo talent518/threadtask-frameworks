@@ -2,6 +2,7 @@
 namespace fwe\web;
 
 use fwe\base\Controller;
+use fwe\base\Exception;
 use fwe\db\Generator;
 use fwe\db\MySQLModel;
 
@@ -44,6 +45,10 @@ class GeneratorController extends Controller {
 	 * @param bool $isComment 是否使用相应数据表列的注释生成属性标签
 	 */
 	public function actionModel(RequestEvent $request, Generator $generator, string $table, string $class, string $base = MySQLModel::class, string $db = 'db', bool $isComment = false, bool $isOver = false) {
+		if($base !== MySQLModel::class && !is_subclass_of($base, MySQLModel::class)) {
+			$class = MySQLModel::class;
+			throw new Exception("$base 不是 $class 的子类");
+		}
 		$generator->oneTable(
 			db($db)->pop(),
 			$table,

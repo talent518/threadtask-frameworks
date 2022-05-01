@@ -250,7 +250,8 @@ abstract class Application extends Module {
 			foreach($message->getTrace() as $trace) {
 				if(isset($trace['file'], $trace['line']) && !strncmp($trace['file'], $rootDir, $rootLen)) {
 					$file = substr($trace['file'], $rootLen);
-					$traces[] = "  {$trace['class']}{$trace['type']}{$trace['function']} in {$file}:{$trace['line']}";
+					$prefix = isset($trace['class'], $trace['type']) ? $trace['class'] . $trace['type'] : null;
+					$traces[] = "  $prefix{$trace['function']} in {$file}:{$trace['line']}";
 				}
 			}
 			if($message = $message->getPrevious()) {
@@ -268,7 +269,8 @@ abstract class Application extends Module {
 			foreach ($ts as $trace) {
 				if (isset($trace['file'], $trace['line']) && !strncmp($trace['file'], $rootDir, $rootLen)) {
 					$file = substr($trace['file'], $rootLen);
-					$traces[] = "  {$trace['class']}{$trace['type']}{$trace['function']} in {$file}:{$trace['line']}";
+					$prefix = isset($trace['class'], $trace['type']) ? $trace['class'] . $trace['type'] : null;
+					$traces[] = "  $prefix{$trace['function']} in {$file}:{$trace['line']}";
 					if (++$count >= $this->traceLevel) {
 						break;
 					}

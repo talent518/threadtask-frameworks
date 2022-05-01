@@ -15,6 +15,18 @@ class Demo extends MySQLModel {
 		return ['uid'];
 	}
 	
+	public static function searchKeys() {
+		return [
+			'uid' => '=',
+			'username' => 'like',
+			'email' => 'like',
+			'password' => 'like',
+			'salt' => '=',
+			'registerTime' => 'like',
+			'loginTime' => 'like',
+		];
+	}
+	
 	protected $attributes = [
 		'uid' => 0,
 		'username' => '',

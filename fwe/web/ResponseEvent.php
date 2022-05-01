@@ -540,4 +540,9 @@ class ResponseEvent {
 		$this->end(json_encode($data, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
 		return $this;
 	}
+	
+	public function redirect(string $url, int $status = 302) {
+		$this->headers['Location'] = $url;
+		return $this->setStatus($status)->end();
+	}
 }

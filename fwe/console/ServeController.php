@@ -61,7 +61,9 @@ class ServeController extends Controller {
 				\Fwe::$app->info('Started', 'service');
 			}
 			register_shutdown_function((function($file, $app, $t) {
-				@unlink($file);
+				if(!in_array($app->exitSig(), [SIGUSR1, SIGUSR2])) {
+					@unlink($file);
+				}
 				$t = round(microtime(true) - $t, 6);
 				echo "Service stopped, run time is $t seconds\n";
 				$app->info("Stopped, run time is $t seconds", 'service');

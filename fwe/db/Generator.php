@@ -141,6 +141,7 @@ class Generator {
 	}
 	
 	public function generate(Controller $controller, string $view, string $target, array $params, bool $isOver = false) {
+		$params['generator'] = $this;
 		$file = $controller->getViewFile($view);
 		$cont = $controller->renderFile($file, $params);
 		$targetFile = \Fwe::getAlias($target);
@@ -205,6 +206,25 @@ class Generator {
 				default:
 					return strcasecmp($column['value'], 'current_timestamp()') ? var_export($column['value'], true) : date("'Y-m-d H:i:s'");
 			}
+		}
+	}
+	
+	public function genKeyForModel(string $class, string $var, bool $isView = true) {
+		$priKeys = $class::priKeys();
+		$n = count($priKeys);
+		if($n) {
+			if($n > 1) {
+				$rets = [];
+				foreach($priKeys as $key) {
+					$rets[] = $isView ? "$key=<?=\$$var->$key?>" : "$key={\$$var->$key}";
+				}
+				return implode('&', $rets);
+			} else {
+				$key = reset($priKeys);
+				return $isView ? "id=<?=\$$var->$key?>" : "id={\$$var->$key}";
+			}
+		} else {
+			return 'unknown';
 		}
 	}
 }

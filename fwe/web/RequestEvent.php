@@ -209,6 +209,10 @@ class RequestEvent {
 	 * @var \fwe\base\Action
 	 */
 	protected $action;
+	
+	public function getAction() {
+		return $this->action;
+	}
 
 	public function eventHandler($bev, $event, $arg) {
 		// echo __METHOD__ . ":{$this->key}\n";

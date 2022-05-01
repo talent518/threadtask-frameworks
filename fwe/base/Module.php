@@ -263,7 +263,7 @@ class Module {
 	private $_layoutView, $_layoutCall;
 	
 	public function getLayoutView() {
-		return $this->_layoutView ?: ($this->module ? $this->module->getLayoutView() . "/{$this->id}" : null);
+		return $this->_layoutView ?: ($this->module ? $this->module->getLayoutView() : null);
 	}
 	
 	public function setLayoutView(string $view) {

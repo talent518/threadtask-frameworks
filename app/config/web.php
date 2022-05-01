@@ -3,6 +3,7 @@ return [
 	'class' => 'fwe\web\Application',
 	'id' => 'web',
 	'name' => 'FWE框架',
+	'layoutView' => '//layout/main',
 	'bootstrap' => [],
 	'components' => [
 		'db' => require __DIR__ . '/db.php',
@@ -17,5 +18,8 @@ return [
 	],
 	'controllerMap' => [
 		'generator' => 'fwe\web\GeneratorController', // 需要安全控制的重构该类即可
+	],
+	'modules' => [
+		'test' => 'app\modules\test\Module',
 	],
 ];

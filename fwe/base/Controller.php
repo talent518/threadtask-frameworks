@@ -202,14 +202,14 @@ class Controller {
 		$this->_layoutCall = $call;
 	}
 	
-	public function getLayoutFile(): ?string {
+	public function getLayoutFile() {
 		$layout = $this->getLayoutView();
 		if($layout) {
 			return $this->getViewFile($layout);
 		}
 	}
 	
-	public function renderContent(string $content, ?callable $ok = null): ?string {
+	public function renderContent(string $content, ?callable $ok = null) {
 		$file = $this->getLayoutFile();
 		if($file) {
 			$call = $this->getLayoutCall();

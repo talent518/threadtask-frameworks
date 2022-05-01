@@ -13,7 +13,4 @@ return [
 			'maxThreads' => (($threads = getenv("CURL_THREADS")) > 0 ? (int) $threads : 2),
 		],
 	],
-	'modules' => [
-		'test' => 'app\modules\test\Module',
-	],
 ];
