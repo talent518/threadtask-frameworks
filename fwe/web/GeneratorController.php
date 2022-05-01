@@ -22,9 +22,13 @@ class GeneratorController extends Controller {
 				$request->getResponse()->json($tables);
 				$db->push();
 			},
-			function($data, $e) use($db) {
+			function($data, $e) use($db, $request) {
 				$db->push();
-				throw $e;
+				$request->getResponse()->setStatus(500)->json([
+					'status' => false,
+					'message' => $e->getMessage(),
+					'data' => $data,
+				]);
 			}
 		);
 	}
@@ -72,7 +76,8 @@ class GeneratorController extends Controller {
 			function($data, $e) use($request) {
 				$request->getResponse()->setStatus(500)->json([
 					'status' => false,
-					'message' => (string) $e,
+					'message' => $e->getMessage(),
+					'data' => $data,
 				]);
 			}
 		);
