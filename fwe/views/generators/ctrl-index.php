@@ -3,6 +3,8 @@ echo "<?php\n";
 $modelObj = $model::create();
 $searchKeys = $model::searchKeys();
 ?>
+use fwe\utils\StringHelper;
+
 /**
  * @var $this \<?=$class?> 控制器
  * @var $model \<?=$search?> 搜索模块
@@ -33,7 +35,7 @@ $searchKeys = $model::searchKeys();
 <?php echo "<?php foreach(\$model->result as \$row):?>\n";?>
 		<tr>
 <?php foreach($searchKeys as $attr => $_):?>
-			<td><?="<?=\$row->$attr?>"?></td>
+			<td><div class="html"><?="<?=StringHelper::str2html(\$row->$attr)?>"?></div></td>
 <?php endforeach;?>
 			<td class="oper">
 				<a class="view" href="/<?="<?=\$this->route?>"?>view?<?=$generator->genKeyForModel($model, 'row')?>">查看</a>

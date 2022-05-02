@@ -6,9 +6,11 @@
 .search-form table, .view-details table{width:100%;}
 .search-form table, .search-form th, .search-form td, .view-details table, .view-details th, .view-details td{padding:5px;border:1px #999 solid;border-collapse:collapse;}
 .search-form th > input{width:100%;}
-.search-form td.oper {text-align:center;}
+.search-form td.oper {text-align:center;white-space:nowrap;}
 .search-form td.oper > a{margin-left:.5em;}
 .search-form td.oper > a:first-child{margin-left:0;}
+.search-form div.html{max-width:600px;max-height:400px;overflow:auto;}
+.view-details div.html{max-height:400px;overflow:auto;}
 .search-form thead tr:first-child{background:#ccc;}
 .search-form thead tr{border-bottom:2px #999 solid;}
 .search-form tr:nth-child(odd), .view-details tr:nth-child(odd){background:#eee;}
