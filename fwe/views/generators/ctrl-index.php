@@ -6,6 +6,8 @@ $searchKeys = $model::searchKeys();
 use fwe\utils\StringHelper;
 
 /**
+ * 由<?=get_class($this)?>生成的代码
+ *
  * @var $this \<?=$class?> 控制器
  * @var $model \<?=$search?> 搜索模块
  * @var $row \<?=$model?> 数据行

@@ -25,6 +25,9 @@ use <?=$search?> as Search;
 use <?=$model?> as Model;
 use fwe\web\RequestEvent;
 
+/**
+ * 由<?=get_class($this)?>生成的代码
+ */
 class <?=$className?> extends \<?=$base?> {
 	public function actionIndex(RequestEvent $request, int $page = 1, int $size = 10, string $orderBy = '<?=reset($priKeys)?>', bool $isDesc = true) {
 		$db = db()->pop();

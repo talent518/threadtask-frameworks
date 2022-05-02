@@ -4,6 +4,8 @@ $modelObj = $model::create();
 $priKeys = $model::priKeys();
 ?>
 /**
+ * 由<?=get_class($this)?>生成的代码
+ *
  * @var $this \<?=$class?> 控制器
  * @var $model \<?=$model?> 数据行
  */

@@ -5,6 +5,8 @@ $modelObj = $model::create();
 use fwe\utils\StringHelper;
 
 /**
+ * 由<?=get_class($this)?>生成的代码
+ *
  * @var $this \<?=$class?> 控制器
  * @var $model \<?=$model?> 数据行
  */

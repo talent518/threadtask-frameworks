@@ -63,6 +63,8 @@ namespace <?=$namespace?>;
  * <?="$comment\n"?>
  *
 <?php endif;?>
+ * 由<?=get_class($this)?>生成的代码
+ *
  * @method static <?=$className?> create(array $params = [])
  *
 <?php foreach($fields as $field):

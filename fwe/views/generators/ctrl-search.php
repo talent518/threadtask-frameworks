@@ -8,6 +8,9 @@ namespace <?=$namespace?>;
 use <?=$model?> as Model;
 use fwe\db\MySQLConnection;
 
+/**
+ * 由<?=get_class($this)?>生成的代码
+ */
 class <?=$className?> extends \fwe\base\Model {
 	protected $_searchKeys = [
 <?php foreach($searchKeys as $attr => $oper):?>
