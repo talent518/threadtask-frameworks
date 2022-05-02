@@ -1,12 +1,14 @@
 <?php
-$isNoneExt = false;
-foreach(['threadtask', 'event', 'curl', 'mysqli', 'sockets', 'pcntl', 'posix', 'date'] as $ext) {
-	if(!extension_loaded($ext)) {
-		$isNoneExt = true;
-		echo "extension $ext not exists\n";
+if(is_main_task()) {
+	$isNoneExt = false;
+	foreach(['threadtask', 'event', 'curl', 'mysqli', 'sockets', 'pcntl', 'posix', 'date'] as $ext) {
+		if(!extension_loaded($ext)) {
+			$isNoneExt = true;
+			echo "extension $ext not exists\n";
+		}
 	}
+	if($isNoneExt) return;
 }
-if($isNoneExt) return;
 
 defined('ROOT') or define('ROOT', __DIR__);
 defined('INFILE') or define('INFILE', __FILE__);
