@@ -12,10 +12,11 @@ class GeneratorController extends Controller {
 	/**
 	 * 列出所有数据库表名
 	 *
+	 * @param RequestEvent $request
 	 * @param Generator $generator
 	 * @param string $db
 	 */
-	public function actionTables(Generator $generator, RequestEvent $request, string $db = 'db') {
+	public function actionTables(RequestEvent $request, Generator $generator, string $db = 'db') {
 		$db = db($db)->pop();
 		$generator->allTable(
 			$db,
@@ -37,6 +38,7 @@ class GeneratorController extends Controller {
 	/**
 	 * 生成MySQL的表模型
 	 *
+	 * @param RequestEvent $request
 	 * @param Generator $generator
 	 * @param string $table 表名
 	 * @param string $class 表模型的类名(包括命名空间的命名)
@@ -61,22 +63,7 @@ class GeneratorController extends Controller {
 				
 				list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/model.php", $target, $params, $isOver);
 				
-				$n = strlen(ROOT)+1;
-				if($status) {
-					$_newFile = strncmp($newFile, ROOT . '/', $n) ? $newFile : substr($newFile, $n);
-					$request->getResponse()->json([
-						'status' => true,
-						'message' => $newFile === $oldFile ? "写入文件成功: $_newFile" : "文件已存在: $_newFile",
-						'source' => $newFile === $oldFile ? null : file_get_contents($newFile),
-						'target' => $newFile === $oldFile ? highlight_file($oldFile, true) : file_get_contents($oldFile),
-					]);
-				} else {
-					$_oldFile = strncmp($oldFile, ROOT . '/', $n) ? $oldFile : substr($oldFile, $n);
-					$request->getResponse()->json([
-						'status' => false,
-						'message' => "写入文件失败: $_oldFile",
-					]);
-				}
+				$request->getResponse()->json($this->generator($status, $newFile, $oldFile));
 			},
 			function($data, $e) use($request) {
 				$request->getResponse()->setStatus(500)->json([
@@ -86,5 +73,82 @@ class GeneratorController extends Controller {
 				]);
 			}
 		);
+	}
+	
+	/**
+	 * 生成基于MySQL表模型的控制器
+	 *
+	 * @param RequestEvent $request
+	 * @param Generator $generator
+	 * @param string $model 模型类
+	 * @param string $class 控制器类
+	 * @param string $search 搜索模型类
+	 * @param string $path 视图目录
+	 * @param string $base 控制器基类
+	 * @param bool $isOver 是否覆盖
+	 */
+	public function actionCtrl(RequestEvent $request, Generator $generator, string $model, string $class, string $search, ?string $path = null, string $base = Controller::class, bool $isOver = false) {
+		if($model !== MySQLModel::class && !is_subclass_of($model, MySQLModel::class)) {
+			$class = MySQLModel::class;
+			throw new Exception("$model 不是 $class 的子类");
+		}
+		if($base !== Controller::class && !is_subclass_of($base, Controller::class)) {
+			$class = Controller::class;
+			throw new Exception("$base 不是 $class 的子类");
+		}
+		$params = compact('model', 'class', 'base', 'search');
+		$params['isJson'] = ($path === null || $path === '');
+		
+		$classes = preg_split('/[^a-zA-Z0-9]+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+		$params['className'] = array_pop($classes);
+		$params['namespace'] = implode('\\', $classes);
+		
+		$rets = [];
+		
+		$searchFile = '@' . str_replace('\\', '/', $search) . '.php';
+		list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-search.php", $searchFile, $params, $isOver);
+		$rets[] = $this->generator($status, $newFile, $oldFile);
+		
+		$classes = preg_split('/[^a-zA-Z0-9]+/', $class, -1, PREG_SPLIT_NO_EMPTY);
+		$params['className'] = array_pop($classes);
+		$params['namespace'] = implode('\\', $classes);
+		
+		$ctrlFile = '@' . str_replace('\\', '/', $class) . '.php';
+		list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-class.php", $ctrlFile, $params, $isOver);
+		$rets[] = $this->generator($status, $newFile, $oldFile);
+		
+		if(!$params['isJson']) {
+			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-index.php", "$path/index.php", $params, $isOver);
+			$rets[] = $this->generator($status, $newFile, $oldFile);
+			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-form.php", "$path/form.php", $params, $isOver);
+			$rets[] = $this->generator($status, $newFile, $oldFile);
+			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-create.php", "$path/create.php", $params, $isOver);
+			$rets[] = $this->generator($status, $newFile, $oldFile);
+			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-update.php", "$path/update.php", $params, $isOver);
+			$rets[] = $this->generator($status, $newFile, $oldFile);
+			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-view.php", "$path/view.php", $params, $isOver);
+			$rets[] = $this->generator($status, $newFile, $oldFile);
+		}
+		
+		$request->getResponse()->json($rets);
+	}
+	
+	protected function generator(bool $status, string $newFile, string $oldFile) {
+		$n = strlen(ROOT)+1;
+		if($status) {
+			$_newFile = strncmp($newFile, ROOT . '/', $n) ? $newFile : substr($newFile, $n);
+			return [
+				'status' => true,
+				'message' => $newFile === $oldFile ? "写入文件成功: $_newFile" : "文件已存在: $_newFile",
+				'source' => $newFile === $oldFile ? null : file_get_contents($newFile),
+				'target' => $newFile === $oldFile ? highlight_file($oldFile, true) : file_get_contents($oldFile),
+			];
+		} else {
+			$_oldFile = strncmp($oldFile, ROOT . '/', $n) ? $oldFile : substr($oldFile, $n);
+			return [
+				'status' => false,
+				'message' => "写入文件失败: $_oldFile",
+			];
+		}
 	}
 }

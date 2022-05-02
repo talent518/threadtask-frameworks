@@ -30,9 +30,11 @@
 		.column2 > form{margin:0 0 -10000px;padding:10px 10px 10000px;width:50%;}
 		.column2 > form.left{float:left;border-right:1px #999 solid;}
 		.column2 > form.right{float:right;}
-		.diff{line-height:20px;}
+		.diff{display:none;margin:0;padding:5px;border:1px #999 solid;line-height:20px;}
+		.diff.normal{white-space:normal;}
 		.diff ins{background:green !important;text-decoration:none;color:white;}
 		.diff del{background:red !important;text-decoration:none;color:white;}
+		.submsg{cursor:pointer;}
 		
 		.loading {
 			display: none;
@@ -125,7 +127,7 @@
 			<button type="submit">立即生成</button>
 			<label class="chk"><input id="j-isOver" type="checkbox" /> 是否覆盖</label>
 		</div>
-		<div id="j-message-model"></div>
+		<div id="j-message"></div>
 	</form>
 	<form id="j-ctrl-form" class="right">
 		<h3>控制器与视图生成</h3>
@@ -133,9 +135,33 @@
 			<label>引用模型：</label>
 			<input id="j-model" type="text" value="" />
 		</div>
+		<div class="row">
+			<label>控制器类：</label>
+			<input id="j-class" type="text" value="" />
+		</div>
+		<div class="row">
+			<label>控制器基类：</label>
+			<input id="j-base" type="text" value="" />
+		</div>
+		<div class="row">
+			<label>搜索模型：</label>
+			<input id="j-search" type="text" value="" />
+		</div>
+		<div class="row">
+			<label>视图路径：</label>
+			<input id="j-path" type="text" value="" />
+			<span>为空时不生成视图且响应结果为JSON数据</span>
+		</div>
+		<div class="row">
+			<label></label>
+			<button type="submit">立即生成</button>
+			<label class="chk"><input id="j-isOver" type="checkbox" /> 是否覆盖</label>
+		</div>
+		<div id="j-message"></div>
 	</form>
 </div>
 <div id="g-message"></div>
+<div id="j-submsg"></div>
 <pre id="j-diff" class="diff"></pre>
 
 <script type="text/javascript">
@@ -147,13 +173,21 @@
 			json = JSON.parse(localStorage.getItem('fwe-generator'));
 		} catch(e) {}
 		return $.extend({
+			// MySQL表模型
 			db: 'db',
 			table: '',
 			namespace: 'app\\models',
 			className: '',
 			isSplit: false,
 			baseClass: 'fwe\\db\\MySQLModel',
-			isComment: false
+			isComment: false,
+			
+			// 控制器与视图生成
+			modelClass: '',
+			ctrlClass: '',
+			ctrlBase: '',
+			searchClass: '',
+			ctrlPath: '',
 		}, json);
 	})();
 	
@@ -169,114 +203,207 @@
 	});
 	$.ajaxSetup({global:true});
 	
-	const dbElem = $('#j-db').val(storage.db).change(function() {
-		storage.db = $.trim($(this).val());
-		isOverElem.attr('checked', false);
-	});
-	const tableElem = $('#j-table').change(function() {
-		storage.table = $.trim($(this).val());
-		
-		const lst = storage.table.split(/[^a-z0-9]+/);
-		const lst2 = [];
-		$.each(lst, function(i,v) {
-			lst2.push(v.charAt(0).toUpperCase() + v.substr(1).toLowerCase());
+	(function() { // MySQL表模型
+		const $form = $('#j-model-form');
+		const dbElem = $('#j-db', $form).val(storage.db).change(function() {
+			storage.db = $.trim($(this).val());
+			isOverElem.attr('checked', false);
 		});
-		storage.className = lst2.join(storage.isSplit ? '\\' : '');
-		classElem.val(storage.className);
-		isOverElem.attr('checked', false);
-	});
-	const tableBtn = $('#j-table-btn').click(function() {
-		$.getJSON(genURL + 'tables', {db: dbElem.val()}, function(list) {
-			tableElem.empty();
-			$('<option />').val('').text('请选择').appendTo(tableElem);
-			$.each(list, function(i, val) {
-				$('<option />').val(val).text(val).attr('selected', val === storage.table).appendTo(tableElem);
+		const tableElem = $('#j-table', $form).change(function() {
+			storage.table = $.trim($(this).val());
+			
+			const lst = storage.table.split(/[^a-z0-9]+/);
+			const lst2 = [];
+			$.each(lst, function(i,v) {
+				lst2.push(v.charAt(0).toUpperCase() + v.substr(1).toLowerCase());
 			});
+			storage.className = lst2.join(storage.isSplit ? '\\' : '');
+			classElem.val(storage.className);
+			isOverElem.attr('checked', false);
 		});
-	}).click();
-	const isSplitElem = $('#j-isSplit').change(function() {
-		storage.isSplit = $(this).is(':checked');
-	}).attr('checked', storage.isSplit);
-	const namespaceElem = $('#j-namespace').change(function() {
-		storage.namespace = $.trim($(this).val());
-		isOverElem.attr('checked', false);
-	}).val(storage.namespace);
-	const classElem = $('#j-class').change(function() {
-		storage.className = $.trim($(this).val());
-		isOverElem.attr('checked', false);
-	}).val(storage.className);
-	const baseElem = $('#j-base').change(function() {
-		storage.baseClass = $.trim($(this).val());
-		isOverElem.attr('checked', false);
-	}).val(storage.baseClass);
-	const isCommentElem = $('#j-isComment').change(function() {
-		storage.isComment = $(this).is(':checked');
-		isOverElem.attr('checked', false);
-	}).attr('checked', storage.isComment);
-	const isOverElem = $('#j-isOver').attr('checked', false);
-	$('#j-model-form').submit(function() {
-		if(storage.db.length) {
-			dbElem.removeClass('error');
-		} else {
-			dbElem.addClass('error');
-		}
-		if(storage.table.length) {
-			tableElem.removeClass('error');
-		} else {
-			tableElem.addClass('error');
-		}
-		if(storage.namespace.length) {
-			namespaceElem.removeClass('error');
-		} else {
-			namespaceElem.addClass('error');
-		}
-		if(storage.className.length) {
-			classElem.removeClass('error');
-		} else {
-			classElem.addClass('error');
-		}
-		if(storage.baseClass.length) {
-			baseElem.removeClass('error');
-		} else {
-			baseElem.addClass('error');
-		}
-		
-		$.post(
-			genURL + 'model',
-			{
-				db: storage.db,
-				table: storage.table,
-				'class': (storage.namespace + '\\' + storage.className),
-				base: storage.baseClass,
-				isComment: storage.isComment ? 1 : 0,
-				isOver: isOverElem.is(':checked') ? 1 : 0,
-			},
-			function(json) {
-				isOverElem.attr('checked', false);
-				$('#j-message-model').removeClass('error success').addClass(json.status ? 'success' : 'error').html(json.message);
-				if(json.source && json.target) {
-					const dmp = new diff_match_patch();
-					dmp.Diff_Timeout = 10;
-					dmp.Diff_EditCost = 1;
-					
-					const d = dmp.diff_main(json.source, json.target);
-					
-					dmp.diff_cleanupSemantic(d);
-					dmp.diff_cleanupEfficiency(d);
-					
-					$('#j-diff').html(dmp.diff_prettyHtml(d));
-				} else if(json.target) {
-					$('#j-diff').html(json.target);
-				} else {
-					$('#j-diff').empty();
-				}
-			},
-			'json'
-		);
-		
-		return false;
-	});
-
+		const tableBtn = $('#j-table-btn', $form).click(function() {
+			$.getJSON(genURL + 'tables', {db: dbElem.val()}, function(list) {
+				tableElem.empty();
+				$('<option />').val('').text('请选择').appendTo(tableElem);
+				$.each(list, function(i, val) {
+					$('<option />').val(val).text(val).attr('selected', val === storage.table).appendTo(tableElem);
+				});
+			});
+		}).click();
+		const isSplitElem = $('#j-isSplit', $form).change(function() {
+			storage.isSplit = $(this).is(':checked');
+		}).attr('checked', storage.isSplit);
+		const namespaceElem = $('#j-namespace', $form).change(function() {
+			storage.namespace = $.trim($(this).val());
+			isOverElem.attr('checked', false);
+		}).val(storage.namespace);
+		const classElem = $('#j-class', $form).change(function() {
+			storage.className = $.trim($(this).val());
+			isOverElem.attr('checked', false);
+		}).val(storage.className);
+		const baseElem = $('#j-base', $form).change(function() {
+			storage.baseClass = $.trim($(this).val());
+			isOverElem.attr('checked', false);
+		}).val(storage.baseClass);
+		const isCommentElem = $('#j-isComment', $form).change(function() {
+			storage.isComment = $(this).is(':checked');
+			isOverElem.attr('checked', false);
+		}).attr('checked', storage.isComment);
+		const isOverElem = $('#j-isOver', $form).attr('checked', false);
+		$form.submit(function() {
+			if(storage.db.length) {
+				dbElem.removeClass('error');
+			} else {
+				dbElem.addClass('error');
+			}
+			if(storage.table.length) {
+				tableElem.removeClass('error');
+			} else {
+				tableElem.addClass('error');
+			}
+			if(storage.namespace.length) {
+				namespaceElem.removeClass('error');
+			} else {
+				namespaceElem.addClass('error');
+			}
+			if(storage.className.length) {
+				classElem.removeClass('error');
+			} else {
+				classElem.addClass('error');
+			}
+			if(storage.baseClass.length) {
+				baseElem.removeClass('error');
+			} else {
+				baseElem.addClass('error');
+			}
+			
+			$.post(
+				genURL + 'model',
+				{
+					db: storage.db,
+					table: storage.table,
+					'class': (storage.namespace + '\\' + storage.className),
+					base: storage.baseClass,
+					isComment: storage.isComment ? 1 : 0,
+					isOver: isOverElem.is(':checked') ? 1 : 0,
+				},
+				function(json) {
+					isOverElem.attr('checked', false);
+					const $msg = $('#j-message', $form).empty();
+					$('<div class="submsg"/>').appendTo($msg).removeClass('error success').addClass(json.status ? 'success' : 'error').html(json.message).click(function() {
+						$('#j-submsg').addClass(json.status ? 'success' : 'error').html(json.message);
+						if(json.source && json.target) {
+							const dmp = new diff_match_patch();
+							dmp.Diff_Timeout = 10;
+							dmp.Diff_EditCost = 1;
+							
+							const d = dmp.diff_main(json.source, json.target);
+							
+							dmp.diff_cleanupSemantic(d);
+							dmp.diff_cleanupEfficiency(d);
+							
+							$('#j-diff').show().removeClass('normal').html(dmp.diff_prettyHtml(d));
+						} else if(json.target) {
+							$('#j-diff').show().addClass('normal').html(json.target);
+						} else {
+							$('#j-diff').hide().removeClass('normal').empty();
+						}
+					}).click();
+				},
+				'json'
+			);
+			
+			return false;
+		});
+	})();
+	
+	(function() {
+		const $form = $('#j-ctrl-form');
+		const modelElem = $('#j-model', $form).change(function() {
+			storage.modelClass = $.trim($(this).val());
+			isOverElem.attr('checked', false);
+		}).val(storage.modelClass);
+		const classElem = $('#j-class', $form).change(function() {
+			storage.ctrlClass = $.trim($(this).val());
+			isOverElem.attr('checked', false);
+		}).val(storage.ctrlClass);
+		const baseElem = $('#j-base', $form).change(function() {
+			storage.ctrlBase = $.trim($(this).val());
+			isOverElem.attr('checked', false);
+		}).val(storage.ctrlBase);
+		const searchElem = $('#j-search', $form).change(function() {
+			storage.searchClass = $.trim($(this).val());
+			isOverElem.attr('checked', false);
+		}).val(storage.searchClass);
+		const pathElem = $('#j-path', $form).change(function() {
+			storage.ctrlPath = $.trim($(this).val());
+			isOverElem.attr('checked', false);
+		}).val(storage.ctrlPath);
+		const isOverElem = $('#j-isOver', $form).attr('checked', false);
+		$form.submit(function() {
+			if(storage.modelClass.length) {
+				modelElem.removeClass('error');
+			} else {
+				modelElem.addClass('error');
+			}
+			if(storage.ctrlClass.length) {
+				classElem.removeClass('error');
+			} else {
+				classElem.addClass('error');
+			}
+			if(storage.ctrlBase.length) {
+				baseElem.removeClass('error');
+			} else {
+				baseElem.addClass('error');
+			}
+			if(storage.searchClass.length) {
+				searchElem.removeClass('error');
+			} else {
+				searchElem.addClass('error');
+			}
+			
+			$.post(
+				genURL + 'ctrl',
+				{
+					model: storage.modelClass,
+					'class': storage.ctrlClass,
+					base: storage.ctrlBase,
+					search: storage.searchClass,
+					path: storage.ctrlPath,
+					isOver: isOverElem.is(':checked') ? 1 : 0,
+				},
+				function(list) {
+					isOverElem.attr('checked', false);
+					const $msg = $('#j-message', $form).empty();
+					list.forEach(function(json) {
+						$('<div class="submsg"/>').appendTo($msg).removeClass('error success').addClass(json.status ? 'success' : 'error').html(json.message).click(function() {
+							$('#j-submsg').addClass(json.status ? 'success' : 'error').html(json.message);
+							if(json.source && json.target) {
+								const dmp = new diff_match_patch();
+								dmp.Diff_Timeout = 10;
+								dmp.Diff_EditCost = 1;
+								
+								const d = dmp.diff_main(json.source, json.target);
+								
+								dmp.diff_cleanupSemantic(d);
+								dmp.diff_cleanupEfficiency(d);
+								
+								$('#j-diff').show().removeClass('normal').html(dmp.diff_prettyHtml(d));
+							} else if(json.target) {
+								$('#j-diff').show().addClass('normal').html(json.target);
+							} else {
+								$('#j-diff').hide().removeClass('normal').empty();
+							}
+						});
+					});
+					$msg.children().first().click();
+				},
+				'json'
+			);
+			
+			return false;
+		});
+	})();
 
 	$(window).unload(function() {
 		localStorage.setItem('fwe-generator', JSON.stringify(storage));
