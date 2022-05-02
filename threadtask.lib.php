@@ -170,15 +170,6 @@ function pthread_sigmask(int $how, array $newset, ?array &$oldset = null) {}
 function pthread_yield(): bool {}
 
 /**
- * 设置调试信息开关(默认值为false)
- *
- * @param bool $isDebug
- *
- * @return bool
- */
-function task_set_debug(bool $isDebug) {}
-
-/**
  * 是否是主线程: 一般用于判断task_wait是否可用
  * 
  * @return bool
@@ -372,7 +363,7 @@ function ts_var_expire($var, int $expire) {}
  *
  * @return bool 是否设置成功
  */
-function ts_var_set($var, $key, $val, bool $expire = 0): bool {}
+function ts_var_set($var, $key, $val, int $expire = 0): bool {}
 
 /**
  * 向线程安全变量中存储数据: 是ts_var_set别名
@@ -384,7 +375,7 @@ function ts_var_set($var, $key, $val, bool $expire = 0): bool {}
  *
  * @return bool 是否设置成功
  */
-function ts_var_put($var, $key, $val, bool $expire = 0): bool {}
+function ts_var_put($var, $key, $val, int $expire = 0): bool {}
 
 /**
  * 压入队列
