@@ -10,9 +10,12 @@
 .search-form td.oper > a{margin-left:.5em;}
 .search-form td.oper > a:first-child{margin-left:0;}
 .search-form div.html{max-width:600px;max-height:400px;overflow:auto;}
-.view-details div.html{max-height:400px;overflow:auto;}
 .search-form thead tr:first-child{background:#ccc;}
 .search-form thead tr{border-bottom:2px #999 solid;}
+.search-form thead th{white-space:nowrap;}
+.search-form .order{cursor:pointer;}
+.search-form .order.asc:after{content:'⇈';color:blue;}
+.search-form .order.desc:after{content:'⇊';color:blue;}
 .search-form tr:nth-child(odd), .view-details tr:nth-child(odd){background:#eee;}
 .search-form .right{float:right;}
 .search-form .multi-page{padding:10px 0 0;}
@@ -30,3 +33,4 @@
 .fields-form input[type=text]{width:100%;}
 
 .view-details th{width:5em;white-space:nowrap;text-align:right;}
+.view-details div.html{max-height:400px;overflow:auto;}

@@ -45,6 +45,12 @@ class <?=$className?> extends \fwe\base\Model {
 	public $page = 1, $total, $size = 20, $pages;
 	
 	/**
+	 * @var string $orderBy 字段名
+	 * @var bool $isDesc 是否降序
+	 */
+	public $orderBy, $isDesc;
+	
+	/**
 	 * @var array
 	 */
 	public $result = [];
@@ -64,7 +70,9 @@ class <?=$className?> extends \fwe\base\Model {
 			'searchCount',
 			function($count) use($args, $db, $success, $error) {
 				$this->total = $count;
-				Model::find()->whereArray($args)->page($this->page, $this->total, $this->size, $this->pages)->fetchAll($db, 'searchResult', function(array $result) {
+				$orderBy = isset($this->_searchKeys[$this->orderBy]) ? $this->orderBy : array_key_first($this->_searchKeys);
+				$isDesc = $this->isDesc ? 'DESC' : 'ASC';
+				Model::find()->whereArray($args)->orderBy("$orderBy $isDesc")->page($this->page, $this->total, $this->size, $this->pages)->fetchAll($db, 'searchResult', function(array $result) {
 					$this->result = $result;
 					return $result;
 				});

@@ -20,7 +20,7 @@ use fwe\utils\StringHelper;
 	<thead>
 		<tr>
 <?php foreach($searchKeys as $attr => $_):?>
-			<th><?=$modelObj->getLabel($attr)?></th>
+			<th class="order<?="<?=\$model->orderBy === '$attr' ? (\$model->isDesc ? ' desc' : ' asc') : null?>"?>" field="<?=$attr?>"><?=$modelObj->getLabel($attr)?></th>
 <?php endforeach;?>
 			<th class="oper">操作</th>
 		</tr>
@@ -57,6 +57,8 @@ use fwe\utils\StringHelper;
 	<label class="info">总共 <?="<?=\$model->total?>"?> 行，<?="<?=\$model->pages?>"?> 页</label>
 	<label class="page"><span>当前页：</span><input name="page" type="text" value="<?="<?=\$model->page?>"?>"/></label>
 	<label class="size"><span>每页行数：</span><input name="size" type="text" value="<?="<?=\$model->size?>"?>"/></label>
+	<input name="orderBy" type="hidden" value="<?="<?=\$model->orderBy?>"?>"/>
+	<input name="isDesc" type="hidden" value="<?="<?=\$model->isDesc?>"?>"/>
 	<button class="search" type="submit">GO</button>
 </div>
 </form>
@@ -65,9 +67,19 @@ use fwe\utils\StringHelper;
 (function($) {
 	const $form = $('.search-form');
 	$('.multi>span', $form).click(function() {
-		$('.page > input[name=page]', $form).val($(this).text());
+		$('.multi-page > input[name=page]', $form).val($(this).text());
 		$form.submit();
 	});
 })(jQuery);
 </script>
 <?="<?php endif;?>\n"?>
+<script type="text/javascript">
+(function($) {
+	const $form = $('.search-form');
+	$('th.order', $form).click(function() {
+		$('.multi-page > input[name=orderBy]', $form).val($(this).attr('field'));
+		$('.multi-page > input[name=isDesc]', $form).val($(this).is('.asc') ? 1 : 0);
+		$form.submit();
+	});
+})(jQuery);
+</script>

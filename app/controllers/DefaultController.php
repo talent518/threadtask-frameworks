@@ -162,7 +162,7 @@ class DefaultController extends Controller {
 		];
 		foreach($titles as $k=>$t):
 			if($k === $key):
-				?><th><a href="?key=<?=$k?><?=($sort === 'asc' ? '&sort=desc' : null)?>"><?=$t?><?=($sort === 'asc' ? '↑' : '↓')?></a></th><?php
+				?><th><a href="?key=<?=$k?><?=($sort === 'asc' ? '&sort=desc' : null)?>"><?=$t?><?=($sort === 'asc' ? '⇈' : '⇊')?></a></th><?php
 			else:
 				?><th><a href="?key=<?=$k?>"><?=$t?></a></th><?php
 			endif;

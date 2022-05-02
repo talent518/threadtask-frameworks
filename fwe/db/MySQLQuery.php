@@ -305,7 +305,8 @@ class MySQLQuery {
 	}
 	
 	public function orderBy(...$args) {
-		$this->order = implode(', ', $fields);
+		$this->orderBy = implode(', ', $args);
+		return $this;
 	}
 	
 	public function limit(int $offset, int $size) {
@@ -356,6 +357,10 @@ class MySQLQuery {
 				$sql .= " HAVING {$this->having[0]}";
 				foreach($this->having[1] as $v) $params[] = $v;
 			}
+		}
+		
+		if($this->orderBy) {
+			$sql .= " ORDER BY {$this->orderBy}";
 		}
 		
 		if($this->limit) {

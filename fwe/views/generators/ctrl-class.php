@@ -26,12 +26,14 @@ use <?=$model?> as Model;
 use fwe\web\RequestEvent;
 
 class <?=$className?> extends \<?=$base?> {
-	public function actionIndex(RequestEvent $request, int $page = 1, int $size = 10) {
+	public function actionIndex(RequestEvent $request, int $page = 1, int $size = 10, string $orderBy = '<?=reset($priKeys)?>', bool $isDesc = true) {
 		$db = db()->pop();
 		$model = Search::create();
 		$model->attributes = $request->get;
 		$model->page = $page;
 		$model->size = $size;
+		$model->orderBy = $orderBy;
+		$model->isDesc = $isDesc;
 		$model->search(
 			$db,
 			function() use($db, $model, $request) {
