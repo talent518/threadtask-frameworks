@@ -71,7 +71,7 @@ class <?=$className?> extends \fwe\base\Model {
 			$db,
 			0,
 			'searchCount',
-			function($count) use($args, $db, $success, $error) {
+			function($count) use($args, $db) {
 				$this->total = $count;
 				$orderBy = isset($this->_searchKeys[$this->orderBy]) ? $this->orderBy : array_key_first($this->_searchKeys);
 				$isDesc = $this->isDesc ? 'DESC' : 'ASC';
