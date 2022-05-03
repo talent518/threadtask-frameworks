@@ -148,6 +148,10 @@ abstract class AsyncConnection {
 		}
 	}
 	
+	public function pop(IPool $pool) {
+		$this->_pool = $pool;
+	}
+	
 	public function push() {
 		if($this->_pool) {
 			$this->reset();

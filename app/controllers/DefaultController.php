@@ -260,7 +260,7 @@ class DefaultController extends Controller {
 			->get('inc')
 			->incrby('inc', 1)
 			->goAsync(function($data, $keys, $cmdInfo, $get, $incr) use($redis, $request) {
-				$request->getResponse()->json(get_defined_vars());
+				$request->getResponse()->json(compact('keys', 'cmdInfo', 'get', 'incr'));
 				$redis->push();
 			}, function($data) use($redis, $request) {
 				$request->getResponse()->setStatus(500)->json($data);

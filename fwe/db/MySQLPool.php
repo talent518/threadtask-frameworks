@@ -108,6 +108,7 @@ class MySQLPool implements IPool {
 			$this->remove($db);
 			goto reconn;
 		}
+		$db->pop($this);
 		return $db;
 	}
 	
