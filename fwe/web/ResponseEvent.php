@@ -141,6 +141,9 @@ class ResponseEvent {
 			unset($this->headers['Content-Length']);
 		}
 		
+		if($this->request->isKeepAlive) $this->headers['Keep-Alive'] = 'timeout=' . ceil($this->request->keepAlive - microtime(true));
+
+		
 		$this->headers['Date'] = gmdate('D, d-M-Y H:i:s T');
 		
 		ob_start();

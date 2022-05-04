@@ -86,7 +86,7 @@ class RequestEvent {
 	/**
 	 * @var bool
 	 */
-	protected $keepAlive;
+	public $keepAlive;
 	
 	/**
 	 * @var mixed
