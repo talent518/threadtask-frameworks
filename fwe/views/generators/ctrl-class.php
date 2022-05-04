@@ -137,11 +137,7 @@ class <?=$className?> extends \<?=$base?> {
 <?php endif;?>
 <?php if(!$isJson):?>
 				} elseif($request->method !== 'POST') {
-	<?php if($isJson):?>
-					
-	<?php else:?>
 					$request->getResponse()->end($this->render('update', ['model' => $row, 'data' => null, 'status' => null, 'backUrl' => $backUrl]));
-	<?php endif;?>
 <?php endif;?>
 				} else {
 					$row->setScene('update');
