@@ -118,14 +118,11 @@ class <?=$className?> extends \<?=$base?> {
 	}
 	
 	public function actionUpdate(RequestEvent $request, <?=$idFuncParams?><?php if(!$isJson):?>, string $backUrl = ''<?php endif?>) {
-		if(<?php if($isRestful):?>$request->bodylen === 0<?php else:?>$request->method !== 'POST'<?php endif;?>) {
 <?php if($isJson):?>
+		if($request->bodylen === 0) {
 			$request->getResponse()->json(['status' => false, 'message' => '必须使用<?php if($isRestful):?>PUT<?php else:?>POST<?php endif;?>提交数据', 'errors' => [], 'data' => null]);
-<?php else:?>
-			$request->getResponse()->end($this->render('update', ['model' => null, 'data' => null, 'status' => null, 'backUrl' => $backUrl]));
-<?php endif;?>
-			return;
 		}
+<?php endif;?>
 		$db = db()->pop();
 		Model::findById(
 			$db,
@@ -136,6 +133,14 @@ class <?=$className?> extends \<?=$base?> {
 					$request->getResponse()->json(['status' => false, 'message' => '未找到记录', 'data' => null]);
 <?php else:?>
 					$request->getResponse()->setStatus(404)->end('未找到记录');
+<?php endif;?>
+<?php if(!$isJson):?>
+				} elseif($request->method !== 'POST') {
+	<?php if($isJson):?>
+					
+	<?php else:?>
+					$request->getResponse()->end($this->render('update', ['model' => $row, 'data' => null, 'status' => null, 'backUrl' => $backUrl]));
+	<?php endif;?>
 <?php endif;?>
 				} else {
 					$row->setScene('update');
