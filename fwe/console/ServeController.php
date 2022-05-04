@@ -30,17 +30,18 @@ class ServeController extends Controller {
 	 * @param array $__params__
 	 * @param string $route
 	 */
-	public function actionIndex(string $name = 'web', ?int $maxThreads = null, ?int $backlog = null, ?int $keepAlive = null, ?int $logLevel = null, ?int $traceLevel = null, ?int $logMax = null, ?string $logFormat = null) {
+	public function actionIndex(string $name = 'web', ?int $maxThreads = null, ?int $backlog = null, ?int $keepAlive = null, ?int $logLevel = null, ?int $traceLevel = null, ?int $logSize = null, ?int $logMax = null, ?string $logFormat = null) {
 		redefine('THREAD_TASK_NAME', $name);
 		\Fwe::$name = $name;
 		\Fwe::$names = [];
-		$config = \Fwe::$config->getOrSet(\Fwe::$name, function () use($maxThreads, $backlog, $keepAlive, $logLevel, $traceLevel, $logMax, $logFormat) {
+		$config = \Fwe::$config->getOrSet(\Fwe::$name, function () use($maxThreads, $backlog, $keepAlive, $logLevel, $traceLevel, $logSize, $logMax, $logFormat) {
 			$cfg = include \Fwe::getAlias('@app/config/' . \Fwe::$name . '.php');
 			if($maxThreads !== null) $cfg['maxThreads'] = $maxThreads;
 			if($backlog !== null) $cfg['backlog'] = $backlog;
 			if($keepAlive !== null) $cfg['keepAlive'] = $keepAlive;
 			if($logLevel !== null) $cfg['logLevel'] = $logLevel;
 			if($traceLevel !== null) $cfg['traceLevel'] = $traceLevel;
+			if($logSize !== null) $cfg['logSize'] = $logSize;
 			if($logMax !== null) $cfg['logMax'] = $logMax;
 			if($logFormat !== null) $cfg['logFormat'] = $logFormat;
 			return $cfg;
