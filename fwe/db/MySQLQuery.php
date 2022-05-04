@@ -382,7 +382,10 @@ class MySQLQuery {
 	
 	public static function formatSQL(string $sql, array $params) {
 		$i = 0;
-		while(($pos = strpos($sql, '?')) !== false) {
+		$rets = [];
+		$sqls = explode('?', $sql);
+		$rets[] = array_shift($sqls);
+		foreach($sqls as $sql) {
 			$str = $params[$i++];
 			if(is_array($str) || is_object($str)) $str = json_encode($str, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
 			if(is_string($str)) {
@@ -393,10 +396,10 @@ class MySQLQuery {
 			} elseif(is_null($str)) {
 				$str = 'NULL';
 			}
-			$sql = substr_replace($sql, $str, $pos, 1);
+			$rets[] = $str . $sql;
 		}
 		
-		return $sql;
+		return implode('', $rets);
 	}
 	
 	public function exec(MySQLConnection $db, array $options = [], ?callable $success = null, ?callable $error = null) {

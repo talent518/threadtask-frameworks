@@ -121,6 +121,7 @@ class <?=$className?> extends \<?=$base?> {
 <?php if($isJson):?>
 		if($request->bodylen === 0) {
 			$request->getResponse()->json(['status' => false, 'message' => '必须使用<?php if($isRestful):?>PUT<?php else:?>POST<?php endif;?>提交数据', 'errors' => [], 'data' => null]);
+			return;
 		}
 <?php endif;?>
 		$db = db()->pop();
