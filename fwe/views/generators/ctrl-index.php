@@ -68,8 +68,8 @@ use fwe\utils\StringHelper;
 <script type="text/javascript">
 (function($) {
 	const $form = $('.search-form');
-	$('.multi>span', $form).click(function() {
-		$('.multi-page > input[name=page]', $form).val($(this).text());
+	$('.multi-page > .multi > span', $form).click(function() {
+		$('.multi-page > .page > input[name=page]', $form).val($(this).text());
 		$form.submit();
 	});
 })(jQuery);
@@ -82,6 +82,21 @@ use fwe\utils\StringHelper;
 		$('.multi-page > input[name=orderBy]', $form).val($(this).attr('field'));
 		$('.multi-page > input[name=isDesc]', $form).val($(this).is('.asc') ? 1 : 0);
 		$form.submit();
+	});
+	$('a.create, a.view, a.update, a.delete', $form).click(function() {
+		if($(this).is('.delete') && !confirm('你确定要删除该记录吗？')) {
+			return false;
+		}
+
+		const backUrl = encodeURIComponent(location.pathname + '?' + $form.serialize());
+		let url = this.href;
+		if(url.indexOf('?') == -1) {
+			url += '?backUrl=' + backUrl;
+		} else {
+			url += '&backUrl=' + backUrl;
+		}
+		location.href = url;
+		return false;
 	});
 })(jQuery);
 </script>

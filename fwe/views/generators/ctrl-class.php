@@ -58,14 +58,14 @@ class <?=$className?> extends \<?=$base?> {
 		);
 	}
 	
-	public function actionCreate(RequestEvent $request) {
+	public function actionCreate(RequestEvent $request<?php if(!$isJson):?>, string $backUrl = ''<?php endif?>) {
 		if($request->method !== 'POST') {
 <?php if($isJson):?>
 			$request->getResponse()->json(['status' => false, 'message' => '必须使用POST提交数据', 'data' => null]);
 <?php else:?>
 			$model = Model::create();
 			$model->setScene('create');
-			$request->getResponse()->end($this->render('create', ['model' => $model, 'data' => null, 'status' => null]));
+			$request->getResponse()->end($this->render('create', ['model' => $model, 'data' => null, 'status' => null, 'backUrl' => $backUrl]));
 <?php endif;?>
 		} else {
 			$db = db()->pop();
@@ -74,18 +74,18 @@ class <?=$className?> extends \<?=$base?> {
 			$model->attributes = $request->post;
 			$model->save(
 				$db,
-				function(\stdClass $status) use($db, $request) {
+				function(\stdClass $status) use($db, $request<?php if(!$isJson):?>, $backUrl<?php endif?>) {
 <?php if($isJson):?>
 					$request->getResponse()->json(['status' => true, 'message' => '创建成功', 'data' => $status]);
 <?php else:?>
-					$request->getResponse()->redirect($status->insertId ? "/{$this->route}view?id={$status->insertId}" : "/{$this->route}index");
+					$request->getResponse()->redirect($status->insertId ? "/{$this->route}view?id={$status->insertId}&backUrl=" . urlencode($backUrl) : ($backUrl ?: "/{$this->route}index"));
 <?php endif;?>
 				},
-				function(\stdClass $status) use($db, $request, $model) {
+				function(\stdClass $status) use($db, $request, $model<?php if(!$isJson):?>, $backUrl<?php endif?>) {
 <?php if($isJson):?>
 					$request->getResponse()->json(['status' => false, 'message' => $e->getMessage(), 'data' => $model]);
 <?php else:?>
-					$request->getResponse()->end($this->render('create', ['model' => $model, 'data' => $status, 'status' => false]));
+					$request->getResponse()->end($this->render('create', ['model' => $model, 'data' => $status, 'status' => false, 'backUrl' => $backUrl]));
 <?php endif;?>
 				}
 			);
@@ -104,12 +104,12 @@ class <?=$className?> extends \<?=$base?> {
 		}
 	}
 	
-	public function actionUpdate(RequestEvent $request, <?=$idFuncParams?>) {
+	public function actionUpdate(RequestEvent $request, <?=$idFuncParams?><?php if(!$isJson):?>, string $backUrl = ''<?php endif?>) {
 		$db = db()->pop();
 		Model::findById(
 			$db,
 			<?=$idFuncParamValues?>,
-			function(?Model $row) use($db, $request) {
+			function(?Model $row) use($db, $request<?php if(!$isJson):?>, $backUrl<?php endif?>) {
 				if($row === null) {
 <?php if($isJson):?>
 					$request->getResponse()->json(['status' => false, 'message' => '未找到记录', 'data' => null]);
@@ -120,25 +120,25 @@ class <?=$className?> extends \<?=$base?> {
 <?php if($isJson):?>
 					$request->getResponse()->json(['status' => false, 'message' => '必须使用POST提交数据', 'data' => null]);
 <?php else:?>
-					$request->getResponse()->end($this->render('update', ['model' => $row, 'data' => null, 'status' => null]));
+					$request->getResponse()->end($this->render('update', ['model' => $row, 'data' => null, 'status' => null, 'backUrl' => $backUrl]));
 <?php endif;?>
 				} else {
 					$row->setScene('update');
 					$row->attributes = $request->post;
 					$row->save(
 						$db,
-						function(\stdClass $status) use($request, $row) {
+						function(\stdClass $status) use($request, $row<?php if(!$isJson):?>, $backUrl<?php endif?>) {
 <?php if($isJson):?>
 							$request->getResponse()->json(['status' => true, 'message' => '更新成功', 'data' => $status]);
 <?php else:?>
-							$request->getResponse()->redirect("/{$this->route}view?<?=$generator->genKeyForModel($model, 'row', false)?>");
+							$request->getResponse()->redirect("/{$this->route}view?<?=$generator->genKeyForModel($model, 'row', false)?>&backUrl=" . urlencode($backUrl));
 <?php endif;?>
 						},
 						function(\stdClass $status) use($request, $row) {
 <?php if($isJson):?>
 							$request->getResponse()->json(['status' => false, 'message' => $e->getMessage(), 'data' => $model]);
 <?php else:?>
-							$request->getResponse()->end($this->render('update', ['model' => $row, 'data' => $status, 'status' => false]));
+							$request->getResponse()->end($this->render('update', ['model' => $row, 'data' => $status, 'status' => false, 'backUrl' => $backUrl]));
 <?php endif;?>
 						}
 					);
@@ -161,12 +161,12 @@ class <?=$className?> extends \<?=$base?> {
 		);
 	}
 	
-	public function actionDelete(RequestEvent $request, <?=$idFuncParams?>) {
+	public function actionDelete(RequestEvent $request, <?=$idFuncParams?><?php if(!$isJson):?>, string $backUrl = ''<?php endif?>) {
 		$db = db()->pop();
 		Model::findById(
 			$db,
 			<?=$idFuncParamValues?>,
-			function(?Model $row) use($db, $request) {
+			function(?Model $row) use($db, $request<?php if(!$isJson):?>, $backUrl<?php endif?>) {
 				if($row === null) {
 <?php if($isJson):?>
 					$request->getResponse()->json(['status' => false, 'message' => '未找到记录', 'data' => null]);
@@ -176,11 +176,11 @@ class <?=$className?> extends \<?=$base?> {
 				} else {
 					$row->delete(
 						$db,
-						function(array $data) use($request) {
+						function(array $data) use($request<?php if(!$isJson):?>, $backUrl<?php endif?>) {
 <?php if($isJson):?>
 							$request->getResponse()->json(['status' => true, 'message' => '删除成功', 'data' => $status]);
 <?php else:?>
-							$request->getResponse()->redirect("/{$this->route}index");
+							$request->getResponse()->redirect($backUrl ?: "/{$this->route}index");
 <?php endif;?>
 						},
 						function($e) use($request) {
@@ -210,12 +210,12 @@ class <?=$className?> extends \<?=$base?> {
 		);
 	}
 	
-	public function actionView(RequestEvent $request, <?=$idFuncParams?>) {
+	public function actionView(RequestEvent $request, <?=$idFuncParams?><?php if(!$isJson):?>, string $backUrl = ''<?php endif?>) {
 		$db = db()->pop();
 		Model::findById(
 			$db,
 			<?=$idFuncParamValues?>,
-			function(?Model $row) use($request) {
+			function(?Model $row) use($request<?php if(!$isJson):?>, $backUrl<?php endif?>) {
 				if($row === null) {
 <?php if($isJson):?>
 					$request->getResponse()->json(['status' => false, 'message' => '未找到记录', 'data' => null]);
@@ -226,7 +226,7 @@ class <?=$className?> extends \<?=$base?> {
 <?php if($isJson):?>
 					$request->getResponse()->json(['status' => true, 'message' => '找到记录', 'data' => $row]);
 <?php else:?>
-					$request->getResponse()->end($this->render('view', ['model' => $row]));
+					$request->getResponse()->end($this->render('view', ['model' => $row, 'backUrl' => $backUrl]));
 <?php endif;?>
 				}
 			},
