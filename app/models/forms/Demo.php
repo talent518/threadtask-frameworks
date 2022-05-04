@@ -50,7 +50,7 @@ class Demo extends Model {
 			['url', 'url'],
 			['url', 'method', 'method' => $method],
 			['url', 'method', 'method' => 'validUrl'],
-			];
+		];
 	}
 	
 	protected function getLabels() {

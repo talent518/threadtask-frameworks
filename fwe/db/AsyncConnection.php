@@ -10,9 +10,10 @@ abstract class AsyncConnection {
 	/**
 	 * @var array $_events
 	 * @var array $_data
-	 * @var array $_callbacks
+	 * @var callable $_success
+	 * @var callable $_error
 	 */
-	protected $_events = [], $_data = [], $_callbacks = [];
+	protected $_events = [], $_data = [], $_success, $_error;
 	
 	/**
 	 * @var IEvent
@@ -46,7 +47,7 @@ abstract class AsyncConnection {
 		$this->eventKey = 0;
 		$this->_events = [];
 		$this->_data = [];
-		$this->_callbacks = [];
+		$this->_success = $this->_error = null;
 		$this->_current = null;
 		if($this->_event) {
 			$this->_event->free();
@@ -72,7 +73,7 @@ abstract class AsyncConnection {
 			$this->send();
 		} catch(\Throwable $e) {
 			$this->setData(true, $e->getMessage());
-			$call = $this->_callbacks[1];
+			$call = $this->_error;
 			$params = ['db'=>$this, 'data'=>$this->_data, 'e'=>$e, 'err'=>$e, 'error'=>$e, 'event'=>$this->_current];
 			$this->reset();
 			try {
@@ -87,7 +88,7 @@ abstract class AsyncConnection {
 		$this->_time = microtime(true);
 		$this->_current = array_shift($this->_events);
 		if($this->_current === null) { // 事件队列处理完成
-			$call = $this->_callbacks[0];
+			$call = $this->_success;
 			$params = $this->_data + ['db'=>$this, 'data'=>$this->_data];
 			$this->reset();
 			try {
@@ -134,7 +135,8 @@ abstract class AsyncConnection {
 				$this->_event = new \Event(\Fwe::$base, $this->getFd(), \Event::READ | \Event::PERSIST, [$this, 'eventCallback']);
 				$this->_event->add($timeout);
 				\Fwe::$app->events++;
-				$this->_callbacks = [$success, $error];
+				$this->_success = $success;
+				$this->_error = $error;
 				$this->send();
 				return true;
 			} else {
