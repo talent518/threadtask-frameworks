@@ -1,6 +1,19 @@
 <?php
 echo "<?php\n";
 
+/**
+ * @var $this \fwe\base\Controller 控制器对象
+ * @var $class string 模块类全名
+ * @var $base string 模块父类全名
+ * @var $namespace string 数据模块命名空间
+ * @var $className string 数据模块类名
+ * @var $table string 表名
+ * @var $comment string 表注释
+ * @var $fields array 数据表字段列表
+ * @var $indexes array 数据表唯一索引列表
+ * @var $isComment bool 是否使用表字段注释作为属性标签
+ */
+
 $classes = preg_split('/[^a-zA-Z0-9]+/', $class, -1, PREG_SPLIT_NO_EMPTY);
 $className = array_pop($classes);
 $namespace = implode('\\', $classes);

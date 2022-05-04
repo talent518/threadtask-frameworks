@@ -60,7 +60,7 @@ class MySQLQuery {
 		$params = [];
 		foreach($fields as $field) {
 			if(isset($field['sql'], $field['params'])) {
-				$select[] = (isset($field['alias']) ? "({$field['sql']}) as $alias" : $field['sql']);
+				$select[] = (isset($field['alias']) ? "({$field['sql']}) as {$field['alias']}" : $field['sql']);
 				foreach($field['params'] as $v) $params[] = $v;
 			} else if(is_array($field)) {
 				if(strpos($field[0], '.') !== false) {
@@ -494,7 +494,7 @@ class MySQLQuery {
 				'style' => IEvent::FETCH_COLUMN_ALL
 			],
 			function($cols) use($success) {
-				return $success ? $success($columns) : $cols;
+				return $success ? $success($cols) : $cols;
 			},
 			function(\Throwable $e) use($error) {
 				if($error) {

@@ -53,10 +53,9 @@ class RedisEvent implements IEvent {
 	}
 	
 	public function error(\Throwable $e) {
-		$err = $e->getMessage();
 		$t = round(microtime(true) - $this->_time, 6);
 		$cmd = $this->_db->formatCommandParams($this->_params);
-		\Fwe::$app->error("Run time $t seconds, Command: {$cmd}, ERROR: $err", 'redis');
+		\Fwe::$app->error("Run time $t seconds, Command: {$cmd}, ERROR: $e", 'redis');
 		
 		if($e instanceof SocketException) {
 			$this->_db->close();

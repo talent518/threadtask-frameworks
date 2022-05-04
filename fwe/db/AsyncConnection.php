@@ -112,7 +112,7 @@ abstract class AsyncConnection {
 	public function eventCallback($fd, int $what) {
 		if($what === \Event::TIMEOUT) {
 			$sql = $this->_current->getSql();
-			$this->trigger(new TimeoutException("异步事件队列执行超时: $sql", $t));
+			$this->trigger(new TimeoutException("异步事件队列执行超时: $sql"));
 			$this->reset();
 			$this->remove();
 		} elseif($this->_current === null) {

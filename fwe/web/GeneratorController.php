@@ -5,6 +5,7 @@ use fwe\base\Controller;
 use fwe\base\Exception;
 use fwe\db\Generator;
 use fwe\db\MySQLModel;
+use fwe\web\Controller as RestfulController;
 
 class GeneratorController extends Controller {
 	public string $genViewPath = '@fwe/views/generators';
@@ -96,8 +97,10 @@ class GeneratorController extends Controller {
 			$class = Controller::class;
 			throw new Exception("$base 不是 $class 的子类");
 		}
+
 		$params = compact('model', 'class', 'base', 'search');
-		$params['isJson'] = ($path === null || $path === '');
+		$params['isRestful'] = ($base === RestfulController::class || is_subclass_of($base, RestfulController::class));
+		$params['isJson'] = ($path === null || $path === '' || $params['isRestful']);
 		
 		$classes = preg_split('/[^a-zA-Z0-9]+/', $search, -1, PREG_SPLIT_NO_EMPTY);
 		$params['className'] = array_pop($classes);

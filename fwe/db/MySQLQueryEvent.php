@@ -162,9 +162,8 @@ class MySQLQueryEvent implements IEvent {
 	}
 	
 	public function error(\Throwable $e) {
-		$err = $e->getMessage();
 		$t = round(microtime(true) - $this->_time, 6);
-		\Fwe::$app->error("Run time $t seconds, SQL: {$this->_sql}, ERROR: $err", 'mysql-query');
+		\Fwe::$app->error("Run time $t seconds, SQL: {$this->_sql}, ERROR: $e", 'mysql-query');
 
 		$this->_data = $e;
 		if($this->_error) {

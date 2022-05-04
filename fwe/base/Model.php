@@ -274,22 +274,25 @@ abstract class Model {
 			}
 		} else {
 			$call = (function(callable $ok) use($calls, $ret, $isOnly, $args) {
-				$next = function(callable $ok) use(&$calls, $args) {
-					array_shift($calls)($ok, ...$args);
+				$obj = new \stdClass();
+				$obj->calls = $calls;
+				$obj->ret = $ret;
+				$next = function() use($obj, $args) {
+					array_shift($obj->calls)($obj->result, ...$args);
 				};
-				$res = function(int $n, ?string $error = null) use(&$calls, &$ret, $isOnly, $next, $ok) {
+				$obj->result = function(int $n, ?string $error = null) use($obj, $next, $isOnly, $ok) {
 					if($n < 0) {
-						$ok($ret + 1, $error);
+						$ok($obj->ret + 1, $error);
 					} else {
-						$ret += $n;
-						if(($n && $isOnly) || empty($calls)) {
-							$ok($ret);
+						$obj->ret += $n;
+						if(($n && $isOnly) || empty($obj->calls)) {
+							$ok($obj->ret);
 						} else {
-							$next($this);
+							$next();
 						}
 					}
 				};
-				$next($res->bindTo($res));
+				$next();
 			})->bindTo(null);
 
 			if($ok) {

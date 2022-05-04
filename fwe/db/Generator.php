@@ -126,7 +126,7 @@ class Generator {
 			}
 			
 			foreach($indexes as $index) {
-				if($index['Seq_in_index']) {
+				if(empty($index['Non_unique'])) {
 					$data['indexes'][$index['Key_name']][] = $index['Column_name'];
 				}
 			}

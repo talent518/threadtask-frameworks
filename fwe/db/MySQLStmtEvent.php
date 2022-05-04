@@ -128,10 +128,9 @@ class MySQLStmtEvent extends MySQLQueryEvent {
 	}
 	
 	public function error(\Throwable $e) {
-		$err = $e->getMessage();
 		$t = round(microtime(true) - $this->_time, 6);
 		$sql = MySQLQuery::formatSQL($this->_sql, $this->param);
-		\Fwe::$app->error("Run time $t seconds, SQL: {$sql}, ERROR: $err", 'mysql-stmt');
+		\Fwe::$app->error("Run time $t seconds, SQL: {$sql}, ERROR: $e", 'mysql-stmt');
 		
 		$this->_data = $e;
 		if($this->_error) {

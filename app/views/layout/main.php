@@ -1,4 +1,8 @@
-<!DOCTYPE html>
+<?php
+/**
+ * @var string $content 子界面内容: HTML
+ */
+?><!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">

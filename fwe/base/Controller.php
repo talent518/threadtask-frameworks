@@ -88,6 +88,9 @@ class Controller {
 	}
 	
 	public function splitId(string &$id, array &$params) {
+		if($id === '') {
+			$id = $this->defaultAction;
+		}
 		return false;
 	}
 
@@ -99,10 +102,6 @@ class Controller {
 	 * @return Action
 	 */
 	public function getAction(string $id, array &$params) {
-		if($id === '') {
-			$id = $this->defaultAction;
-		}
-		
 		if($this->splitId($id, $params)) {
 			if(strpos($id, '/') !== false) {
 				list($id, $route) = explode('/', $id, 2);

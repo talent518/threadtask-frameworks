@@ -1,6 +1,14 @@
 <?php
 echo "<?php\n";
 
+/**
+ * @var \fwe\base\Controller $this 控制器对象
+ * @var $model string 数据模块类全名
+ * @var $namespace string 控制器命名空间
+ * @var $className string 控制器类名
+ * @var $_ mixed 忽略
+ */
+
 $modelObj = $model::create();
 $searchKeys = $model::searchKeys();
 ?>
