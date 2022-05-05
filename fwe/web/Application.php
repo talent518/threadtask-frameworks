@@ -113,18 +113,16 @@ class Application extends \fwe\base\Application {
 		return !$count;
 	}
 	
-	public function strerror(string $msg, bool $isThrow = true) {
+	public function strerror(string $msg, bool $isExit = true) {
 		$errno = socket_last_error();
 		$error = socket_strerror($errno);
 		socket_clear_error();
 		if($errno === SOCKET_EINTR) return;
 		
-		$e = new \Exception("$msg: $error", $errno);
-		
-		if($isThrow) {
-			throw $e;
+		if($isExit) {
+			exit("$msg: $error\n");
 		} else {
-			echo "$e\n";
+			echo "$msg: $error\n";
 		}
 	}
 	

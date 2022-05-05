@@ -229,12 +229,8 @@ class Module {
 	
 	public function getBasePath() {
 		if ($this->_basePath === null) {
-			if($this->module) {
-				$this->_basePath = $this->module->getBasePath() . "/{$this->id}";
-			} else {
-				$class = new \ReflectionClass($this);
-				$this->_basePath = dirname($class->getFileName());
-			}
+			$class = new \ReflectionClass($this);
+			$this->_basePath = dirname($class->getFileName());
 		}
 		
 		return $this->_basePath;
@@ -246,10 +242,9 @@ class Module {
 
 	public function getViewPath(): string {
 		if ($this->_viewPath === null) {
-			if($this->module) {
+			$this->_viewPath = $this->getBasePath() . '/views';
+			if($this->module && !is_dir($this->_viewPath)) {
 				$this->_viewPath = $this->module->getViewPath() . "/{$this->id}";
-			} else {
-				$this->_viewPath = $this->getBasePath() . '/views';
 			}
 		}
 

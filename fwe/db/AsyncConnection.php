@@ -88,13 +88,20 @@ abstract class AsyncConnection {
 		$this->_time = microtime(true);
 		$this->_current = array_shift($this->_events);
 		if($this->_current === null) { // 事件队列处理完成
-			$call = $this->_success;
+			$success = $this->_success;
+			$error = $this->_error;
 			$params = $this->_data + ['db'=>$this, 'data'=>$this->_data];
 			$this->reset();
 			try {
-				\Fwe::invoke($call, $params);
+				\Fwe::invoke($success, $params);
 			} catch(\Throwable $e) {
 				\Fwe::$app->error($e, 'async-conn');
+				try {
+					$params['e'] = $params['err'] = $params['error'] = $e;
+					\Fwe::invoke($error, $params);
+				} catch(\Throwable $e) {
+					\Fwe::$app->error($e, 'async-conn');
+				}
 			}
 		} elseif($this->_current instanceof IEvent) {
 			try {
