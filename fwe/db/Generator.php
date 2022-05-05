@@ -142,21 +142,21 @@ class Generator {
 	
 	public function generate(Controller $controller, string $view, string $target, array $params, bool $isOver = false) {
 		$params['generator'] = $this;
-		$file = $controller->getViewFile($view);
-		$cont = $controller->renderFile($file, $params);
+		$cont = $controller->renderView($view, $params);
 		$targetFile = \Fwe::getAlias($target);
 		
 		clearstatcache(true, $targetFile);
 		
 		if(!$isOver && is_file($targetFile)) {
 			$target = trim(preg_replace('/[^a-zA-Z0-9\.]+/', '-', $target), '-');
-			$tmpFile = \Fwe::getAlias("@app/runtime/$target");
-			return [file_put_contents($tmpFile, $cont) !== false, $targetFile, $tmpFile];
+			$tmpFile = \Fwe::getAlias("@app/runtime/generators/$target");
 		} else {
-			$targetPath = dirname($targetFile);
-			if(!is_dir($targetPath)) mkdir($targetPath, 0755, true);
-			return [file_put_contents($targetFile, $cont) !== false, $targetFile, $targetFile];
+			$tmpFile = $targetFile;
 		}
+
+		$tmpPath = dirname($tmpFile);
+		if(!is_dir($tmpPath)) mkdir($tmpPath, 0755, true);
+		return [file_put_contents($tmpFile, $cont) !== false, $targetFile, $tmpFile];
 	}
 	
 	protected function getColumnPhpType(array $column) {

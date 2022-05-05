@@ -157,8 +157,6 @@ class Controller {
 		}
 	}
 	
-	protected $viewExtension = 'php';
-	
 	public function getViewFile(string $view) {
 		if(!strncmp($view, '@', 1)) {
 			$file = \Fwe::getAlias($view);
@@ -170,17 +168,11 @@ class Controller {
 			$file = $this->module->getViewPath() . "/{$this->id}/$view";
 		}
 		
-		if(pathinfo($file, PATHINFO_EXTENSION) !== '') {
-			return $file;
-		} else {
-			return "{$file}.{$this->viewExtension}";
-		}
+		return $file;
 	}
 	
 	public function render(string $view, array $params = [], ?callable $ok = null) {
-		$file = $this->getViewFile($view);
-		
-		return $this->renderContent($this->renderFile($file, $params), $ok);
+		return $this->renderContent($this->renderView($view, $params), $ok);
 	}
 	
 	private $_layoutView, $_layoutCall;
@@ -201,16 +193,9 @@ class Controller {
 		$this->_layoutCall = $call;
 	}
 	
-	public function getLayoutFile() {
-		$layout = $this->getLayoutView();
-		if($layout) {
-			return $this->getViewFile($layout);
-		}
-	}
-	
 	public function renderContent(string $content, ?callable $ok = null) {
-		$file = $this->getLayoutFile();
-		if($file) {
+		$view = $this->getLayoutView();
+		if($view) {
 			$call = $this->getLayoutCall();
 			if($call) {
 				if($ok === null) {
@@ -219,18 +204,18 @@ class Controller {
 
 				call_user_func(
 					$call,
-					function(array $params) use($ok, $content, $file) {
+					function(array $params) use($ok, $content, $view) {
 						if(array_key_exists('content', $params)) {
 							\Fwe::$app->warn('Overflow params of content key', 'view');
 						}
 						$params['content'] = $content;
-						$ok($this->renderFile($file, $params));
+						$ok($this->renderView($view, $params));
 					}
 				);
 			} elseif($ok) {
-				$ok($this->renderFile($file, ['content'=>$content]));
+				$ok($this->renderView($view, ['content'=>$content]));
 			} else {
-				return $this->renderFile($file, ['content'=>$content]);
+				return $this->renderView($view, ['content'=>$content]);
 			}
 		} elseif($ok) {
 			$ok($content);
@@ -239,7 +224,30 @@ class Controller {
 		}
 	}
 	
-	public function renderFile(string $__file__, array $__params__ = []): string {
+	public function renderView(string $view, array $params = []) {
+		$file = $this->getViewFile($view);
+		$ext = pathinfo($file, PATHINFO_EXTENSION);
+		if($ext === '') {
+			$ext = $this->getViewExtension();
+			$file = "{$file}.{$ext}";
+		}
+		if($ext !== 'php') {
+			$file = $this->buildView($file);
+		}
+		return $this->renderPhpFile($file, $params);
+	}
+	
+	protected function getViewExtension() {
+		return 'php';
+	}
+	
+	protected function buildView(string $viewFile) {
+		throw new Exception("Override protected buildView method for implements $viewFile convert to php file");
+	}
+	
+	public function renderPhpFile(string $__file__, array $__params__ = []): string {
+		opcache_invalidate($__file__);
+		
 		$__obLevel__ = ob_get_level();
 		ob_start();
 		ob_implicit_flush(false);

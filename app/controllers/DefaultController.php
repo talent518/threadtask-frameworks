@@ -132,7 +132,7 @@ class DefaultController extends Controller {
 			return json_encode($files, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
 		}
 
-		return $this->renderFile($this->getViewFile('index'), get_defined_vars());
+		return $this->renderView('index', get_defined_vars());
 	}
 	public function actionWs(RequestEvent $request) {
 		$request->webSocket();

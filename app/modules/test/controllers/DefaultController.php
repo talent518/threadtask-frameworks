@@ -2,15 +2,24 @@
 namespace app\modules\test\controllers;
 
 use fwe\console\Controller;
+use fwe\traits\TplView;
 use fwe\web\RequestEvent;
 
 class DefaultController extends Controller {
+	use TplView;
+	
 	public function actionIndex(RequestEvent $request) {
 		$view0 = __METHOD__;
 		$view1 = $this->getViewFile("@app/{$this->id}/index");
 		$view2 = $this->getViewFile("//{$this->id}/index");
 		$view3 = $this->getViewFile("/{$this->id}/index");
 		$view4 = $this->getViewFile('index');
-		$request->getResponse()->text("$view0\n$view1\n$view2\n$view3\n$view4\n");
+		$request->getResponse()->end($this->render('index', compact('view0', 'view1', 'view2', 'view3', 'view4')));
+	}
+	
+	public function actionTemplate(RequestEvent $request) {
+		$get = $request->get;
+		$headers = $request->headers;
+		$request->getResponse()->end($this->render('template', compact('request', 'get', 'headers')));
 	}
 }
