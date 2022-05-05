@@ -4,6 +4,7 @@ namespace fwe\traits;
 use fwe\utils\StringHelper;
 
 trait TplView {
+	protected $replaceWhiteSpace = null;
 	private $_ireplace = 0, $_replaces = [];
 	
 	protected function getViewExtension() {
@@ -66,6 +67,11 @@ trait TplView {
 			$template = preg_replace_callback('/\{tpl\s+(\S+)\s+(.+?)\}/', [$this, 'tplTags'], $template);
 			$template = preg_replace_callback('/(\$[a-zA-Z0-9_\.:]+)/', [$this, 'echoTags'], $template);
 			$template = preg_replace_callback('/\{(@[a-zA-Z0-9\/-_\.]+)\}/', [$this, 'aliasTags'], $template);
+			
+			//清除空白字符
+			if($this->replaceWhiteSpace !== null){
+				$template = preg_replace('/\s*[\r\n]+\s*/s', $this->replaceWhiteSpace, $template);
+			}
 
 			$template = strtr($template, $this->_replaces);
 			
