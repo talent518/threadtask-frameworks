@@ -229,7 +229,21 @@ class Controller {
 		$ext = pathinfo($file, PATHINFO_EXTENSION);
 		if($ext === '') {
 			$ext = $this->getViewExtension();
-			$file = "{$file}.{$ext}";
+			if($ext === 'php') {
+				$file = "{$file}.php";
+			} else {
+				$_file = "{$file}.{$ext}";
+				if($ext !== 'php' && !is_file($_file)) {
+					$_file2 = "{$file}.php";
+					if(is_file($_file2)) {
+						$_file = $_file2;
+						$ext = 'php';
+					}
+					unset($_file2);
+				}
+				$file = $_file;
+				unset($_file);
+			}
 		}
 		if($ext !== 'php') {
 			$file = $this->buildView($file);

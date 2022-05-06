@@ -244,7 +244,12 @@ class Module {
 		if ($this->_viewPath === null) {
 			$this->_viewPath = $this->getBasePath() . '/views';
 			if($this->module && !is_dir($this->_viewPath)) {
-				$this->_viewPath = $this->module->getViewPath() . "/{$this->id}";
+				$viewPath = $this->module->getViewPath() . "/{$this->id}";
+				if(is_dir($viewPath)) {
+					$this->_viewPath = $viewPath;
+				} else {
+					\Fwe::$app->warn("请在创建 {$this->_viewPath} 或 {$viewPath} 目录并在其中添加需要的视图文件");
+				}
 			}
 		}
 
