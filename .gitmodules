@@ -1,0 +1,3 @@
+[submodule "pecl-event-stubs"]
+	path = pecl-event-stubs
+	url = https://github.com/kiler129/pecl-event-stubs

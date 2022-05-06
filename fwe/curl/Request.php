@@ -104,12 +104,12 @@ class Request extends IRequest {
 	}
 	
 	protected $file, $fileSize;
-	public function setFile($file, int $size = 0) {
+	public function setFile(string $file, int $size = -1) {
 		$this->type = self::TYPE_FILE;
 		$this->data = null;
 		$this->form = null;
 		$this->file = $file;
-		$this->fileSize - $size;
+		$this->fileSize = ($size < 0 ? filesize($file) : $size);
 		
 		return $this;
 	}
@@ -152,7 +152,9 @@ class Request extends IRequest {
 	
 	protected function makeXML(\SimpleXMLElement $xml, array $a) {
 		foreach($a as $k => $v) {
-			if(is_array($v)) {
+			if(is_object($v)) {
+				$this->makeXML($xml->addChild($k), get_object_vars($v));
+			} elseif(is_array($v)) {
 				$this->makeXML($xml->addChild($k), $v);
 			} else {
 				$xml->addChild($k, $v);
