@@ -200,7 +200,7 @@ class ResponseEvent {
 		if(!$this->headSend(-1)) return false;
 		
 		$n = strlen($data);
-		if(!$n) return true;
+		if(!$n || $this->request->method === 'HEAD') return true;
 
 		if($this->isChunked) {
 			$data = sprintf("%x\r\n%s\r\n", $n, $data);
@@ -220,6 +220,7 @@ class ResponseEvent {
 		if(!$this->headSend($n)) {
 			return false;
 		}
+		if($this->request->method === 'HEAD') return true;
 		
 		if($this->isChunked) {
 			if($n) {
