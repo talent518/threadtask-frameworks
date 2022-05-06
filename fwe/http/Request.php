@@ -46,8 +46,14 @@ class Request implements \JsonSerializable {
 	}
 	
 	public function __toString() {
-		return json_encode($this, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
-// 		return var_export($this, true);
+		$json = json_encode($this, JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT);
+		if(json_last_error()) {
+			\Fwe::$app->warn('json_encode error: ' . json_last_error_msg(), 'http-client');
+			
+			return var_export($this, true);
+		} else {
+			return $json;
+		}
 	}
 	
 	public function __get($name) {
@@ -515,7 +521,7 @@ class Request implements \JsonSerializable {
 		// echo "send body: {$this->_bodylen} {$this->_bodyoff}\n";
 		if($this->_bodylen > $this->_bodyoff) {
 			if($this->_bodyFp) {
-				$buf = fread($this->_body, min(16 * 1024, $this->_bodylen - $this->_bodyoff));
+				$buf = fread($this->_bodyFp, min(16 * 1024, $this->_bodylen - $this->_bodyoff));
 			} else {
 				$buf = substr($this->_body, $this->_bodyoff, 16 * 1024);
 			}
@@ -547,7 +553,7 @@ class Request implements \JsonSerializable {
 		$this->_readBuf = null;
 		$this->_inflate = null;
 		$this->_ssl_ctx = null;
-		$this->_saveFp = null;
+		$this->_saveFp = $this->_bodyFp = null;
 		
 		$ok = $this->_ok;
 		$this->_ok = null;
