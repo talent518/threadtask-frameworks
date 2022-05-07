@@ -570,7 +570,9 @@ class Request implements \JsonSerializable {
 		if($event & \EventBufferEvent::EOF) {
 			$this->free();
 		} elseif($event & \EventBufferEvent::ERROR) {
-			$this->free(-3, 'Error');
+			$this->free(-3, ($event & \EventBufferEvent::READING) ? 'Read error' : 'Write error');
+		} elseif($event & \EventBufferEvent::TIMEOUT) {
+			$this->free(-5, ($event & \EventBufferEvent::READING) ? 'Read timeout' : 'Write timeout');
 		}
 	}
 	
@@ -585,7 +587,10 @@ class Request implements \JsonSerializable {
 		$this->_readBuf = null;
 		$this->_inflate = null;
 		$this->_ssl_ctx = null;
-		$this->_saveFp = $this->_bodyFp = $this->_responseHandler = null;
+		$this->_saveFp = null;
+		$this->_body = null;
+		$this->_bodyFp = null;
+		$this->_responseHandler = null;
 		
 		$ok = $this->_ok;
 		$this->_ok = null;

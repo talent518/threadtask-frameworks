@@ -46,7 +46,7 @@ class HttpController extends Controller {
 	 */
 	public function actionBaidu() {
 		$req = new Request('https://www.baidu.com/s?wd=threadtask-frameworks&rsv_spt=1&rsv_iqid=0xfcd81d7900019b64&issp=1&f=8&rsv_bp=1&rsv_idx=2&ie=utf-8&rqlang=cn&tn=baiduhome_pg&rsv_enter=1&rsv_dl=tb&oq=threadtask-framework&rsv_btype=t&inputT=704&rsv_t=d8cfDunVtOcpFz91%2F%2BhcOkT3STTnQvgJdXbGaoWX8iY4QAwh2QqBR0wI%2BnG3TAsPyJ%2F%2B&rsv_pq=ffabca2b00039cba&rsv_sug2=0&rsv_sug4=2902');
-
+		$req->setTimeout(1, 1);
 		$req->send(function (int $errno, string $error) use ($req) {
 			echo "errno: $errno, error: $error\n";
 			echo "$req\n";
