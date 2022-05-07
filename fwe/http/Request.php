@@ -465,7 +465,14 @@ class Request implements \JsonSerializable {
 						default:
 							break;
 					}
-					goto body;
+					if(strlen($this->_readBuf)) {
+						goto body;
+					} elseif($this->method === 'HEAD') {
+						$this->responseLength = $this->_readLen;
+						$this->free();
+					} else {
+						goto body;
+					}
 					break;
 				} else {
 					$line = substr($this->_readBuf, $i, $pos - $i);

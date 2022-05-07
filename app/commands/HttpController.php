@@ -29,14 +29,14 @@ class HttpController extends Controller {
 	 * @return boolean
 	 */
 	public function actionHead() {
-		$req = new Request('http://127.0.0.1:5000/default/info', 'HEAD');
+		$req = new Request('http://127.0.0.1:5000/default/info?isChunk=0', 'HEAD');
 		
 		$req->send(function (int $errno, string $error) use ($req) {
 			echo "errno: $errno, error: $error\n";
 			echo "$req\n";
 		});
-			
-			return false;
+		
+		return false;
 	}
 
 	/**
