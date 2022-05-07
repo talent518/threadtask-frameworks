@@ -12,11 +12,11 @@ class Controller extends \fwe\base\Controller {
 		switch($params['request']->method) {
 			case 'OPTIONS':
 				if($id === '') {
-					$methods = ['HEAD', 'GET', 'POST']; // action: index, create
+					$methods = ['GET', 'POST']; // action: index, create
 				} elseif(preg_match('/^\d+$/', $id)) {
-					$methods = ['HEAD', 'GET', 'PUT', 'DELETE']; // action: view, update, delete
+					$methods = ['GET', 'PUT', 'DELETE']; // action: view, update, delete
 				} elseif(preg_match('/^\d+\/(\w+)$/', $id, $matches) && !in_array($matches[1], ['options', 'index', 'create', 'update', 'delete', 'view'])) {
-					$methods = ['HEAD', 'GET', 'PUT'];
+					$methods = ['GET', 'PUT'];
 				} else {
 					$methods = [];
 				}
@@ -24,7 +24,6 @@ class Controller extends \fwe\base\Controller {
 				$params['methods'] = $methods;
 				$id = 'options';
 				break;
-			case 'HEAD':
 			case 'GET':
 				if($id === '') {
 					$id = 'index';

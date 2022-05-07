@@ -30,11 +30,11 @@ class ServeController extends Controller {
 	 * @param array $__params__
 	 * @param string $route
 	 */
-	public function actionIndex(string $name = 'web', ?int $maxThreads = null, ?int $backlog = null, ?int $keepAlive = null, ?int $logLevel = null, ?int $traceLevel = null, ?int $logSize = null, ?int $logMax = null, ?string $logFormat = null) {
+	public function actionIndex(string $name = 'web', ?int $maxThreads = null, ?int $backlog = null, ?int $keepAlive = null, ?int $logLevel = null, ?int $traceLevel = null, ?int $logSize = null, ?int $logMax = null, ?string $logFormat = null, ?bool $isToFile = null) {
 		redefine('THREAD_TASK_NAME', $name);
 		\Fwe::$name = $name;
 		\Fwe::$names = [];
-		$config = \Fwe::$config->getOrSet(\Fwe::$name, function () use($maxThreads, $backlog, $keepAlive, $logLevel, $traceLevel, $logSize, $logMax, $logFormat) {
+		$config = \Fwe::$config->getOrSet(\Fwe::$name, function () use($maxThreads, $backlog, $keepAlive, $logLevel, $traceLevel, $logSize, $logMax, $logFormat, $isToFile) {
 			$cfg = include \Fwe::getAlias('@app/config/' . \Fwe::$name . '.php');
 			if($maxThreads !== null) $cfg['maxThreads'] = $maxThreads;
 			if($backlog !== null) $cfg['backlog'] = $backlog;
@@ -44,6 +44,7 @@ class ServeController extends Controller {
 			if($logSize !== null) $cfg['logSize'] = $logSize;
 			if($logMax !== null) $cfg['logMax'] = $logMax;
 			if($logFormat !== null) $cfg['logFormat'] = $logFormat;
+			if($isToFile !== null) $cfg['isToFile'] = $isToFile;
 			return $cfg;
 		});
 		\Fwe::$app->logAll();
