@@ -113,4 +113,21 @@ class HttpController extends Controller {
 
 		return false;
 	}
+
+	/**
+	 * GET响应数据句柄
+	 * 
+	 * @return boolean
+	 */
+	public function actionHandler() {
+		$req = new Request('http://127.0.0.1:5000/default/info');
+		$req->setResponseHandler(function(string $buf, int $n) {
+			echo "n: $n, buf: $buf\n";
+		});
+		$req->send(function (int $errno, string $error) use ($req) {
+			echo "errno: $errno, error: $error\n";
+		});
+
+		return false;
+	}
 }

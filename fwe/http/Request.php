@@ -11,6 +11,9 @@ namespace fwe\http;
  * @property-read integer $fileSize
  * @property-read integer $format
  * 
+ * @property-read float $readTimeout
+ * @property-read float $writeTimeout
+ * 
  * @property-read string $responseProtocol
  * @property-read integer $responseStatus
  * @property-read string $responseStatusText
@@ -31,6 +34,8 @@ class Request implements \JsonSerializable {
 	
 	protected $url, $method, $protocol, $headers;
 	protected $type = self::TYPE_NONE;
+	
+	protected $readTimeout = 30, $writeTimeout = 30;
 	
 	protected $responseProtocol, $responseStatus, $responseStatusText, $responseHeaders = [], $responseData, $responseLength, $saveFile, $saveAppend;
 	
@@ -86,6 +91,8 @@ class Request implements \JsonSerializable {
 		foreach($headers as $name => $value) {
 			$this->addHeader($name, $value);
 		}
+		
+		return $this;
 	}
 	
 	protected $data;
@@ -242,6 +249,13 @@ class Request implements \JsonSerializable {
 		}
 	}
 	
+	public function setTimeout(float $readTimeout, float $writeTimeout) {
+		$this->readTimeout = $readTimeout;
+		$this->writeTimeout = $writeTimeout;
+		
+		return $this;
+	}
+	
 	private static $_events = [];
 	private $_key;
 	private $_ssl_ctx, $_event, $_ok;
@@ -292,7 +306,7 @@ class Request implements \JsonSerializable {
 		}
 		$this->_event->setCallbacks([$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler']);
 		$this->_event->connectHost(null, $uri['host'], $uri['port'] ?? ($this->_ssl_ctx ? 443 : 80));
-		$this->_event->setTimeouts(30, 30);
+		$this->_event->setTimeouts($this->readTimeout, $this->writeTimeout);
 		$this->_event->enable(\Event::READ);
 		
 		$head = "{$this->method} {$url} {$this->protocol}\r\n";
@@ -338,11 +352,22 @@ class Request implements \JsonSerializable {
 	public function saveFile(string $file, bool $append = false) {
 		$this->saveFile = $file;
 		$this->saveAppend = $append;
+		
+		return $this;
+	}
+	
+	private $_responseHandler;
+	public function setResponseHandler(callable $handler) {
+		$this->_responseHandler = $handler;
+		
+		return $this;
 	}
 	
 	private $_saveFp;
 	protected function onResponse(string $buf, int $n) {
-		if($this->saveFile) {
+		if($this->_responseHandler) {
+			call_user_func($this->_responseHandler, $buf, $n);
+		} elseif($this->saveFile) {
 			if($this->responseStatus >= 200 && $this->responseStatus < 300) {
 				if($this->_saveFp === null) {
 					$this->_saveFp = fopen($this->saveFile, $this->saveAppend ? 'a' : 'w');
@@ -560,7 +585,7 @@ class Request implements \JsonSerializable {
 		$this->_readBuf = null;
 		$this->_inflate = null;
 		$this->_ssl_ctx = null;
-		$this->_saveFp = $this->_bodyFp = null;
+		$this->_saveFp = $this->_bodyFp = $this->_responseHandler = null;
 		
 		$ok = $this->_ok;
 		$this->_ok = null;
