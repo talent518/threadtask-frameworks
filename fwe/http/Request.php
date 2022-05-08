@@ -49,7 +49,7 @@ class Request implements \JsonSerializable {
 	
 	protected $runTime, $connTime;
 	
-	public $maxRedirs = 10;
+	public $maxRedirs = 3;
 	
 	public function __construct(string $url, string $method = 'GET', array $headers = [], string $protocol = 'HTTP/1.1') {
 		$this->url = $url;
