@@ -273,14 +273,14 @@ class Request implements \JsonSerializable {
 	private $_head, $_event;
 	public function send(callable $ok) {
 		$uri = parse_url($this->url);
-		if(!$uri) {
-			call_user_func($ok, -1, "URL {$this->url} 不合法");
+		if(!$uri || !isset($uri['scheme'], $uri['host'])) {
+			call_user_func($ok, -50, "URL {$this->url} 不合法");
 			return;
 		}
 		
 		$scheme = $uri['scheme'] ?? 'http';
 		if($scheme !== 'http' && $scheme !== 'https') {
-			call_user_func($ok, -2, "不支持协议 $scheme 在URL {$this->url} 中");
+			call_user_func($ok, -51, "不支持协议 $scheme 在URL {$this->url} 中");
 			return;
 		}
 		
@@ -419,26 +419,25 @@ class Request implements \JsonSerializable {
 		\Fwe::$app->events --;
 		$this->runTime = round(microtime(true) - $this->_time, 6);
 		$this->_head = $this->_body = null;
-		$this->_bodyFp = null;
+		$this->_bodyFp = $this->_saveFp = null;
 		$this->_responseHandler = $this->_event = null;
 		
 		// printf("connTime: %.6f, runTime: %.6f\n", $this->connTime, $this->runTime);
 		
 		$ok = $this->_ok;
 		$this->_ok = null;
-		
-		try {
-			call_user_func($ok, $errno, $error);
-		} catch(\Throwable $e) {
-			\Fwe::$app->error($e, 'http-client');
+		if($ok) {
+			try {
+				call_user_func($ok, $errno, $error);
+			} catch(\Throwable $e) {
+				\Fwe::$app->error($e, 'http-client');
+			}
 		}
 	}
 	
 	public function free(int $errno, string $error) {
-		if($this->_event) {
-			$this->_event->setRequest(null, false, -1, -1);
-			$this->_event->free($errno, $error);
-		}
+		$this->_ok = null;
+		if($this->_event) $this->_event->free($errno, $error);
 	}
 	
 }

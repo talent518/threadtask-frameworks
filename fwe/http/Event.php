@@ -2,9 +2,9 @@
 namespace fwe\http;
 
 class Event {
-	protected static $events = [];
+	protected static $events = [], $isRegister = false;
 
-	protected $keepKey, $pushIndex;
+	protected $keepKey;
 	protected $ssl_ctx, $dnsBase;
 	
 	/**
@@ -20,6 +20,18 @@ class Event {
 	public static function connect(string $host, int $port, bool $is_ssl) {
 		$ssl = ($is_ssl ? 1 : 0);
 		$key = "$host:$port:$ssl";
+		
+		if(!static::$isRegister) {
+			static::$isRegister = true;
+			register_shutdown_function(function() {
+				foreach(static::$events as $evts) {
+					foreach($evts as $evt) {
+						$evt->free();
+					}
+				}
+				static::$events = [];
+			});
+		}
 
 		if(empty(static::$events[$key])) {
 			return new Event($host, $port, $is_ssl, $key);
@@ -72,21 +84,21 @@ class Event {
 	protected $isExpect;
 	protected $isHeadSent;
 	
-	public function setRequest(?Request $req, bool $isExpect, float $readTimeout, float $writeTimeout) {
-		if($this->event) {
-			$this->event->setTimeouts($readTimeout, $writeTimeout);
-		}
-
+	protected function reset() {
 		$this->isHeadSent = null;
 		$this->isReadBody = null;
-		$this->isExpect = $isExpect;
 		$this->isFirstHead = true;
 		$this->isChunked = false;
 		$this->readBuf = $this->inflate = null;
 		$this->readLen = 0;
 		$this->chunkLen = -1;
-		
+	}
+	
+	public function setRequest(?Request $req, bool $isExpect, float $readTimeout, float $writeTimeout) {
+		$this->reset();
+		$this->event->setTimeouts($readTimeout, $writeTimeout);
 		$this->request = $req;
+		$this->isExpect = $isExpect;
 	}
 	
 	public function write(string $data) {
@@ -106,7 +118,7 @@ class Event {
 				while($i < $n) {
 					if($this->chunkLen < 0) {
 						if(($pos = strpos($this->readBuf, "\r\n", $i)) === false) {
-							$this->free(-4, 'Chunked size error');
+							$this->free(-3, 'Chunked size error');
 							break;
 						} else {
 							if($i === $pos) {
@@ -200,7 +212,7 @@ class Event {
 					}
 					if(strlen($this->readBuf)) {
 						goto body;
-					} elseif($this->method === 'HEAD') {
+					} elseif($this->request->method === 'HEAD') {
 						$this->request->onResponse('', $this->readLen);
 						$this->free();
 					} else {
@@ -238,7 +250,7 @@ class Event {
 		// $sent = ($this->isHeadSent ? 'body' : 'head');
 		// echo "write handler: {$sent}\n";
 		if($this->isHeadSent) {
-			if($this->request) $this->request->sendBody();
+			$this->request->sendBody();
 		} else {
 			$this->isHeadSent = true;
 		}
@@ -247,25 +259,26 @@ class Event {
 	public function eventHandler($bev, $event, $arg) {
 		// echo "event: $event\n";
 		if($event & \EventBufferEvent::EOF) {
-			$this->free();
+			$this->free(1, 'Connect error');
 		} elseif($event & \EventBufferEvent::ERROR) {
-			$this->free(-3, ($event & \EventBufferEvent::READING) ? 'Read error' : 'Write error');
+			$this->free(-1, ($event & \EventBufferEvent::READING) ? 'Read error' : 'Write error');
 		} elseif($event & \EventBufferEvent::TIMEOUT) {
-			$this->free(-5, ($event & \EventBufferEvent::READING) ? 'Read timeout' : 'Write timeout');
+			$this->free(-2, ($event & \EventBufferEvent::READING) ? 'Read timeout' : 'Write timeout');
 		} elseif($event & \EventBufferEvent::CONNECTED) {
-			if($this->request) $this->request->connected();
+			$this->request->connected();
 		}
 	}
 	
+	protected $pushIndex;
 	public function free(int $errno = 0, string $error = 'OK') {
 		if(!$this->event) return;
 		
-		if($this->request && $this->request->isKeepAlive()) {
+		if($errno === 0 && $this->request && $this->request->isKeepAlive()) {
 			static::$events[$this->keepKey][] = $this;
 			$this->pushIndex = array_key_last(static::$events[$this->keepKey]);
+			$this->event->setTimeouts(0, 0);
 		} else {
 			\Fwe::pushDns($this->dnsBase);
-			
 			$this->event->free();
 			$this->event = null;
 			$this->ssl_ctx = $this->dnsBase = null;
@@ -274,8 +287,9 @@ class Event {
 			}
 		}
 		
+		$this->reset();
 		$req = $this->request;
-		$this->setRequest(null, false, 0, 0);
+		$this->request = null;
 		
 		if($req) {
 			try {

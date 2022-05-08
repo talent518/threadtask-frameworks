@@ -14,7 +14,6 @@ class HttpController extends Controller {
 			$response = $request->getResponse();
 
 			if($errno) {
-				echo "errno: $errno, error: $error\n";
 				$response->setStatus(500);
 				if($isJson) {
 					$response->json($error);
