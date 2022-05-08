@@ -2,8 +2,8 @@
 namespace app\commands;
 
 use fwe\console\Controller;
-use fwe\http\Request;
 use fwe\http\File;
+use fwe\http\Request;
 
 class HttpController extends Controller {
 

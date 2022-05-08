@@ -1,6 +1,9 @@
 <?php
 namespace fwe\http;
 
+
+use fwe\utils\UrlHelper;
+
 /**
  * @property-read array $properties
  * 
@@ -45,6 +48,8 @@ class Request implements \JsonSerializable {
 	protected $responseProtocol, $responseStatus, $responseStatusText, $responseHeaders = [], $responseData, $responseLength = 0;
 	
 	protected $runTime, $connTime;
+	
+	public $maxRedirs = 10;
 	
 	public function __construct(string $url, string $method = 'GET', array $headers = [], string $protocol = 'HTTP/1.1') {
 		$this->url = $url;
@@ -413,16 +418,32 @@ class Request implements \JsonSerializable {
 		}
 	}
 	
-	public function ok(int $errno, string $error) {
-		if(!$this->_event) return;
-
-		\Fwe::$app->events --;
-		$this->runTime = round(microtime(true) - $this->_time, 6);
+	protected function reset() {
 		$this->_head = $this->_body = null;
 		$this->_bodyFp = $this->_saveFp = null;
-		$this->_responseHandler = $this->_event = null;
+		$this->_event = null;
+	}
+	
+	public function ok(int $errno, string $error) {
+		if(!$this->_event) return;
 		
-		// printf("connTime: %.6f, runTime: %.6f\n", $this->connTime, $this->runTime);
+		\Fwe::$app->events --;
+		
+		if($this->maxRedirs > 0 && $this->responseStatus >= 300 && $this->responseStatus < 400 && isset($this->responseHeaders['Location'])) {
+			$this->url = UrlHelper::relative($this->url, $this->responseHeaders['Location']);
+			$this->responseProtocol = $this->responseStatus = $this->responseStatusText = null;
+			$this->responseHeaders = [];
+			$this->responseData = null;
+			$this->responseLength = 0;
+			$this->reset();
+			$this->maxRedirs --;
+			$this->send($this->_ok);
+			return;
+		}
+		
+		$this->runTime = round(microtime(true) - $this->_time, 6);
+		$this->_responseHandler = null;
+		$this->reset();
 		
 		$ok = $this->_ok;
 		$this->_ok = null;

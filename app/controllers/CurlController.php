@@ -2,12 +2,13 @@
 namespace app\controllers;
 
 use fwe\base\Controller;
-use fwe\web\RequestEvent;
 use fwe\curl\Request;
+use fwe\web\RequestEvent;
 
 class CurlController extends Controller {
 	public function actionIndex(RequestEvent $request, string $url, bool $isJson = false) {
 		$req = new Request($url);
+		$req->setOption(CURLOPT_ACCEPT_ENCODING, "");
 		curl()->make($req, function($res, $req) use($request, $isJson) {
 			// $key = $req->resKey;
 			// echo "res: $key\n";

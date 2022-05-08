@@ -2,8 +2,8 @@
 namespace app\controllers;
 
 use fwe\base\Controller;
-use fwe\web\RequestEvent;
 use fwe\http\Request;
+use fwe\web\RequestEvent;
 
 class HttpController extends Controller {
 

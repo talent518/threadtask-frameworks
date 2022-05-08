@@ -43,26 +43,26 @@ class UrlHelper {
 		if ($this->scheme) {
 			$url .= $this->scheme . '://';
 		}
-		if ($this->user) {
+		if ($this->user !== null && $this->user !== '') {
 			$url .= $this->user;
-			if ($this->pass) {
+			if ($this->pass !== null && $this->pass !== '') {
 				$url .= ':' . $this->pass;
 			}
 			$url .= '@';
 		}
-		if ($this->host) {
+		if ($this->host !== null && $this->host !== '') {
 			$url .= $this->host;
 		}
-		if ($this->port) {
+		if ($this->port > 0) {
 			$url .= ':' . $this->port;
 		}
-		if ($this->path) {
+		if ($this->path !== null) {
 			$url .= '/' . ltrim($this->path, '/');
 		}
 		if (is_array($this->gets) && count($this->gets)) {
 			$url .= '?' . http_build_query($this->gets);
 		}
-		if ($this->fragment) {
+		if ($this->fragment !== null && $this->fragment !== '') {
 			$url .= '#' . $this->fragment;
 		}
 		return $url;
@@ -77,6 +77,47 @@ class UrlHelper {
 	public static function parseUrl($url) {
 		$uri = @parse_url($url);
 		return new UrlHelper(is_array($uri) ? $uri : array ());
+	}
+	
+	public static function relative(string $url, string $dest) {
+		if(preg_match('/^[a-z]+:\/\/\w+/', $dest)) {
+			return $dest;
+		} else {
+			$uri = static::parseUrl($url);
+			$uri2 = static::parseUrl($dest);
+			if($uri2->host !== null && $uri2->host !== '') {
+				if($uri2->scheme) {
+					$uri->scheme = $uri2->scheme;
+				}
+				$uri->host = $uri2->host;
+				$uri->port = $uri2->port;
+				$uri->user = $uri2->user;
+				$uri->pass = $uri2->pass;
+			}
+			if($uri2->path !== null && $uri2->path !== '') {
+				if($uri->path !== null && $uri->path !== '') {
+					if(strncmp($uri2->path, '/', 1) && ($pos = strrpos($uri->path, '/')) !== false) {
+						$uri->path = str_replace('/./', '/', substr($uri->path, 0, $pos + 1) . $uri2->path);
+						do {
+							$path = $uri->path;
+							$uri->path = preg_replace('/(\/[^\/]+)?\/\.\.(\/|$)/', '/', $uri->path);
+						} while($path !== $uri->path);
+						$uri->path = preg_replace('/\/\.$/', '/', $uri->path);
+					} else {
+						$uri->path = $uri2->path;
+					}
+				} else {
+					$uri->path = $uri2->path;
+				}
+			} else {
+				$uri->path = null;
+			}
+			
+			$uri->gets = $uri2->gets;
+			$uri->fragment = $uri2->fragment;
+			
+			return (string) $uri;
+		}
 	}
 
 	/**
