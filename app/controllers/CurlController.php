@@ -14,18 +14,26 @@ class CurlController extends Controller {
 
 			$response = $request->getResponse();
 
-			if($isJson) {
-				$res = $res->properties;
-				$req = $req->properties;
-				$response->setContentType('application/json; charset=utf-8');
-				$response->end(json_encode(compact('req', 'res'), JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
-			} else {
-				if($res->errno) {
-					$response->setStatus(500);
+			if($res->errno) {
+				$response->setStatus(500);
+				if($isJson) {
+					$response->json($res->error);
+				} else {
 					$response->end($res->error);
-				} elseif($res->status === null) {
-					$response->setStatus(500);
+				}
+			} elseif($res->status === null) {
+				$response->setStatus(500);
+				if($isJson) {
+					$response->json('Unknown error');
+				} else {
 					$response->end('Unknown error');
+				}
+			} else {
+				if($isJson) {
+					$res = $res->properties;
+					$req = $req->properties;
+					$response->setContentType('application/json; charset=utf-8');
+					$response->end(json_encode(compact('req', 'res'), JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
 				} else {
 					$response->setStatus($res->status, $res->statusText);
 					$response->end($res->data);

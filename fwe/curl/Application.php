@@ -43,7 +43,12 @@ class Application extends \fwe\base\Application {
 	public function boot() {
 		$this->_taskIndex = (int) array_shift(\Fwe::$names);
 		$this->_var = new TsVar("__curl{$this->_taskIndex}__", 0, null, true);
-		
+		$this->_var->bindReadEvent(function(int $len, string $buf) {
+			for($i=0; $i<$len; $i++) {
+				$this->read();
+			}
+		});
+		$this->signalEvent();
 		$this->_mh = curl_multi_init();
 
 		$this->loop();
@@ -53,9 +58,6 @@ class Application extends \fwe\base\Application {
 	
 	protected $_count = 0;
 	protected function loop() {
-		if(!task_get_run()) return;
-
-		$isFirst = true;
 		while($this->_running) {
 			if($this->_count) {
 				$active = 0;
@@ -92,26 +94,10 @@ class Application extends \fwe\base\Application {
 						break;
 				}
 			}
-		read:
-			$read = [$this->_var->getReadFd()];
-			$write = $except = [];
-			$ret = @socket_select($read, $write, $except, $this->_count > 0 ? 0 : 1);
-			if($ret > 0) {
-				if(($n = $this->_var->read(128)) === false) break;
-			
-				for($i=0; $i<$n; $i++) $this->read();
 
-				if($this->_count) {
-					$isFirst = true;
-				}
-			} else {
-				if($isFirst) {
-					$isFirst = false;
-					gc_collect_cycles();
-				}
-				if($this->_count > 0 && curl_multi_select($this->_mh, 0.001) <= 0) {
-					goto read;
-				}
+			\Fwe::$base->loop($this->_count ? \EventBase::LOOP_NONBLOCK : \EventBase::LOOP_ONCE);
+			if($this->_count) {
+				curl_multi_select($this->_mh, 0.001);
 			}
 		}
 		

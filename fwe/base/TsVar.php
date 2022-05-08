@@ -42,6 +42,11 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 	private $_writeFd;
 	
 	/**
+	 * @var \EventBufferEvent
+	 */
+	private $_readEvent, $_writeEvent;
+	
+	/**
 	 * @param string|int|null $key
 	 *        	$key
 	 * @param int $expire
@@ -61,66 +66,41 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 		return $this->_key;
 	}
 
-	protected function strerror(string $msg) {
-		$errno = socket_last_error();
-		$error = socket_strerror($errno);
-		socket_clear_error();
-		if($errno === SOCKET_EINTR) return;
-		
-		\Fwe::$app->error("$msg: $error", 'ts-var');
-	}
-	
-	public function getReadFd() {
-		if(!$this->_isFd) return false;
-		
-		if($this->_readFd === null) {
-			$this->_readFd = ts_var_fd($this->_var, false);
-		}
-		
-		return $this->_readFd;
-	}
-	
-	public function newReadEvent(callable $call, int $what = \Event::READ | \Event::PERSIST) {
-		return new \Event(\Fwe::$base, $this->getReadFd(), $what, $call);
-	}
-	
-	public function read(int $len = 1, string $data = 'a') {
+	public function bindReadEvent(callable $call, int $len = 128) {
 		if($len <= 0) {
 			\Fwe::$app->error('read length cannot less then 1', 'ts-var');
-			return false;
+			$len = 1;
 		}
-		if(!($buf = @socket_read($this->getReadFd(), $len))) {
-			$this->strerror('socket_read');
-			return false;
-		}
-		$len = strlen($buf);
-		if($buf !== str_repeat($data, $len)) {
-			\Fwe::$base->exit();
-			return false;
-		}
-		return $len;
-	}
-	
-	public function getWriteFd() {
-		if(!$this->_isFd) return false;
-		
-		if($this->_writeFd === null) {
-			$this->_writeFd = ts_var_fd($this->_var, true);
-		}
-		
-		return $this->_writeFd;
+		$this->_readFd = ts_var_fd($this->_var, false);
+		$this->_readEvent = new \EventBufferEvent(\Fwe::$base, $this->_readFd, 0, function() use($call, $len) {
+			$buf = $this->_readEvent->read($len);
+			// echo "var read({$this->_key}): $buf\n";
+			$call(is_string($buf) ? strlen($buf) : -1, $buf);
+		});
+		$this->_readEvent->enable(\Event::READ);
 	}
 	
 	public function write(int $len = 1, string $data = 'a') {
 		if($len <= 0) {
 			\Fwe::$app->error('write length cannot less then 1', 'ts-var');
-			return false;
+			$len = 1;
 		}
-		if(@socket_write($this->getWriteFd(), str_repeat($data, $len), $len) !== $len) {
-			$this->strerror('socket_write');
-			return false;
+
+		if($this->_readEvent) {
+			$event = $this->_readEvent;
+		} else{
+			if($this->_writeFd === null) {
+				$this->_writeFd = ts_var_fd($this->_var, true);
+			}
+			if($this->_writeEvent === null) {
+				$this->_writeEvent = new \EventBufferEvent(\Fwe::$base, $this->_writeFd, 0);
+			}
+			$event = $this->_writeEvent;
 		}
-		return true;
+
+		// echo "var write({$this->_key}): $len $data\n";
+		
+		return $event->write($len > 1 ? str_repeat($data, $len) : $data);
 	}
 
 	public function getParent() {

@@ -238,7 +238,7 @@ class Application extends \fwe\base\Application {
 		return true;
 	}
 	
-	protected $_reqIndex = 0, $_reqEvent, $_reqEvents = [];
+	protected $_reqIndex = 0, $_reqEvents = [];
 
 	/**
 	 * @var TsVar
@@ -249,18 +249,14 @@ class Application extends \fwe\base\Application {
 	public function ws(int $index) {
 		$this->_reqIndex = $index;
 		$this->_wsVar = new TsVar("__ws{$index}__", 0, null, true);
-
-		$this->_reqEvent = $this->_wsVar->newReadEvent(function() {
-			if(($n = $this->_wsVar->read(128)) === false) return;
-			
-			for($i=0; $i<$n; $i++) {
+		$this->_wsVar->bindReadEvent(function(int $len, string $buf) {
+			for($i=0; $i<$len; $i++) {
 				$key = null;
 				list($fd, $addr, $port, $doClass) = $this->_wsVar->shift(true, $key);
 
 				$this->_reqEvents[$key] = \Fwe::createObject(WsEvent::class, compact('fd', 'addr', 'port', 'key', 'doClass'));
 			}
 		});
-		$this->_reqEvent->add();
 		
 		$ping = pack('CC', 0x8a, 4) . 'ping';
 		$this->_statEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() use($ping) {
@@ -327,6 +323,7 @@ class Application extends \fwe\base\Application {
 	protected $_wsVars = [];
 
 	public $keepAlive = 10;
+	
 	public function req(int $index) {
 		$this->_isReq = true;
 		$this->_reqIndex = $index;
@@ -337,10 +334,8 @@ class Application extends \fwe\base\Application {
 			$this->_wsVars[$i] = new TsVar("__ws{$i}__", 0, null, true);
 		}
 		
-		$this->_reqEvent = $this->_reqVars->newReadEvent(function() use($index) {
-			if(($n = $this->_reqVars->read(128)) === false) return;
-
-			for($i=0; $i<$n; $i++) {
+		$this->_reqVars->bindReadEvent(function(int $len, string $buf) use($index) {
+			for($i=0; $i<$len; $i++) {
 				$key = null;
 				list($fd, $addr, $port) = $this->_reqVars->shift(true, $key);
 				
@@ -348,7 +343,6 @@ class Application extends \fwe\base\Application {
 				$this->_reqEvents[$key] = \Fwe::createObject(RequestEvent::class, compact('fd', 'addr', 'port', 'key', 'keepAlive'));
 			}
 		});
-		$this->_reqEvent->add();
 	}
 	
 	public $maxBodyLen = 8*1024*1024;

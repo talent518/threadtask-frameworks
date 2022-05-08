@@ -2,6 +2,8 @@
 namespace fwe\http;
 
 /**
+ * @property-read array $properties
+ * 
  * @property-read string $method
  * @property-read array $headers
  * @property-read integer $type
@@ -20,6 +22,8 @@ namespace fwe\http;
  * @property-read array $responseHeaders
  * @property-read string $responseData
  * @property-read integer $responseLength
+ * 
+ * @property-read float $runTime
  */
 class Request implements \JsonSerializable {
 	const TYPE_NONE = 0;
@@ -36,14 +40,21 @@ class Request implements \JsonSerializable {
 	protected $type = self::TYPE_NONE;
 	
 	protected $readTimeout = 30, $writeTimeout = 30;
+	protected $saveFile, $saveAppend;
 	
-	protected $responseProtocol, $responseStatus, $responseStatusText, $responseHeaders = [], $responseData, $responseLength, $saveFile, $saveAppend;
+	protected $responseProtocol, $responseStatus, $responseStatusText, $responseHeaders = [], $responseData, $responseLength = 0;
+	
+	protected $runTime, $connTime;
 	
 	public function __construct(string $url, string $method = 'GET', array $headers = [], string $protocol = 'HTTP/1.1') {
 		$this->url = $url;
 		$this->method = strtoupper($method);
 		$this->headers = $headers;
 		$this->protocol = $protocol;
+	}
+	
+	public function __destruct() {
+		\Fwe::debug(get_called_class(), $this->url, true);
 	}
 	
 	public function jsonSerialize() {
@@ -256,9 +267,8 @@ class Request implements \JsonSerializable {
 		return $this;
 	}
 	
-	private static $_events = [];
-	private $_key;
-	private $_ssl_ctx, $_event, $_ok;
+	private $_time;
+	private $_head, $_event;
 	public function send(callable $ok) {
 		$uri = parse_url($this->url);
 		if(!$uri) {
@@ -273,41 +283,6 @@ class Request implements \JsonSerializable {
 		}
 		
 		$url = ($uri['path'] ?? '/') . (isset($uri['query']) ? "?{$uri['query']}" : null) . (isset($uri['fragment']) ? "#{$uri['fragment']}" : null);
-		
-		$this->_ssl_ctx = null;
-		if($scheme === 'https') {
-			try {
-				$this->_ssl_ctx = new \EventSslContext(\EventSslContext::SSLv23_CLIENT_METHOD, []);
-			} catch(\Throwable $e) {
-				try {
-					$this->_ssl_ctx = new \EventSslContext(\EventSslContext::SSLv3_CLIENT_METHOD, []);
-				} catch(\Throwable $e) {
-					try {
-						$this->_ssl_ctx = new \EventSslContext(\EventSslContext::SSLv2_CLIENT_METHOD, []);
-					} catch(\Throwable $e) {
-						try {
-							$this->_ssl_ctx = new \EventSslContext(\EventSslContext::TLSv11_CLIENT_METHOD, []);
-						} catch(\Throwable $e) {
-							try {
-								$this->_ssl_ctx = new \EventSslContext(\EventSslContext::TLSv12_CLIENT_METHOD, []);
-							} catch(\Throwable $e) {
-								$this->_ssl_ctx = new \EventSslContext(\EventSslContext::TLS_CLIENT_METHOD, []);
-							}
-						}
-					}
-				}
-			}
-		}
-		
-		if($this->_ssl_ctx) {
-			$this->_event = \EventBufferEvent::sslSocket(\Fwe::$base, NULL, $this->_ssl_ctx, \EventBufferEvent::SSL_CONNECTING, \EventBufferEvent::OPT_CLOSE_ON_FREE);
-		} else {
-			$this->_event = new \EventBufferEvent(\Fwe::$base, null, \EventBufferEvent::OPT_CLOSE_ON_FREE);
-		}
-		$this->_event->setCallbacks([$this, 'readHandler'], [$this, 'writeHandler'], [$this, 'eventHandler']);
-		$this->_event->connectHost(null, $uri['host'], $uri['port'] ?? ($this->_ssl_ctx ? 443 : 80));
-		$this->_event->setTimeouts($this->readTimeout, $this->writeTimeout);
-		$this->_event->enable(\Event::READ);
 		
 		$head = "{$this->method} {$url} {$this->protocol}\r\n";
 		if(!isset($this->headers['Host'])) {
@@ -332,21 +307,18 @@ class Request implements \JsonSerializable {
 				$head .= "$name: $v\r\n";
 			}
 		}
-		$this->_event->write("$head\r\n") or printf("write head error\n");
+		$this->_head = "$head\r\n";
 		
 		$this->_ok = $ok;
 		\Fwe::$app->events ++;
 		
-		self::$_events[] = $this;
-		$this->_key = array_key_last(self::$_events);
-		$this->_isHeadSent = false;
-		$this->_isReadBody = false;
-		$this->_isExpect = $this->_bodylen > 0;
-		$this->_isFirstHead = true;
-		$this->_isChunked = false;
-		$this->_readBuf = $this->_inflate = null;
-		$this->_bodyoff = $this->responseLength = $this->_readLen = 0;
-		$this->_chunkLen = -1;
+		$this->_time = microtime(true);
+		$this->connTime = 0;
+		
+		$is_ssl = ($scheme === 'https');
+		$this->_event = Event::connect($uri['host'], $uri['port'] ?? ($is_ssl ? 443 : 80), $is_ssl);
+		$this->_event->setRequest($this, $this->_bodylen > 0, $this->readTimeout, $this->writeTimeout);
+		$this->_event->write($this->_head) or printf("write head error\n");
 	}
 	
 	public function saveFile(string $file, bool $append = false) {
@@ -364,7 +336,7 @@ class Request implements \JsonSerializable {
 	}
 	
 	private $_saveFp;
-	protected function onResponse(string $buf, int $n) {
+	public function onResponse(string $buf, int $n) {
 		if($this->_responseHandler) {
 			call_user_func($this->_responseHandler, $buf, $n);
 		} elseif($this->saveFile) {
@@ -382,174 +354,11 @@ class Request implements \JsonSerializable {
 		$this->responseLength += $n;
 	}
 	
-	private $_isReadBody, $_isExpect, $_isFirstHead, $_isChunked, $_readBuf, $_readLen, $_chunkLen, $_inflate;
-	public function readHandler($bev, $arg) {
-		$buf = $this->_event->read(16 * 1024);
-		$n = strlen($buf);
-		// echo "read handler: $n\n";
-		if($this->_isReadBody) {
-			$this->_readBuf .= $buf;
-			body:
-			if($this->_isChunked) {
-				$i = 0;
-				$n = strlen($this->_readBuf);
-				while($i < $n) {
-					if($this->_chunkLen < 0) {
-						if(($pos = strpos($this->_readBuf, "\r\n", $i)) === false) {
-							$this->free(-4, 'Chunked size error');
-							break;
-						} else {
-							if($i === $pos) {
-								if($i + 5 > $n) {
-									$this->_readBuf = substr($this->_readBuf, $i + 2);
-									break;
-								} else {
-									$i += 2;
-								}
-							}
-							$buf = substr($this->_readBuf, $i, $pos - $i);
-							$this->_chunkLen = (int) base_convert($buf, 16, 10);
-							// printf("chunkLen: %d, %d, %d, %d, %s\n", $this->_chunkLen, $i, $pos, $n, bin2hex(substr($this->_readBuf, 0, 20)));
-							$i = $pos + 2;
-							if($this->_chunkLen <= 0) {
-								$this->free();
-								break;
-							}
-						}
-					} else {
-						$_n = $n - $i;
-						if($_n === $this->_chunkLen + 1) { // 防止块结束后的\r\n不够现象
-							$this->_readBuf = substr($this->_readBuf, $i);
-							// echo "---222\n";
-							break;
-						}
-						$buf = substr($this->_readBuf, $i, $this->_chunkLen);
-						$_n = strlen($buf);
-						$i += $_n;
-						$this->_chunkLen -= $_n;
-						if($this->_chunkLen === 0) {
-							$this->_chunkLen = -1;
-							$i += 2;
-						}
-						if($this->_inflate) {
-							$buf = @inflate_add($this->_inflate, $buf);
-							if($buf !== false) {
-								$this->onResponse($buf, strlen($buf));
-							}
-						} else {
-							$this->onResponse($buf, $_n);
-						}
-					}
-				}
-				if($i >= $n) {
-					$this->_readBuf = null;
-				}
-			} else {
-				if($this->_inflate) {
-					$buf = @inflate_add($this->_inflate, $this->_readBuf);
-					if($buf !== false) {
-						$this->onResponse($buf, strlen($buf));
-					}
-				} else {
-					$this->onResponse($this->_readBuf, strlen($this->_readBuf));
-				}
-				$this->_readBuf = null;
-				if($this->responseLength >= $this->_readLen) {
-					$this->free();
-				}
-			}
-		} else {
-			$this->_readBuf .= $buf;
-			$n = strlen($this->_readBuf);
-			$i = 0;
-			while($i < $n) {
-				if(($pos = strpos($this->_readBuf, "\r\n", $i)) === false) {
-					if($i > 0) {
-						$this->_readBuf = substr($this->_readBuf, $i);
-					}
-					break;
-				} elseif($pos === $i) {
-					$this->_readBuf = substr($this->_readBuf, $i + 2);
-					if($this->_isFirstHead) {
-						$i += 2;
-						continue;
-					}
-					$this->responseData = null;
-					$this->responseLength = 0;
-					$this->_isReadBody = true;
-					$this->_readLen = (int) ($this->responseHeaders['Content-Length'] ?? 0);
-					$this->_isChunked = (isset($this->responseHeaders['Transfer-Encoding']) && $this->responseHeaders['Transfer-Encoding'] === 'chunked');
-					$this->_chunkLen = -1;
-					switch($this->responseHeaders['Content-Encoding'] ?? null) {
-						case 'deflate':
-							$this->_inflate = inflate_init(ZLIB_ENCODING_DEFLATE);
-							break;
-						case 'gzip':
-							$this->_inflate = inflate_init(ZLIB_ENCODING_GZIP);
-							break;
-						default:
-							break;
-					}
-					if(strlen($this->_readBuf)) {
-						goto body;
-					} elseif($this->method === 'HEAD') {
-						$this->responseLength = $this->_readLen;
-						$this->free();
-					} else {
-						goto body;
-					}
-					break;
-				} else {
-					$line = substr($this->_readBuf, $i, $pos - $i);
-					$i = $pos + 2;
-					if($this->_isFirstHead) {
-						list($this->responseProtocol, $status, $statusText) = preg_split('/\s+/', $line, 3);
-						$this->responseStatus = (int) $status;
-						$this->responseStatusText = trim($statusText);
-						$this->responseHeaders = [];
-						if($this->_isExpect) {
-							$this->_isExpect = false;
-							$this->_isFirstHead = ($this->responseStatus === 100);
-							if($this->_isFirstHead) {
-								$this->sendBody();
-							}
-						} else {
-							$this->_isFirstHead = false;
-						}
-					} else {
-						@list($name, $value) = preg_split('/:\s*/', $line, 2);
-						if(isset($this->responseHeaders[$name])) {
-							$values = &$this->responseHeaders[$name];
-							if(is_array($values)) {
-								$values[] = $value;
-							} else {
-								$values = [$values, $value];
-							}
-							unset($values);
-						} else {
-							$this->responseHeaders[$name] = $value;
-						}
-					}
-				}
-			}
-			if($i >= $n) {
-				$this->_readBuf = null;
-			}
-		}
+	public function connected() {
+		$this->connTime = round(microtime(true) - $this->_time, 6);
 	}
 	
-	private $_isHeadSent, $_bodyoff;
-	public function writeHandler($bev, $arg) {
-		// $sent = ($this->_isHeadSent ? 'body' : 'head');
-		// echo "write handler: {$sent}\n";
-		if($this->_isHeadSent) {
-			$this->sendBody();
-		} else {
-			$this->_isHeadSent = true;
-		}
-	}
-	
-	private function sendBody() {
+	public function sendBody() {
 		// echo "send body: {$this->_bodylen} {$this->_bodyoff}\n";
 		if($this->_bodylen > $this->_bodyoff) {
 			if($this->_bodyFp) {
@@ -565,40 +374,69 @@ class Request implements \JsonSerializable {
 		}
 	}
 	
-	public function eventHandler($bev, $event, $arg) {
-		// echo "event: $event\n";
-		if($event & \EventBufferEvent::EOF) {
-			$this->free();
-		} elseif($event & \EventBufferEvent::ERROR) {
-			$this->free(-3, ($event & \EventBufferEvent::READING) ? 'Read error' : 'Write error');
-		} elseif($event & \EventBufferEvent::TIMEOUT) {
-			$this->free(-5, ($event & \EventBufferEvent::READING) ? 'Read timeout' : 'Write timeout');
+	public function isKeepAlive() {
+		return isset($this->responseHeaders['Connection']) && !strcasecmp($this->responseHeaders['Connection'], 'keep-alive');
+	}
+	
+	public function setResponseStatus(string $protocol, int $status, string $statusText) {
+		$this->responseProtocol = $protocol;
+		$this->responseStatus = $status;
+		$this->responseStatusText = $statusText;
+		$this->responseHeaders = [];
+	}
+	
+	public function responseContentLength() {
+		return (int) ($this->responseHeaders['Content-Length'] ?? 0);
+	}
+	
+	public function responseTransferEncoding() {
+		return (isset($this->responseHeaders['Transfer-Encoding']) && $this->responseHeaders['Transfer-Encoding'] === 'chunked');
+	}
+	
+	public function responseContentEncoding() {
+		return $this->responseHeaders['Content-Encoding'] ?? null;
+	}
+	
+	public function addResponseHeader(string $name, string $value) {
+		if(isset($this->responseHeaders[$name])) {
+			$values = &$this->responseHeaders[$name];
+			if(is_array($values)) {
+				$values[] = $value;
+			} else {
+				$values = [$values, $value];
+			}
+			unset($values);
+		} else {
+			$this->responseHeaders[$name] = $value;
 		}
 	}
 	
-	public function free(int $errno = 0, string $error = 'OK') {
+	public function ok(int $errno, string $error) {
 		if(!$this->_event) return;
 
-		$this->_event->free();
-		$this->_event = null;
 		\Fwe::$app->events --;
-		unset(self::$_events[$this->_key]);
-		$this->_key = null;
-		$this->_readBuf = null;
-		$this->_inflate = null;
-		$this->_ssl_ctx = null;
-		$this->_saveFp = null;
-		$this->_body = null;
+		$this->runTime = round(microtime(true) - $this->_time, 6);
+		$this->_head = $this->_body = null;
 		$this->_bodyFp = null;
-		$this->_responseHandler = null;
+		$this->_responseHandler = $this->_event = null;
+		
+		// printf("connTime: %.6f, runTime: %.6f\n", $this->connTime, $this->runTime);
 		
 		$ok = $this->_ok;
 		$this->_ok = null;
-
+		
 		try {
 			call_user_func($ok, $errno, $error);
 		} catch(\Throwable $e) {
 			\Fwe::$app->error($e, 'http-client');
 		}
 	}
+	
+	public function free(int $errno, string $error) {
+		if($this->_event) {
+			$this->_event->setRequest(null, false, -1, -1);
+			$this->_event->free($errno, $error);
+		}
+	}
+	
 }

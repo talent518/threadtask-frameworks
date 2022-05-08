@@ -144,7 +144,7 @@ abstract class Application extends Module {
 	public $logFormat = '%02d';
 
 	protected $_logFile, $_logIdxFile, $_logFormat;
-	protected $_logEvent, $_logFp;
+	protected $_logFp;
 	
 	protected function logInit(bool $isEvent = true) {
 		if(!is_main_task()) return;
@@ -156,8 +156,9 @@ abstract class Application extends Module {
 		$this->_logFormat = \Fwe::getAlias("@app/runtime/{$name}-{$this->logFormat}.log");
 		
 		if($isEvent) {
-			$this->_logEvent = $this->_logVar->newReadEvent([$this, 'logEvent']);
-			$this->_logEvent->add();
+			$this->_logVar->bindReadEvent(function(int $n) {
+				$this->logRead($n);
+			});
 		}
 
 		$this->_logFp = fopen($this->_logFile, 'a');
@@ -196,12 +197,6 @@ abstract class Application extends Module {
 	
 	public function logCount() {
 		return $this->_logVar->count();
-	}
-	
-	public function logEvent() {
-		if(is_main_task()) {
-			$this->logRead($this->_logVar->read(128));
-		}
 	}
 	
 	public function logAll() {

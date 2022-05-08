@@ -313,7 +313,7 @@ abstract class Fwe {
 	 * @var \EventBase
 	 */
 	public static $base;
-
+	
 	/**
 	 * @var string
 	 */
@@ -323,6 +323,23 @@ abstract class Fwe {
 	 * @var array
 	 */
 	public static $names;
+	
+	private static $dnsBases = [];
+	
+	/**
+	 * @return EventDnsBase
+	 */
+	public static function popDns() {
+		if(static::$dnsBases) {
+			return array_pop(static::$dnsBases);
+		} else {
+			return new EventDnsBase(static::$base, true);
+		}
+	}
+	
+	public static function pushDns(EventDnsBase $dnsBase) {
+		array_push(static::$dnsBases, $dnsBase);
+	}
 	
 	public static function debug(string $class, $suffix, bool $free) {
 		// printf("%40s::%s %s\n", $class, $free ? '__destruct' : '__construct', $suffix);
