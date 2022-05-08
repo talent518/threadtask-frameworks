@@ -213,8 +213,9 @@ class Request implements \JsonSerializable {
 		}
 	}
 	
-	private $_body, $_bodyFp, $_bodylen;
+	private $_body, $_bodyFp, $_bodyoff, $_bodylen;
 	protected function makeBody() {
+		$this->_bodyoff = 0;
 		switch($this->type) {
 			case self::TYPE_DATA:
 				$this->_body = is_string($this->data) ? $this->data : $this->format();
@@ -229,7 +230,8 @@ class Request implements \JsonSerializable {
 					if($value instanceof File) {
 						$cont = file_get_contents($value->file);
 						$mime = $value->mime ?: 'application/octet-stream';
-						$this->_body .= "--$boundary\r\nContent-Disposition: form-data; name=\"$name\"\r\nContent-Type: $mime\r\n\r\n$cont\r\n";
+						$filename = basename($value->file);
+						$this->_body .= "--$boundary\r\nContent-Disposition: form-data; name=\"$name\"; filename=\"$filename\"\r\nContent-Type: $mime\r\n\r\n$cont\r\n";
 						unset($cont, $mime);
 					} else {
 						$this->_body .= "--$boundary\r\nContent-Disposition: form-data; name=\"$name\"\r\n\r\n$value\r\n";

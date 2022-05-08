@@ -217,7 +217,7 @@ class Event {
 							$this->isExpect = false;
 							$this->isFirstHead = ($status === "100");
 							if($this->isFirstHead) {
-								$this->sendBody();
+								$this->request->sendBody();
 							}
 						} else {
 							$this->isFirstHead = false;
