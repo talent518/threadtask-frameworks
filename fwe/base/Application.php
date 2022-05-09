@@ -1,6 +1,7 @@
 <?php
 namespace fwe\base;
 
+use fwe\cache\Cache;
 use fwe\curl\Boot;
 use fwe\db\MySQLPool;
 use fwe\db\RedisPool;
@@ -47,6 +48,7 @@ abstract class Application extends Module {
 			'db' => MySQLPool::class,
 			'redis' => RedisPool::class,
 			'validator' => Validator::class,
+			'cache' => Cache::class,
 		]);
 		
 		\Fwe::debug(get_called_class(), $this->id, false);

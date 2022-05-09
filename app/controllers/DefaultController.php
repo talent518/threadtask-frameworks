@@ -267,4 +267,79 @@ class DefaultController extends Controller {
 			$request->data->delTimer();
 		});
 	}
+	
+	public function actionCache(RequestEvent $request, int $expire = 5) {
+		$request->data = [];
+		
+		cache()->get(
+			'redis',
+			function($value) use($request) {
+				if($request->data === null) return;
+				
+				$request->data['redis'] = $value;
+				
+				if(count($request->data) == 2) {
+					$request->getResponse()->json($request->data);
+				}
+			},
+			function(callable $ok) {
+				$t = microtime(true);
+				$redis = redis()->pop()->beginAsync();
+				$redis->setAsyncKey('keys')
+				->keys('*')
+				->goAsync(function($keys) use($redis, $ok, $t) {
+					$t = microtime(true) - $t;
+					echo "redis(OK): $t\n";
+					$redis->push();
+					$ok(compact('keys', 't'));
+				}, function($e) use($redis, $ok, $t) {
+					$t = microtime(true) - $t;
+					echo "redis(ERR): $t\n";
+					$redis->push();
+					$ok([
+						't' => $t,
+						'msg' => $e->getMessage(),
+					]);
+				});
+			},
+			$expire
+		);
+		
+		cache('cache2')->get(
+			'mysql',
+			function($value) use($request) {
+				if($request->data === null) return;
+				
+				$request->data['mysql'] = $value;
+				
+				if(count($request->data) == 2) {
+					$request->getResponse()->json($request->data);
+				}
+			},
+			function(callable $ok) {
+				$t = microtime(true);
+				$db = db()->pop();
+				$db->asyncQuery("SHOW TABLES", ['style'=>IEvent::FETCH_COLUMN_ALL])
+				->asyncQuery("SELECT TABLE_SCHEMA, (DATA_LENGTH+INDEX_LENGTH) as TABLE_SPACE FROM information_schema.TABLES GROUP BY TABLE_SCHEMA", ['style'=>IEvent::FETCH_ALL])
+				->asyncQuery("SHOW GLOBAL VARIABLES LIKE '%timeout%'", ['type'=>IEvent::TYPE_OBJ, 'style'=>IEvent::FETCH_ALL])
+				->goAsync(function($tables, $sleep, $variables) use($t, $db, $ok) {
+					$t = microtime(true) - $t;
+					echo "mysql(OK): $t\n";
+					$db->push();
+					$ok(compact('tables', 'sleep', 'variables', 't'));
+				}, function($data, $e) use($t, $db, $ok) {
+					$t = microtime(true) - $t;
+					echo "mysql(ERR): $t\n";
+					$db->push();
+					$ok([
+						't' => $t,
+						'msg' => $e->getMessage(),
+						'data' => $data,
+					]);
+					return false;
+				});
+			},
+			$expire
+		);
+	}
 }

@@ -11,6 +11,7 @@ return [
 			'maxThreads' => (($threads = getenv("CURL_THREADS")) > 0 ? (int) $threads : 2),
 		],
 		'monitor' => 'app\ws\MonBoot',
+		'cache2' => 'fwe\cache\Redis',
 	],
 	'statics' => [
 		'/favicon.ico' => '@app/static/favicon.ico',

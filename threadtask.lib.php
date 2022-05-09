@@ -495,6 +495,24 @@ function ts_var_clean($var, int $expire = 0) {}
  */
 function ts_var_reindex($var, bool $only_integer_keys = false): bool {}
 
+/**
+ * 获取线程安全变量所有键名
+ * 
+ * @param resource $var 由ts_var_declare函数返回的变量
+ * 
+ * @return bool|array
+ */
+function ts_var_keys($var) {}
+
+/**
+ * 获取线程安全变量所有键过期时间
+ * 
+ * @param resource $var 由ts_var_declare函数返回的变量
+ * 
+ * @return bool|array
+ */
+function ts_var_expires($var) {}
+
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// sockets附加函数 ////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////

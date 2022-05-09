@@ -202,8 +202,8 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 		return ts_var_get_or_set($this->_var, $key, $callback, $expire, ...$params);
 	}
 
-	public function set($key, $value) {
-		return ts_var_set($this->_var, $key, $value);
+	public function set($key, $value, int $expire = 0) {
+		return ts_var_set($this->_var, $key, $value, $expire);
 	}
 
 	public function remove($key) {
@@ -229,6 +229,20 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 	public function inc($key, $inc = 1) {
 		return ts_var_inc($this->_var, $key, $inc);
 	}
+	
+	/**
+	 * @return boolean|array
+	 */
+	public function keys() {
+		return ts_var_keys($this->_var);
+	}
+	
+	/**
+	 * @return boolean|array
+	 */
+	public function expires() {
+		return ts_var_keys($this->_var);
+	}
 
 	/**
 	 * @var bool
@@ -236,11 +250,21 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 	public $isAutoRemove = false;
 
 	public function __destruct() {
+		if($this->_readEvent) {
+			$this->_readEvent->free();
+			$this->_readEvent = null;
+		}
+		
 		if($this->_readFd) {
 			socket_export_fd($this->_readFd, true);
 			$this->_readFd = null;
 		}
-
+		
+		if($this->_writeEvent) {
+			$this->_writeEvent->free();
+			$this->_writeEvent = null;
+		}
+		
 		if($this->_writeFd) {
 			socket_export_fd($this->_writeFd, true);
 			$this->_writeFd = null;

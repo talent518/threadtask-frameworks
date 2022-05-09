@@ -15,6 +15,7 @@ function is_assoc(array $array) {
 
 /**
  * @param string $id
+ * 
  * @return \fwe\db\MySQLPool
  */
 function db(string $id = 'db') {
@@ -23,6 +24,7 @@ function db(string $id = 'db') {
 
 /**
  * @param string $id
+ * 
  * @return \fwe\db\RedisPool
  */
 function redis(string $id = 'redis') {
@@ -30,9 +32,15 @@ function redis(string $id = 'redis') {
 }
 
 /**
- * @param string $id
  * @return \fwe\curl\Boot
  */
 function curl() {
 	return \Fwe::$app->get('curl');
+}
+
+/**
+ * @return \fwe\cache\Cache
+ */
+function cache(string $id = 'cache') {
+	return \Fwe::$app->get($id);
 }
