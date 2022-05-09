@@ -96,7 +96,9 @@ class Application extends \fwe\base\Application {
 		
 		$time = microtime(true);
 		foreach($this->_reqEvents as $reqEvent) { /* @var $reqEvent RequestEvent */
-			if(($reqEvent->runTime && $reqEvent->runTime + $this->maxRunSeconds < $time) ||
+			if(!$this->_running && !$reqEvent->isHTTP) {
+				$reqEvent->free();
+			} elseif(($reqEvent->runTime && $reqEvent->runTime + $this->maxRunSeconds < $time) ||
 				($reqEvent->runTime === null && $reqEvent->recvTime && $reqEvent->recvTime + $this->maxRecvSeconds < $time)) {
 				$response = $reqEvent->getResponse();
 				$response->setStatus($this->timeoutStatus);

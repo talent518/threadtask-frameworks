@@ -250,19 +250,9 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 	public $isAutoRemove = false;
 
 	public function __destruct() {
-		if($this->_readEvent) {
-			$this->_readEvent->free();
-			$this->_readEvent = null;
-		}
-		
 		if($this->_readFd) {
 			socket_export_fd($this->_readFd, true);
 			$this->_readFd = null;
-		}
-		
-		if($this->_writeEvent) {
-			$this->_writeEvent->free();
-			$this->_writeEvent = null;
 		}
 		
 		if($this->_writeFd) {

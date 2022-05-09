@@ -357,8 +357,12 @@ abstract class Fwe {
 		
 		if(is_main_task()) {
 			register_shutdown_function(function($app) {
+				$t = microtime(true);
 				task_wait($app->exitSig());
 				$app->logAll();
+				if($app->isService()) {
+					printf("Exited: %.6f\n", microtime(true) - $t);
+				}
 			}, static::$app);
 		}
 
