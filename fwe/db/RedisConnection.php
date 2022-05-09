@@ -517,7 +517,7 @@ class RedisConnection extends AsyncConnection {
 				throw new Exception("Redis error: " . $line . "\nRedis command was: " . $this->formatCommandParams($params));
 			case ':': // Integer reply
 				// no cast to int as it is in the range of a signed 64 bit integer
-				return $line;
+				return (int) $line;
 			case '$': // Bulk replies
 				if ($line == '-1') {
 					return null;

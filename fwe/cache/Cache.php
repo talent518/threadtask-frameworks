@@ -78,8 +78,12 @@ class Cache {
 	 * @return Cache
 	 */
 	public function get(string $key, callable $ok, callable $set, int $expire = 0) {
-		$call = function() use($key, $set, $expire) {
-			$set(function($value) use($key, $expire) {
+		$call = function() use($key, $set, $expire) { // 当缓存中不存在时调用$set回调函数重新生成数据
+			$set(function($value, ?int $expire2 = null) use($key, $expire) {
+				if($expire2 !== null) {
+					$expire = $expire2;
+				}
+				
 				$ret = $this->set($key, $value, $expire > 0 ? $expire + time() : 0);
 				
 				$names = $this->_name->keys();
