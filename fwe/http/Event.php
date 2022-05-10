@@ -276,7 +276,7 @@ class Event {
 		if($errno === 0 && $this->request && $this->request->isKeepAlive()) {
 			static::$events[$this->keepKey][] = $this;
 			$this->pushIndex = array_key_last(static::$events[$this->keepKey]);
-			$this->event->setTimeouts(0, 0);
+			$this->event->setTimeouts(1, 1);
 		} else {
 			\Fwe::pushDns($this->dnsBase);
 			$this->event->free();
