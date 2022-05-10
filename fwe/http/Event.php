@@ -17,7 +17,7 @@ class Event {
 	 */
 	protected $request;
 	
-	public static function connect(string $host, int $port, bool $is_ssl) {
+	public static function connect(string $host, int $port, bool $is_ssl, int $keepAlive) {
 		$ssl = ($is_ssl ? 1 : 0);
 		$key = "$host:$port:$ssl";
 		
@@ -33,15 +33,23 @@ class Event {
 			});
 		}
 
+	retry:
 		if(empty(static::$events[$key])) {
-			return new Event($host, $port, $is_ssl, $key);
+			return new Event($host, $port, $is_ssl, $key, $keepAlive);
 		} else {
-			return array_pop(static::$events[$key]);
+			$event = array_pop(static::$events[$key]);
+			
+			if(microtime(true) >= $event->keepAlive) {
+				$event->free();
+			} else {
+				goto retry;
+			}
 		}
 	}
 	
-	private function __construct(string $host, int $port, bool $is_ssl, string $keepKey) {
+	private function __construct(string $host, int $port, bool $is_ssl, string $keepKey, int $keepAlive) {
 		$this->keepKey = $keepKey;
+		$this->keepAlive = microtime(true) + $keepAlive;
 		if($is_ssl) {
 			try {
 				$this->ssl_ctx = new \EventSslContext(\EventSslContext::SSLv23_CLIENT_METHOD, []);

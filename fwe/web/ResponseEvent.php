@@ -141,7 +141,15 @@ class ResponseEvent {
 			unset($this->headers['Content-Length']);
 		}
 		
-		if($this->request->isKeepAlive) $this->headers['Keep-Alive'] = 'timeout=' . ceil($this->request->keepAlive - microtime(true));
+		if(!$this->isWebSocket) {
+			if($this->request->isKeepAlive && ($t = $this->request->keepAlive - microtime(true)) > 0) {
+				$this->headers['Connection'] = 'keep-alive';
+				$this->headers['Keep-Alive'] = 'timeout=' . floor($t);
+			} else {
+				$this->headers['Connection'] = 'close';
+				unset($this->headers['Keep-Alive']);
+			}
+		}
 
 		
 		$this->headers['Date'] = gmdate('D, d-M-Y H:i:s T');

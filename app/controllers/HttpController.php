@@ -9,7 +9,6 @@ class HttpController extends Controller {
 
 	public function actionIndex(RequestEvent $request, string $url, bool $isJson = false) {
 		$req = new Request($url);
-		$req->addHeader('Connection', 'keep-alive');
 		$req->send(function (int $errno, string $error) use ($request, $req, $isJson) {
 			$response = $request->getResponse();
 
@@ -36,7 +35,7 @@ class HttpController extends Controller {
 					$response->end($req->responseData);
 				}
 			}
-		});
+		}, 10);
 		$request->onFree(function () use ($req) {
 			$req->free(- 100, 'Cancel');
 		});

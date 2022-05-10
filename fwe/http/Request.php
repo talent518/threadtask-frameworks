@@ -276,7 +276,7 @@ class Request implements \JsonSerializable {
 	
 	private $_time;
 	private $_head, $_event;
-	public function send(callable $ok) {
+	public function send(callable $ok, int $keepAlive = 0) {
 		$uri = parse_url($this->url);
 		if(!$uri || !isset($uri['scheme'], $uri['host'])) {
 			call_user_func($ok, -50, "URL {$this->url} 不合法");
@@ -305,6 +305,9 @@ class Request implements \JsonSerializable {
 		if(!isset($this->headers['Accept-Language'])) {
 			$this->headers['Accept-Language'] ='zh-CN,zh;q=0.9,en;q=0.8';
 		}
+		if($keepAlive > 0) {
+			$this->headers['Connection'] = 'keep-alive';
+		}
 		$this->makeBody();
 		if($this->_bodylen > 0) {
 			$this->headers['Expect'] = '100-continue';
@@ -323,7 +326,7 @@ class Request implements \JsonSerializable {
 		$this->connTime = 0;
 		
 		$is_ssl = ($scheme === 'https');
-		$this->_event = Event::connect($uri['host'], $uri['port'] ?? ($is_ssl ? 443 : 80), $is_ssl);
+		$this->_event = Event::connect($uri['host'], $uri['port'] ?? ($is_ssl ? 443 : 80), $is_ssl, $keepAlive);
 		$this->_event->setRequest($this, $this->_bodylen > 0, $this->readTimeout, $this->writeTimeout);
 		$this->_event->write($this->_head) or printf("write head error\n");
 	}
