@@ -273,6 +273,10 @@ class Event {
 		} elseif($event & \EventBufferEvent::TIMEOUT) {
 			$this->free(-2, ($event & \EventBufferEvent::READING) ? 'Read timeout' : 'Write timeout');
 		} elseif($event & \EventBufferEvent::CONNECTED) {
+			if($this->dnsBase) {
+				\Fwe::pushDns($this->dnsBase);
+				$this->dnsBase = null;
+			}
 			$this->request->connected();
 		}
 	}
@@ -286,10 +290,13 @@ class Event {
 			$this->pushIndex = array_key_last(static::$events[$this->keepKey]);
 			$this->event->setTimeouts(1, 1);
 		} else {
-			\Fwe::pushDns($this->dnsBase);
+			if($this->dnsBase) {
+				\Fwe::pushDns($this->dnsBase);
+				$this->dnsBase = null;
+			}
 			$this->event->free();
 			$this->event = null;
-			$this->ssl_ctx = $this->dnsBase = null;
+			$this->ssl_ctx = null;
 			if($this->pushIndex !== null) {
 				unset(static::$events[$this->keepKey][$this->pushIndex]);
 			}

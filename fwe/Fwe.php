@@ -324,12 +324,15 @@ abstract class Fwe {
 	 */
 	public static $names;
 	
-	private static $dnsBases = [];
+	protected static $dnsBases = [];
+	protected static $dnsEvent;
+	protected static $dnsTime;
 	
 	/**
 	 * @return EventDnsBase
 	 */
 	public static function popDns() {
+		static::$dnsTime = microtime(true);
 		if(static::$dnsBases) {
 			return array_pop(static::$dnsBases);
 		} else {
@@ -338,7 +341,19 @@ abstract class Fwe {
 	}
 	
 	public static function pushDns(EventDnsBase $dnsBase) {
-		array_push(static::$dnsBases, $dnsBase);
+		static::$dnsTime = microtime(true);
+		if(count(static::$dnsBases) < 100) {
+			if(static::$dnsEvent === null) {
+				static::$dnsEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() {
+					if(static::$dnsTime + 10 < microtime(true)) {
+						static::$dnsBases = [];
+					}
+				});
+				
+				static::$dnsEvent->addTimer(1);
+			}
+			array_push(static::$dnsBases, $dnsBase);
+		}
 	}
 	
 	public static function debug(string $class, $suffix, bool $free) {
