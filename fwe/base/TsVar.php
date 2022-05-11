@@ -73,9 +73,9 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 		}
 		$this->_readFd = ts_var_fd($this->_var, false);
 		$this->_readEvent = new \EventBufferEvent(\Fwe::$base, $this->_readFd, 0, function() use($call, $len) {
-			$buf = $this->_readEvent->read($len);
-			// echo "var read({$this->_key}): $buf\n";
-			$call(is_string($buf) ? strlen($buf) : -1, $buf);
+			$data = $this->_readEvent->read($len);
+			$len = strlen($data);
+			$call($len, $data);
 		});
 		$this->_readEvent->enable(\Event::READ);
 	}
@@ -85,22 +85,15 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 			\Fwe::$app->error('write length cannot less then 1', 'ts-var');
 			$len = 1;
 		}
-
-		if($this->_readEvent) {
-			$event = $this->_readEvent;
-		} else{
-			if($this->_writeFd === null) {
-				$this->_writeFd = ts_var_fd($this->_var, true);
-			}
-			if($this->_writeEvent === null) {
-				$this->_writeEvent = new \EventBufferEvent(\Fwe::$base, $this->_writeFd, 0);
-			}
-			$event = $this->_writeEvent;
-		}
-
-		// echo "var write({$this->_key}): $len $data\n";
 		
-		return $event->write($len > 1 ? str_repeat($data, $len) : $data);
+		if($this->_writeFd === null) {
+			$this->_writeFd = ts_var_fd($this->_var, true);
+		}
+		if($this->_writeEvent === null) {
+			$this->_writeEvent = new \EventBufferEvent(\Fwe::$base, $this->_writeFd, 0);
+		}
+		
+		return $this->_writeEvent->write($len > 1 ? str_repeat($data, $len) : $data);
 	}
 
 	public function getParent() {

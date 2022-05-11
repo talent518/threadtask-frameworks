@@ -306,6 +306,8 @@ class RedisConnection extends AsyncConnection {
 		} else {
 			$this->connectionString = "tcp://{$this->_host}:{$this->_port}";
 		}
+
+		$this->open();
 	}
 	
 	public function reset() {
@@ -330,9 +332,6 @@ class RedisConnection extends AsyncConnection {
 	public function open() {
 		if($this->_socket) return;
 		
-		$isAsync = $this->_isAsync;
-		$this->_isAsync = false;
-		
 		$errorNumber = $errorDescription = null;
 		$this->_socket = @stream_socket_client(
 			$this->connectionString,
@@ -342,25 +341,21 @@ class RedisConnection extends AsyncConnection {
 			$this->socketClientFlags
 		);
 
-		try {
-			if ($this->_socket) {
-				if ($this->dataTimeout !== null) {
-					stream_set_timeout($this->_socket, $timeout = (int) $this->dataTimeout, (int) (($this->dataTimeout - $timeout) * 1000000));
-				}
-				if ($this->useSSL) {
-					stream_socket_enable_crypto($this->_socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
-				}
-				if ($this->_auth !== null) {
-					$this->auth($this->_auth);
-				}
-				if ($this->database !== null) {
-					$this->select($this->database);
-				}
-			} else {
-				throw new Exception("Failed to open redis DB connection ($this->connectionString, database = {$this->database}): $errorNumber - $errorDescription", compact('errorDescription', 'errorNumber'));
+		if ($this->_socket) {
+			if ($this->dataTimeout !== null) {
+				stream_set_timeout($this->_socket, $timeout = (int) $this->dataTimeout, (int) (($this->dataTimeout - $timeout) * 1000000));
 			}
-		} finally {
-			$this->_isAsync = $isAsync;
+			if ($this->useSSL) {
+				stream_socket_enable_crypto($this->_socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+			}
+			if ($this->_auth !== null) {
+				$this->auth($this->_auth);
+			}
+			if ($this->database !== null) {
+				$this->select($this->database);
+			}
+		} else {
+			throw new Exception("Failed to open redis DB connection ($this->connectionString, database = {$this->database}): $errorNumber - $errorDescription", compact('errorDescription', 'errorNumber'));
 		}
 	}
 	
@@ -385,7 +380,6 @@ class RedisConnection extends AsyncConnection {
 			$this->_isAsync = false;
 			$this->_syncKey = null;
 			$this->_syncCallback = [];
-			$this->open();
 			return parent::goAsync($success, $error, $timeout);
 		} else {
 			return false;
@@ -439,10 +433,17 @@ class RedisConnection extends AsyncConnection {
 				return $this->__call('ping', []);
 			} catch(SocketException $e) {
 				$this->close();
+				try {
+					$this->open();
+					return true;
+				} catch(Exception $e) {
+					$this->close();
+					return false;
+				}
 			}
+		} else {
+			return true;
 		}
-
-		return true;
 	}
 
 	/**
@@ -451,8 +452,6 @@ class RedisConnection extends AsyncConnection {
 	 * @throws SocketException 在连接错误抛出
 	 */
 	public function sendCommandInternal(string $command, array $params) {
-		$this->open();
-		
 		$written = @fwrite($this->_socket, $command);
 		if ($written === false) {
 			throw new SocketException("Failed to write to socket.\nRedis command was: " . $command);

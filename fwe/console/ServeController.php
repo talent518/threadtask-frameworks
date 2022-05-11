@@ -31,10 +31,11 @@ class ServeController extends Controller {
 	 * @param string $route
 	 */
 	public function actionIndex(string $name = 'web', ?int $maxThreads = null, ?int $backlog = null, ?int $keepAlive = null, ?int $logLevel = null, ?int $traceLevel = null, ?int $logSize = null, ?int $logMax = null, ?string $logFormat = null, ?bool $isToFile = null) {
+		\Fwe::$app->logAll();
 		redefine('THREAD_TASK_NAME', $name);
 		\Fwe::$name = $name;
 		\Fwe::$names = [];
-		$config = \Fwe::$config->getOrSet(\Fwe::$name, function () use($maxThreads, $backlog, $keepAlive, $logLevel, $traceLevel, $logSize, $logMax, $logFormat, $isToFile) {
+		$ret = \Fwe::createObject(\Fwe::$config->getOrSet(\Fwe::$name, (function () use($maxThreads, $backlog, $keepAlive, $logLevel, $traceLevel, $logSize, $logMax, $logFormat, $isToFile) {
 			$cfg = include \Fwe::getAlias('@app/config/' . \Fwe::$name . '.php');
 			if($maxThreads !== null) $cfg['maxThreads'] = $maxThreads;
 			if($backlog !== null) $cfg['backlog'] = $backlog;
@@ -46,10 +47,7 @@ class ServeController extends Controller {
 			if($logFormat !== null) $cfg['logFormat'] = $logFormat;
 			if($isToFile !== null) $cfg['isToFile'] = $isToFile;
 			return $cfg;
-		});
-		\Fwe::$app->logAll();
-		$ret = \Fwe::createObject($config)->boot();
-		unset($config);
+		})->bindTo(null)))->boot();
 		if($ret) {
 			$pidFile = \Fwe::getAlias('@app/runtime/' . $name . '.pid');
 			$pidPath = dirname($pidFile);
@@ -63,6 +61,7 @@ class ServeController extends Controller {
 				echo "Service started\n";
 				\Fwe::$app->info('Started', 'service');
 			}
+			
 			register_shutdown_function((function($file, $app, $t) {
 				if(!in_array($app->exitSig(), [SIGUSR1, SIGUSR2])) {
 					@unlink($file);

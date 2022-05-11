@@ -379,11 +379,14 @@ abstract class Fwe {
 					printf("Exited: %.6f\n", microtime(true) - $t);
 				}
 			}, static::$app);
+			
+			static::$app->logAll();
 		}
 
+		gc_collect_cycles();
 		static::$base->dispatch();
-		
 		call_and_free_shutdown();
+		gc_collect_cycles();
 		
 		return $ret;
 	}

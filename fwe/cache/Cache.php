@@ -41,7 +41,7 @@ class Cache {
 		$this->_event = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() {
 			$this->_var->clean(time());
 		});
-		$this->_event->addTimer(1);
+		$this->_event->addTimer(0.25); // 每1/4秒清理一次过期数据
 	}
 	
 	public function __destruct() {
@@ -53,6 +53,19 @@ class Cache {
 	}
 	
 	protected function notify(string $key, $value) {
+		$names = $this->_name->keys();
+		$i = array_search(THREAD_TASK_NAME, $names);
+		unset($names[$i]);
+		foreach($names as $name) {
+			if(!isset($this->_notifies[$name])) {
+				$this->_notifies[$name] = new TsVar("{$this->_prefix}:{$name}__", 0, null, true);
+			}
+			/* @var $var TsVar */
+			$var = $this->_notifies[$name];
+			$var->push($key);
+			$var->write();
+		}
+		
 		if(isset($this->_keys[$key])) {
 			$oks = $this->_keys[$key];
 			unset($this->_keys[$key]);
@@ -78,35 +91,26 @@ class Cache {
 	 * @return Cache
 	 */
 	public function get(string $key, callable $ok, callable $set, int $expire = 0) {
-		$call = function() use($key, $set, $expire) { // 当缓存中不存在时调用$set回调函数重新生成数据
-			$set(function($value, ?int $expire2 = null) use($key, $expire) {
-				if($expire2 !== null) {
-					$expire = $expire2;
-				}
-				
-				$ret = $this->set($key, $value, $expire > 0 ? $expire + time() : 0);
-				
-				$names = $this->_name->keys();
-				$i = array_search(THREAD_TASK_NAME, $names);
-				unset($names[$i]);
-				foreach($names as $name) {
-					if(!isset($this->_notifies[$name])) {
-						$this->_notifies[$name] = new TsVar("{$this->_prefix}:{$name}__", 0, null, true);
+		$call = function() use($key, $ok, $set, $expire) { // 当缓存中不存在时调用$set回调函数重新生成数据
+			try {
+				$set(function($value, ?int $expire2 = null) use($key, $expire) {
+					if($expire2 !== null) {
+						$expire = $expire2;
 					}
-					/* @var $var TsVar */
-					$var = $this->_notifies[$name];
-					$var->push($key);
-					$var->write();
-				}
-				
-				$this->notify($key, $value);
-				
-				return $ret;
-			});
-			
-			return new Notify($key);
+					
+					$ret = $this->set($key, $value, $expire > 0 ? $expire + time() : 0);
+					
+					$this->notify($key, $value);
+					
+					return $ret;
+				});
+				return new Notify($key);
+			} catch(\Throwable $e) {
+				\Fwe::$app->error($e, 'cache');
+				return $e->getMessage();
+			}
 		};
-		$val = $this->_var->getOrSet($key, $call);
+		$val = $this->_var->getOrSet($key, $call, $expire > 0 ? $expire + time() : 0);
 		
 		if($val instanceof Notify) {
 			$this->_keys[$key][] = $ok;

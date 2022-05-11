@@ -69,10 +69,11 @@ abstract class Application extends Module {
 		pthread_sigmask(SIG_SETMASK, []);
 		pcntl_async_signals(true);
 		$set = [SIGTERM, SIGINT, SIGUSR1, SIGUSR2];
-		foreach($set as $sig) pcntl_signal($sig, [$this, 'signalHandler'], false);
+		foreach($set as $sig) pcntl_signal($sig, [$this, 'signalHandler'], true);
 	
-		$this->_statVar = new TsVar('__stat__');
-		$this->_logVar = new TsVar('__log__', 0, null, true);
+		$name = \Fwe::$name;
+		$this->_statVar = new TsVar("__stat:{$name}__");
+		$this->_logVar = new TsVar("__log:{$name}__", 0, null, true);
 		
 		foreach($this->bootstrap as $id) {
 			if($this->has($id)) $this->get($id);
@@ -149,7 +150,7 @@ abstract class Application extends Module {
 	protected $_logFp;
 	
 	protected function logInit(bool $isEvent = true) {
-		if(!is_main_task()) return;
+		if(!is_main_task() || $this->_logFile) return;
 
 		$name = \Fwe::$name;
 		
@@ -176,7 +177,7 @@ abstract class Application extends Module {
 			$log = $this->_logVar->shift();
 			if(!$log) continue;
 			
-			$time = date('Y-m-d H:i:s.', $log['time']) . sprintf('%06d', ($log['time'] * 1000000) % 1000000);
+			$time = sprintf('%s.%06d', date('Y-m-d H:i:s', (int) $log['time']), ($log['time'] * 1000000) % 1000000);
 			fwrite($this->_logFp, "[$time][{$log['level']}][{$log['category']}][{$log['memory']}][{$log['taskName']}] {$log['message']}\n");
 			if(isset($log['traces'])) {
 				fwrite($this->_logFp, "TRACE:\n{$log['traces']}\n");
@@ -252,7 +253,7 @@ abstract class Application extends Module {
 				}
 			}
 			if($message = $message->getPrevious()) {
-				$traces = ' ' . get_class($message) . ': ' . $message->getMessage();
+				$traces[] = ' ' . get_class($message) . ': ' . $message->getMessage();
 				goto trace;
 			}
 			$log['traces'] = implode("\n", $traces);
