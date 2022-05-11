@@ -53,19 +53,6 @@ class Cache {
 	}
 	
 	protected function notify(string $key, $value) {
-		$names = $this->_name->keys();
-		$i = array_search(THREAD_TASK_NAME, $names);
-		unset($names[$i]);
-		foreach($names as $name) {
-			if(!isset($this->_notifies[$name])) {
-				$this->_notifies[$name] = new TsVar("{$this->_prefix}:{$name}__", 0, null, true);
-			}
-			/* @var $var TsVar */
-			$var = $this->_notifies[$name];
-			$var->push($key);
-			$var->write();
-		}
-		
 		if(isset($this->_keys[$key])) {
 			$oks = $this->_keys[$key];
 			unset($this->_keys[$key]);
@@ -99,6 +86,19 @@ class Cache {
 					}
 					
 					$ret = $this->set($key, $value, $expire > 0 ? $expire + time() : 0);
+					
+					$names = $this->_name->keys();
+					$i = array_search(THREAD_TASK_NAME, $names);
+					unset($names[$i]);
+					foreach($names as $name) {
+						if(!isset($this->_notifies[$name])) {
+							$this->_notifies[$name] = new TsVar("{$this->_prefix}:{$name}__", 0, null, true);
+						}
+						/* @var $var TsVar */
+						$var = $this->_notifies[$name];
+						$var->push($key);
+						$var->write();
+					}
 					
 					$this->notify($key, $value);
 					
