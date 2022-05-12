@@ -8,8 +8,12 @@ return [
 	'components' => [
 		'db' => require __DIR__ . '/db.php',
 		'curl' => [
-			'maxThreads' => (($threads = getenv("CURL_THREADS")) > 0 ? (int) $threads : 2),
+			'class' => 'fwe\curl\Event',
+			'verbose' => (getenv('CURL_VERBOSE') ? true : false),
 		],
+		// 'curl' => [
+		// 	'maxThreads' => (($threads = getenv("CURL_THREADS")) > 0 ? (int) $threads : 2),
+		// ],
 		'monitor' => 'app\ws\MonBoot',
 		'cache2' => 'fwe\cache\Redis',
 	],
