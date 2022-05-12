@@ -213,8 +213,7 @@ class Application extends \fwe\base\Application {
 			$this->_connStatVar->minmax($i);
 			$this->_connStatVar->inc($i, 1);
 			$reqVar = $this->_reqVars[$i]; /* @var $reqVar TsVar */
-			$reqVar[$key] = [$fd, $addr, $port];
-
+			$reqVar->set($key, [$fd, $addr, $port]);
 			$reqVar->write();
 			
 			if(empty($reqTasks[$i])) {
@@ -282,7 +281,7 @@ class Application extends \fwe\base\Application {
 		}
 
 		$wsVar = $this->_wsVars[$index];
-		$wsVar[$key] = $args;
+		$wsVar->set($key, $args);
 		$wsVar->write();
 	}
 	

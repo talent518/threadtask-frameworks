@@ -178,27 +178,30 @@ class DefaultController extends Controller {
 		}, null, $timeout);
 		return false;
 	}
-	
-	const CURL_COUNT = 5;
 
 	/**
 	 * 异步curl请求: GET
 	 */
-	public function actionCurl() {
+	public function actionCurl(string $url = 'https://www.baidu.com/', int $count = 5) {
+		$t = microtime(true);
 		$data = [];
-		for($i=0; $i<self::CURL_COUNT; $i++) {
-			$req = new Request('https://www.baidu.com/#'.$i);
+		for($i=0; $i<$count; $i++) {
+			$req = new Request("$url#$i");
 			$req->addHeader('index', $i);
-			curl()->make($req, function($res, $req) use(&$data) {
+			curl()->make($req, function($res, $req) use(&$data, $count, $t) {
 				$i = $req->resKey;
 				$res = $res->properties;
 				$req = $req->properties;
 				$data[$i] = compact('req', 'res');
-				if(count($data) == self::CURL_COUNT) {
+				if(count($data) == $count) {
 					var_export($data);
+					$t = microtime(true) - $t;
+					echo "run time: $t\n";
 				}
 			});
 		}
+		echo "curl:end\n";
+		return false;
 	}
 	
 	/**
