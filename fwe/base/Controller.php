@@ -171,8 +171,8 @@ class Controller {
 		return $file;
 	}
 	
-	public function render(string $view, array $params = [], ?callable $ok = null) {
-		return $this->renderContent($this->renderView($view, $params), $ok);
+	public function render(string $view, array $params = [], ?callable $ok = null, ... $args) {
+		return $this->renderContent($this->renderView($view, $params), $ok, ...$args);
 	}
 	
 	private $_layoutView, $_layoutCall;
@@ -193,7 +193,7 @@ class Controller {
 		$this->_layoutCall = $call;
 	}
 	
-	public function renderContent(string $content, ?callable $ok = null) {
+	public function renderContent(string $content, ?callable $ok = null, ... $args) {
 		$view = $this->getLayoutView();
 		if($view) {
 			$call = $this->getLayoutCall();
@@ -210,7 +210,8 @@ class Controller {
 						}
 						$params['content'] = $content;
 						$ok($this->renderView($view, $params));
-					}
+					},
+					... $args
 				);
 			} elseif($ok) {
 				$ok($this->renderView($view, ['content'=>$content]));
