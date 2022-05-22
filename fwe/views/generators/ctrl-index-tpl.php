@@ -7,6 +7,7 @@
  * @var $base string 控制器父类全名
  * @var $namespace string 控制器命名空间
  * @var $className string 控制器类名
+ * @var $title string 标题
  * @var $isJson bool 是否作为JSON响应
  * @var $isRestful bool 是否作为RESTful规范
  * @var $_ mixed 忽略
@@ -18,8 +19,7 @@ $searchKeys = $model::searchKeys();
 ?>
 <form class="search-form" action="?" method="get">
 <h1>
-	<a class="right create" href="/{$this:route}create">添加</a>
-	<a class="list" href="/{$this:route}"><?=substr($className, 0, -10)?></a>
+	<a class="list" href="/{$this:route}"><?=$title?></a>
 </h1>
 <table class="data-grid">
 	<thead>
@@ -33,7 +33,7 @@ $searchKeys = $model::searchKeys();
 <?php foreach($searchKeys as $attr => $_):?>
 			<th><input name="<?=$attr?>" type="text" value="{$model:<?=$attr?>|text}" /></th>
 <?php endforeach;?>
-			<th class="oper">&nbsp;</th>
+			<th class="oper"><a class="create" href="/{$this:route}create">添加</a></th>
 		</tr>
 	</thead>
 	<tbody>

@@ -9,6 +9,7 @@ echo "<?php\n";
  * @var $base string 控制器父类全名
  * @var $namespace string 控制器命名空间
  * @var $className string 控制器类名
+ * @var $title string 标题
  * @var $isJson bool 是否作为JSON响应
  * @var $isRestful bool 是否作为RESTful规范
  * @var $_ mixed 忽略
@@ -28,7 +29,7 @@ use fwe\utils\StringHelper;
  */
 <?="?>"?>
 <div class="view-details">
-	<h1><a class="list" href="<?="<?=\$backUrl ?: '/' . \$this->route?>"?>"><?=substr($className, 0, -10)?></a> &gt; <a href="/<?="<?=\$this->route?>"?>view?<?=$generator->genKeyForModel($model, 'model')?>&backUrl=<?="<?=urlencode(\$backUrl)?>"?>">查看: <?='<?="{$model->'.implode('} - {\$model->', $model::priKeys()).'}"?>'?></a></h1>
+	<h1><a class="list" href="<?="<?=\$backUrl ?: '/' . \$this->route?>"?>"><?=$title?></a> &gt; <a href="/<?="<?=\$this->route?>"?>view?<?=$generator->genKeyForModel($model, 'model')?>&backUrl=<?="<?=urlencode(\$backUrl)?>"?>">查看: <?='<?="{$model->'.implode('} - {\$model->', $model::priKeys()).'}"?>'?></a></h1>
 <table>
 <?php foreach($modelObj->attributes as $attr => $_):?>
 	<tr><th><?=$modelObj->getLabel($attr)?></th><td><div class="html"><?="<?=StringHelper::str2html(\$model->$attr)?>"?></div></td></tr>

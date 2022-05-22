@@ -7,6 +7,7 @@
  * @var $base string 控制器父类全名
  * @var $namespace string 控制器命名空间
  * @var $className string 控制器类名
+ * @var $title string 标题
  * @var $isJson bool 是否作为JSON响应
  * @var $isRestful bool 是否作为RESTful规范
  * @var $generator \fwe\db\Generator 生成器对象
@@ -16,7 +17,7 @@
 	<pre>{$data->error}</pre>
 {else}
 	<form class="update-form" action="/{$this:route}update?<?=$generator->genKeyForModel($model, 'model', false, ':')?>&backUrl={$backUrl|url}" method="post">
-		<h1><a class="list" href="{if $backUrl}{$backUrl}{else}/{$this:route}{/if}"><?=substr($className, 0, -10)?></a> &gt; <a href="/{$this:route}update?<?=$generator->genKeyForModel($model, 'model', false, ':')?>&backUrl={$backUrl|url}">编辑: {$model:<?=implode('} - {$model:', $model::priKeys())?>}</a></h1>
+		<h1><a class="list" href="{if $backUrl}{$backUrl}{else}/{$this:route}{/if}"><?=$title?></a> &gt; <a href="/{$this:route}update?<?=$generator->genKeyForModel($model, 'model', false, ':')?>&backUrl={$backUrl|url}">编辑: {$model:<?=implode('} - {$model:', $model::priKeys())?>}</a></h1>
 		{tpl form model}
 	</form>
 {/if}

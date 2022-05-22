@@ -86,10 +86,11 @@ class GeneratorController extends Controller {
 	 * @param string $search 搜索模型类
 	 * @param string $path 视图目录
 	 * @param string $base 控制器基类
+	 * @param string $title 标题
 	 * @param bool $isTpl 是否使用tpl模板引擎
 	 * @param bool $isOver 是否覆盖
 	 */
-	public function actionCtrl(RequestEvent $request, Generator $generator, string $model, string $class, string $search, ?string $path = null, string $base = Controller::class, bool $isTpl = false, bool $isOver = false) {
+	public function actionCtrl(RequestEvent $request, Generator $generator, string $model, string $class, string $search, ?string $path = null, string $base = Controller::class, ?string $title = null, bool $isTpl = false, bool $isOver = false) {
 		if($model !== MySQLModel::class && !is_subclass_of($model, MySQLModel::class)) {
 			$class = MySQLModel::class;
 			throw new Exception("$model 不是 $class 的子类");
@@ -125,6 +126,7 @@ class GeneratorController extends Controller {
 		if(!$params['isJson']) {
 			$ext = ($isTpl ? 'tpl' : 'php');
 			$suffix = ($isTpl ? '-tpl' : null);
+			$params['title'] = ($title ?: substr($params['className'], 0, -10));
 			
 			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-index{$suffix}.php", "$path/index.$ext", $params, $isOver);
 			$rets[] = $this->generator($status, $newFile, $oldFile);

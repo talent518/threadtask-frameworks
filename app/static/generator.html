@@ -153,6 +153,10 @@
 			<span>为空时不生成视图且响应结果为JSON数据</span>
 		</div>
 		<div class="row">
+			<label>列表标题：</label>
+			<input id="j-title" type="text" value="" />
+		</div>
+		<div class="row">
 			<label></label>
 			<button type="submit">立即生成</button>
 			<label class="chk"><input id="j-isTpl" type="checkbox" /> 是否使用tpl模板引擎</label>
@@ -189,6 +193,7 @@
 			ctrlBase: '',
 			searchClass: '',
 			ctrlPath: '',
+			title: '',
 			isTpl: false,
 		}, json);
 	})();
@@ -341,6 +346,10 @@
 			storage.ctrlPath = $.trim($(this).val());
 			isOverElem.attr('checked', false);
 		}).val(storage.ctrlPath);
+		const titleElem = $('#j-title', $form).change(function() {
+			storage.title = $.trim($(this).val());
+			isOverElem.attr('checked', false);
+		}).val(storage.title);
 		const isTplElem = $('#j-isTpl', $form).change(function() {
 			storage.isTpl = $(this).is(':checked');
 			isOverElem.attr('checked', false);
@@ -376,6 +385,7 @@
 					base: storage.ctrlBase,
 					search: storage.searchClass,
 					path: storage.ctrlPath,
+					title: storage.title,
 					isTpl: isTplElem.is(':checked') ? 1 : 0,
 					isOver: isOverElem.is(':checked') ? 1 : 0,
 				},
