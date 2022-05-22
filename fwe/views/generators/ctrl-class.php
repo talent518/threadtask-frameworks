@@ -92,7 +92,7 @@ class <?=$className?> extends \<?=$base?> {
 			}, $request);
 <?php endif;?>
 		} else {
-			$db = db()->pop();
+			$db = db()->pop(false);
 			$model = Model::create();
 			$model->setScene('create');
 			$model->attributes = $request->post;
@@ -137,7 +137,7 @@ class <?=$className?> extends \<?=$base?> {
 			return;
 		}
 <?php endif;?>
-		$db = db()->pop();
+		$db = db()->pop(false);
 		Model::findById(
 			$db,
 			<?=$idFuncParamValues?>,
@@ -196,7 +196,7 @@ class <?=$className?> extends \<?=$base?> {
 	}
 	
 	public function actionDelete(RequestEvent $request, <?=$idFuncParams?><?php if(!$isJson):?>, string $backUrl = ''<?php endif?>) {
-		$db = db()->pop();
+		$db = db()->pop(false);
 		Model::findById(
 			$db,
 			<?=$idFuncParamValues?>,

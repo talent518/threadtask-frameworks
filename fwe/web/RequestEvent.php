@@ -270,6 +270,16 @@ class RequestEvent {
 	protected function runAction() {
 		$this->runTime = microtime(true);
 		$this->params += $this->post;
+		
+		$parent = $this->action->controller;
+		while($parent) {
+			if(method_exists($parent, 'runAction')) {
+				return $parent->runAction($this, $this->action, $this->params);
+			}
+			
+			$parent = $parent->module;
+		}
+		
 		$ret = $this->action->run($this->params);
 		$this->action->afterAction($this->params);
 

@@ -136,6 +136,18 @@ class Cache {
 	}
 	
 	/**
+	 * @param string $key
+	 * @param callable $ok
+	 *
+	 * @return Cache
+	 */
+	public function del(string $key, callable $ok) {
+		$this->_var->remove($key);
+		$ok('OK');
+		return $this;
+	}
+	
+	/**
 	 * @return boolean|array
 	 */
 	public function keys() {

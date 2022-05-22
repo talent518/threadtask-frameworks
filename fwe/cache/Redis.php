@@ -42,4 +42,21 @@ class Redis extends Cache {
 		
 		return parent::get($key, $ok, $set2, $expire);
 	}
+	
+	public function del(string $key, callable $ok) {
+		return parent::del(
+			$key,
+			function(string $status) use($key, $ok) {
+				$redis = redis($this->redisId)->pop()->beginAsync();
+				$redis->del($this->prefixKey . $key)
+				->goAsync(function() use($redis, $ok, $status) {
+					$redis->push();
+					$ok($status);
+				}, function($e) use($redis, $ok) {
+					$redis->push();
+					$ok($e->getMessage());
+				});
+			}
+		);
+	}
 }
