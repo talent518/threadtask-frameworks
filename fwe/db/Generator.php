@@ -209,19 +209,19 @@ class Generator {
 		}
 	}
 	
-	public function genKeyForModel(string $class, string $var, bool $isView = true) {
+	public function genKeyForModel(string $class, string $var, bool $isView = true, string $dot = '->') {
 		$priKeys = $class::priKeys();
 		$n = count($priKeys);
 		if($n) {
 			if($n > 1) {
 				$rets = [];
 				foreach($priKeys as $key) {
-					$rets[] = $isView ? "$key=<?=\$$var->$key?>" : "$key={\$$var->$key}";
+					$rets[] = $isView ? "$key=<?=\$$var->$key?>" : "$key={\${$var}{$dot}{$key}}";
 				}
 				return implode('&', $rets);
 			} else {
 				$key = reset($priKeys);
-				return $isView ? "id=<?=\$$var->$key?>" : "id={\$$var->$key}";
+				return $isView ? "id=<?=\$$var->$key?>" : "id={\${$var}{$dot}{$key}}";
 			}
 		} else {
 			return 'unknown';

@@ -36,12 +36,19 @@ namespace <?=$namespace?>;
 
 use <?=$search?> as Search;
 use <?=$model?> as Model;
+<?php if(!$isJson && $isTpl):?>
+use fwe\traits\TplView;
+<?php endif;?>
 use fwe\web\RequestEvent;
 
 /**
  * 由<?=get_class($this)?>生成的代码
  */
 class <?=$className?> extends \<?=$base?> {
+<?php if(!$isJson && $isTpl):?>
+	use TplView;
+	
+<?php endif;?>
 	public function actionIndex(RequestEvent $request, int $page = 1, int $size = 10, string $orderBy = '<?=reset($priKeys)?>', bool $isDesc = true) {
 		$db = db()->pop();
 		$model = Search::create();
@@ -57,7 +64,9 @@ class <?=$className?> extends \<?=$base?> {
 <?php if($isJson):?>
 				$request->getResponse()->json(['status' => true, 'message' => 'OK', 'data' => $model]);
 <?php else:?>
-				$request->getResponse()->end($this->render('index', ['model' => $model]));
+				$this->render('index', ['model' => $model], function(string $html) use($request) {
+					$request->getResponse()->end($html);
+				}, $request);
 <?php endif;?>
 			},
 			function($e) use($db, $model, $request) {
@@ -78,7 +87,9 @@ class <?=$className?> extends \<?=$base?> {
 <?php else:?>
 			$model = Model::create();
 			$model->setScene('create');
-			$request->getResponse()->end($this->render('create', ['model' => $model, 'data' => null, 'status' => null, 'backUrl' => $backUrl]));
+			$this->render('create', ['model' => $model, 'data' => null, 'status' => null, 'backUrl' => $backUrl], function(string $html) use($request) {
+				$request->getResponse()->end($html);
+			}, $request);
 <?php endif;?>
 		} else {
 			$db = db()->pop();
@@ -98,7 +109,9 @@ class <?=$className?> extends \<?=$base?> {
 <?php if($isJson):?>
 					$request->getResponse()->json(['status' => false, 'message' => $status->error ?? '数据验证未通过', 'errors' => $model->getErrors(), 'data' => $model]);
 <?php else:?>
-					$request->getResponse()->end($this->render('create', ['model' => $model, 'data' => $status, 'status' => false, 'backUrl' => $backUrl]));
+					$this->render('create', ['model' => $model, 'data' => $status, 'status' => false, 'backUrl' => $backUrl], function(string $html) use($request) {
+						$request->getResponse()->end($html);
+					}, $request);
 <?php endif;?>
 				}
 			);
@@ -137,7 +150,9 @@ class <?=$className?> extends \<?=$base?> {
 <?php endif;?>
 <?php if(!$isJson):?>
 				} elseif($request->method !== 'POST') {
-					$request->getResponse()->end($this->render('update', ['model' => $row, 'data' => null, 'status' => null, 'backUrl' => $backUrl]));
+					$this->render('update', ['model' => $row, 'data' => null, 'status' => null, 'backUrl' => $backUrl], function(string $html) use($request) {
+						$request->getResponse()->end($html);
+					}, $request);
 <?php endif;?>
 				} else {
 					$row->setScene('update');
@@ -155,7 +170,9 @@ class <?=$className?> extends \<?=$base?> {
 <?php if($isJson):?>
 							$request->getResponse()->json(['status' => false, 'message' => $status->error ?? '数据验证未通过', 'errors' => $row->getErrors(), 'data' => $row]);
 <?php else:?>
-							$request->getResponse()->end($this->render('update', ['model' => $row, 'data' => $status, 'status' => false, 'backUrl' => $backUrl]));
+							$this->render('update', ['model' => $row, 'data' => $status, 'status' => false, 'backUrl' => $backUrl], function(string $html) use($request) {
+								$request->getResponse()->end($html);
+							}, $request);
 <?php endif;?>
 						}
 					);
@@ -243,7 +260,9 @@ class <?=$className?> extends \<?=$base?> {
 <?php if($isJson):?>
 					$request->getResponse()->json(['status' => true, 'message' => '找到记录', 'data' => $row]);
 <?php else:?>
-					$request->getResponse()->end($this->render('view', ['model' => $row, 'backUrl' => $backUrl]));
+					$this->render('view', ['model' => $row, 'backUrl' => $backUrl], function(string $html) use($request) {
+						$request->getResponse()->end($html);
+					}, $request);
 <?php endif;?>
 				}
 			},

@@ -11,15 +11,27 @@ trait TplView {
 		return 'tpl';
 	}
 	
-	protected function buildView(string $viewFile) {
-		$rootDir = ROOT . '/';
-		$rootLen = strlen($rootDir);
-		if(!strncmp($viewFile, $rootDir, $rootLen)) {
-			$phpFile = trim(preg_replace('/[^a-zA-Z0-9]+/', '-', substr($viewFile, $rootLen, -4)), '-');
+	protected function getViewPhpFile(string $view) {
+		if(!strncmp($view, '@', 1)) {
+			$file = \Fwe::getAlias('@app/runtime/views/' . substr($view, 1));
+		} elseif(!strncmp($view, '//', 2)) {
+			$file = \Fwe::getAlias('@app/runtime/views/' . ltrim($view, '/'));
+		} elseif(!strncmp($view, '/', 2)) {
+			$file = \Fwe::getAlias('@app/runtime/views/' . $this->module->getRoute() . ltrim($view, '/'));
 		} else {
-			$phpFile = md5($viewFile);
+			$file = \Fwe::getAlias('@app/runtime/views/' . $this->getRoute() . ltrim($view, '/'));
 		}
-		$phpFile = \Fwe::getAlias("@app/runtime/views/{$phpFile}.php");
+		
+		$ext = pathinfo($file, PATHINFO_EXTENSION);
+		if($ext) {
+			$file = substr($file, 0, - strlen($ext) - 1);
+		}
+		
+		return "$file.php";
+	}
+	
+	protected function buildView(string $viewFile, string $view) {
+		$phpFile = $this->getViewPhpFile($view);
 		$phpPath = dirname($phpFile);
 		if(!is_dir($phpPath)) mkdir($phpPath, 0755, true);
 		
@@ -191,6 +203,12 @@ trait TplView {
 		
 		$key = $this->makeKey();
 		switch($matches[2]){
+			case 'url'://urlencode
+				$this->_replaces[$key] = "<?=urlencode({$matches[1]})?>";
+				break;
+			case 'join':// join array
+				$this->_replaces[$key] = "<?=implode(', ', (array) {$matches[1]})?>";
+				break;
 			case 'text'://html to text
 				$this->_replaces[$key] = "<?=htmlspecialchars({$matches[1]})?>";
 				break;

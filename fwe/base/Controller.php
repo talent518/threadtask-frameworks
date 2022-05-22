@@ -247,7 +247,7 @@ class Controller {
 			}
 		}
 		if($ext !== 'php') {
-			$file = $this->buildView($file);
+			$file = $this->buildView($file, $view);
 		}
 		return $this->renderPhpFile($file, $params);
 	}
@@ -256,7 +256,7 @@ class Controller {
 		return 'php';
 	}
 	
-	protected function buildView(string $viewFile) {
+	protected function buildView(string $viewFile, string $view) {
 		throw new Exception("Override protected buildView method for implements $viewFile convert to php file");
 	}
 	

@@ -76,9 +76,10 @@ class GeneratorController extends \fwe\console\Controller {
 	 * @param string $search 搜索模型类
 	 * @param string $path 视图目录
 	 * @param string $base 控制器基类
+	 * @param bool $isTpl 是否使用tpl模板引擎
 	 * @param bool $isOver 是否覆盖
 	 */
-	public function actionCtrl(Generator $generator, string $model, string $class, string $search, ?string $path = null, string $base = Controller::class, bool $isOver = false) {
+	public function actionCtrl(Generator $generator, string $model, string $class, string $search, ?string $path = null, string $base = Controller::class, bool $isTpl = false, bool $isOver = false) {
 		if($model !== MySQLModel::class && !is_subclass_of($model, MySQLModel::class)) {
 			$class = MySQLModel::class;
 			throw new Exception("$model 不是 $class 的子类");
@@ -103,21 +104,25 @@ class GeneratorController extends \fwe\console\Controller {
 		$classes = preg_split('/[^a-zA-Z0-9]+/', $class, -1, PREG_SPLIT_NO_EMPTY);
 		$params['className'] = array_pop($classes);
 		$params['namespace'] = implode('\\', $classes);
+		$params['isTpl'] = $isTpl;
 		
 		$ctrlFile = '@' . str_replace('\\', '/', $class) . '.php';
 		list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-class.php", $ctrlFile, $params, $isOver);
 		$this->generator($status, $newFile, $oldFile);
 		
 		if(!$params['isJson']) {
-			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-index.php", "$path/index.php", $params, $isOver);
+			$ext = ($isTpl ? 'tpl' : 'php');
+			$suffix = ($isTpl ? '-tpl' : null);
+			
+			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-index{$suffix}.php", "$path/index.$ext", $params, $isOver);
 			$this->generator($status, $newFile, $oldFile);
-			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-form.php", "$path/form.php", $params, $isOver);
+			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-form{$suffix}.php", "$path/form.$ext", $params, $isOver);
 			$this->generator($status, $newFile, $oldFile);
-			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-create.php", "$path/create.php", $params, $isOver);
+			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-create{$suffix}.php", "$path/create.$ext", $params, $isOver);
 			$this->generator($status, $newFile, $oldFile);
-			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-update.php", "$path/update.php", $params, $isOver);
+			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-update{$suffix}.php", "$path/update.$ext", $params, $isOver);
 			$this->generator($status, $newFile, $oldFile);
-			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-view.php", "$path/view.php", $params, $isOver);
+			list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-view{$suffix}.php", "$path/view.$ext", $params, $isOver);
 			$this->generator($status, $newFile, $oldFile);
 		}
 	}
