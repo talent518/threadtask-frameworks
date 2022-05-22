@@ -25,6 +25,8 @@
 		div.success{color:green;}
 		div.row{padding:0 0 10px;}
 		form label:first-child{width:6em;}
+		form.top{text-align:center;padding:10px;border:1px #999 solid;border-bottom:none;}
+		form.top>div{display:inline-block;}
 		.column2{overflow:hidden;border:1px #999 solid;}
 		.column2:after{content:'';clear:both;}
 		.column2 > form{margin:0 0 -10000px;padding:10px 10px 10000px;width:50%;}
@@ -93,6 +95,13 @@
     <div class="dot"></div>
     <div class="dot"></div>
 </div>
+<form id="j-save-form" class="top">
+	<select id="j-list"></select>
+	<input id="j-name" type="text" value="" placeholder="新名" title="新名" />
+	<button type="submit">保存历史</button>
+	<button type="button">删除历史</button>
+	<div id="j-message" class="error"></div>
+</form>
 <div class="column2">
 	<form id="j-model-form" class="left">
 		<h3>MySQL表模型</h3>
@@ -172,30 +181,35 @@
 <script type="text/javascript">
 (function($) {
 	const genURL = '/generator/';
+	const defstor = {
+		// MySQL表模型
+		db: 'db',
+		table: '',
+		namespace: 'app\\models',
+		className: '',
+		isSplit: false,
+		baseClass: 'fwe\\db\\MySQLModel',
+		isComment: false,
+		
+		// 控制器与视图生成
+		modelClass: '',
+		ctrlClass: '',
+		ctrlBase: '',
+		searchClass: '',
+		ctrlPath: '',
+		title: '',
+		isTpl: false,
+	};
 	const storage = (function() {
 	let json;
 		try {
 			json = JSON.parse(localStorage.getItem('fwe-generator'));
 		} catch(e) {}
 		return $.extend({
-			// MySQL表模型
-			db: 'db',
-			table: '',
-			namespace: 'app\\models',
-			className: '',
-			isSplit: false,
-			baseClass: 'fwe\\db\\MySQLModel',
-			isComment: false,
-			
-			// 控制器与视图生成
-			modelClass: '',
-			ctrlClass: '',
-			ctrlBase: '',
-			searchClass: '',
-			ctrlPath: '',
-			title: '',
-			isTpl: false,
-		}, json);
+			// 保存列表
+			list: {},
+			name: '',
+		}, defstor, json);
 	})();
 	
 	console.log(storage);
@@ -209,6 +223,81 @@
 		$('#j-loading').hide();
 	});
 	$.ajaxSetup({global:true});
+	
+	(function() {
+		const $form = $('#j-save-form');
+		
+		const listElem = $('#j-list', $form).val(storage.db).change(function() {
+			const key = $.trim($(this).val());
+			if(key !== '') {
+				storage.name = key;
+				$.extend(storage, storage.list[key]);
+				location.reload();
+			} else {
+				storage.name = '';
+			}
+		});
+		
+		const eachList = function() {
+			listElem.empty();
+			if($.isEmptyObject(storage.list)) $('<option />').val('').text('另存为').appendTo(listElem);
+			$.each(storage.list, function(key) {
+				$('<option />').val(key).text(key).attr('selected', key === storage.name).appendTo(listElem);
+			});
+		};
+		
+		const nameElem = $('#j-name', $form);
+		
+		const storKey = function(key) {
+			const row = {};
+			Object.keys(defstor).forEach(function(key) {
+				row[key] = storage[key];
+			});
+			
+			storage.list[key] = row;
+		};
+		
+		$form.submit(function() {
+			const $msg = $('#j-message', $form).empty();
+			const key = listElem.val();
+			const val = $.trim(nameElem.val());
+			
+			if(key === '') {
+				if(val === '') {
+					$msg.text('不能为空');
+				} else if(val in storage.list) {
+					$msg.text('已存在');
+				} else {
+					storKey(val);
+					storage.name = val;
+					nameElem.val('');
+					eachList();
+				}
+			} else if(val === '') {
+				storKey(key);
+			} else if(val in storage.list) {
+				$msg.text('已存在');
+			} else {
+				storKey(val);
+				storage.name = val;
+				nameElem.val('');
+				eachList();
+			}
+			
+			return false;
+		});
+		
+		$('button[type=button]', $form).click(function() {
+			const key = listElem.val();
+			const val = $.trim(nameElem.val());
+			
+			delete storage.list[key], storage.list[val];
+			storage.name = '';
+			eachList();
+		});
+		
+		eachList();
+	})();
 	
 	(function() { // MySQL表模型
 		const $form = $('#j-model-form');
