@@ -18,6 +18,8 @@ use fwe\db\MySQLConnection;
 
 /**
  * 由<?=get_class($this)?>生成的代码
+ *
+ * @method static <?=$className?> create(array $params = [])
  */
 class <?=$className?> extends \fwe\base\Model {
 	protected $_searchKeys = [

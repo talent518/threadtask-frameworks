@@ -177,7 +177,7 @@ class ResponseEvent {
 		return $this;
 	}
 	
-	public function setCookie(string $name, ?string $value, int $expires = 0, string $path = '', string $domain = '', bool $secure = false, bool $httponly = false, string $samesite = '') {
+	public function setCookie(string $name, ?string $value, int $expires = 0, string $path = '/', string $domain = '', bool $secure = false, bool $httponly = false, string $samesite = '') {
 		$this->setRawCookie($name, $value === null ? null : urlencode($value), $expires, $path, $domain, $secure, $httponly, $samesite);
 		return $this;
 	}
@@ -189,10 +189,8 @@ class ResponseEvent {
 		} else {
 			$cookie = "$name=$value";
 			if($expires > 0) {
-				$cookie .= '; expires=' . gmdate('D, d-M-Y H:i:s T', $expires);
-				$diff = $expires - time();
-				if($diff < 0) $diff = 0;
-				$cookie .= "; Max-Age=$diff";
+				$cookie .= '; expires=' . gmdate('D, d-M-Y H:i:s T', time() + $expires);
+				$cookie .= "; Max-Age=$expires";
 			}
 		}
 		if($path !== '') $cookie .= "; path=$path";

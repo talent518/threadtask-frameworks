@@ -26,7 +26,7 @@ class MethodValidator extends IValidator {
 		if($ret) {
 			$class = get_class($model);
 			$attributes = $this->attributes;
-			$params = compact('model', 'isPerOne', 'isOnly', 'attributes');
+			$params = compact('model', 'isPerOne', 'isOnly', 'attributes', 'ret');
 			if ($this->method instanceof \Closure) {
 				return \Fwe::invoke($this->method, $params, null);
 			} elseif(method_exists($model, $this->method)) {

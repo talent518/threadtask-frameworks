@@ -31,7 +31,7 @@ use fwe\utils\StringHelper;
 <form class="search-form" action="?" method="get">
 <h1>
 	<a class="right create" href="/<?="<?=\$this->route?>"?>create">添加</a>
-	<a class="list" href="/<?="<?=trim(\$this->route, '/')?>"?>"><?=substr($className, 0, -10)?></a>
+	<a class="list" href="/<?="<?=\$this->route?>"?>"><?=substr($className, 0, -10)?></a>
 </h1>
 <table class="data-grid">
 	<thead>

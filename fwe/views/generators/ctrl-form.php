@@ -31,9 +31,9 @@ $errors = $model->getErrors();
 	<div class="row">
 		<label><?=$modelObj->getLabel($attr)?>：</label>
 		<input name="<?=$attr?>" type="text" value="<?="<?=htmlspecialchars(\$model->$attr)?>"?>"/>
-<?="<?php if(isset(\$errors['$attr'])):?>\n"?>
+	<?="<?php if(isset(\$errors['$attr'])):?>\n"?>
 		<span class="error"><?="<?=implode(', ', (array) \$errors['$attr'])?>"?></span>
-<?="<?php endif;?>\n"?>
+	<?="<?php endif;?>\n"?>
 	</div>
 <?php endif;endforeach;?>
 	<div class="row">

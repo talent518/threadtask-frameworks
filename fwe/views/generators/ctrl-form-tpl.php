@@ -22,9 +22,9 @@ $priKeys = $model::priKeys();
 	<div class="row">
 		<label><?=$modelObj->getLabel($attr)?>：</label>
 		<input name="<?=$attr?>" type="text" value="{$model:<?=$attr?>}"/>
-{if isset($errors.<?=$attr?>)}
+	{if isset($errors.<?=$attr?>)}
 		<span class="error">{$errors.<?=$attr?>|join}</span>
-{/if}
+	{/if}
 	</div>
 <?php endif;endforeach;?>
 	<div class="row">

@@ -16,7 +16,7 @@ trait TplView {
 			$file = \Fwe::getAlias('@app/runtime/views/' . substr($view, 1));
 		} elseif(!strncmp($view, '//', 2)) {
 			$file = \Fwe::getAlias('@app/runtime/views/' . ltrim($view, '/'));
-		} elseif(!strncmp($view, '/', 2)) {
+		} elseif(!strncmp($view, '/', 1)) {
 			$file = \Fwe::getAlias('@app/runtime/views/' . $this->module->getRoute() . ltrim($view, '/'));
 		} else {
 			$file = \Fwe::getAlias('@app/runtime/views/' . $this->getRoute() . ltrim($view, '/'));
@@ -77,7 +77,7 @@ trait TplView {
 			$template = preg_replace_callback('/\{var\s+(\$.+?\;)\}/', [$this, 'phpTags'], $template);
 			$template = preg_replace_callback('/\{tpl\s+(\S+)\}/', [$this, 'tplTags'], $template);
 			$template = preg_replace_callback('/\{tpl\s+(\S+)\s+(.+?)\}/', [$this, 'tplTags'], $template);
-			$template = preg_replace_callback('/(\$[a-zA-Z0-9_\.:]+)/', [$this, 'echoTags'], $template);
+			$template = preg_replace_callback('/(\$[a-zA-Z_][a-zA-Z0-9_\.:]*)/', [$this, 'echoTags'], $template);
 			$template = preg_replace_callback('/\{(@[a-zA-Z0-9\/-_\.]+)\}/', [$this, 'aliasTags'], $template);
 			
 			//清除空白字符
@@ -118,7 +118,7 @@ trait TplView {
 	}
 	
 	private function makeVar($var){
-		return preg_replace_callback('/\$[a-zA-Z0-9_\.:]+/', function($matches) {
+		return preg_replace_callback('/\$[a-zA-Z_][a-zA-Z0-9_\.:]+/', function($matches) {
 			$vars = explode('.', $matches[0]);
 			$var = array_shift($vars);
 			$var = str_replace(':', '->', $var);

@@ -135,7 +135,7 @@ abstract class MySQLModel extends Model {
 	}
 	
 	public function insert(MySQLConnection $db, ?callable $success = null, ?callable $error = null) {
-		static::insertAll($db, [$this->attributes], $success, $error);
+		return static::insertAll($db, [$this->attributes], $success, $error);
 	}
 	
 	public function update(MySQLConnection $db, ?callable $success = null, ?callable $error = null) {
@@ -144,7 +144,7 @@ abstract class MySQLModel extends Model {
 			$attrs[$key] = $this->$key;
 		}
 		
-		static::updateAll($db, $this->attributes, ['and', $attrs], $success, $error);
+		return static::updateAll($db, $this->attributes, ['and', $attrs], $success, $error);
 	}
 	
 	public function delete(MySQLConnection $db, ?callable $success = null, ?callable $error = null) {
@@ -153,7 +153,7 @@ abstract class MySQLModel extends Model {
 			$attrs[$key] = $this->$key;
 		}
 		
-		static::deleteAll($db, ['and', $attrs], $success, $error);
+		return static::deleteAll($db, ['and', $attrs], $success, $error);
 	}
 	
 	public static function deleteAll(MySQLConnection $db, array $where, ?callable $success = null, ?callable $error = null) {
@@ -162,7 +162,7 @@ abstract class MySQLModel extends Model {
 		$where = MySQLQuery::makeWhere($where, $params) ?: '0 > 1';
 		$sql = "DELETE FROM `$table` WHERE $where";
 		
-		$db->asyncPrepare(
+		return $db->asyncPrepare(
 			$sql,
 			$params,
 			[
@@ -180,7 +180,7 @@ abstract class MySQLModel extends Model {
 		$where = MySQLQuery::makeWhere($where, $params) ?: '0 > 1';
 		$sql = "UPDATE `$table` SET `$data` = ? WHERE $where";
 		
-		$db->asyncPrepare(
+		return $db->asyncPrepare(
 			$sql,
 			$params,
 			[
@@ -211,7 +211,7 @@ abstract class MySQLModel extends Model {
 		}
 		$sql = "INSERT INTO `$table` (`$fields`) VALUES ($data)";
 		
-		$db->asyncPrepare(
+		return $db->asyncPrepare(
 			$sql,
 			$params,
 			[
