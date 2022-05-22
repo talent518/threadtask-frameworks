@@ -15,6 +15,7 @@
 	<a href="/backend" class="index" title="管理首页">管理端</a>
 	<div id="j-layout-nav" class="nav">
 		<a href="/backend/user"{if $this:id === 'user'} class="active"{/if}>用户管理</a>
+		<a href="/backend/clazz"{if $this:id === 'clazz'} class="active"{/if}>分类管理</a>
 	</div>
 	<div class="content">{$content}</div>
 </div>

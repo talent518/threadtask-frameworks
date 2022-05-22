@@ -24,9 +24,9 @@ INSERT INTO `user` VALUES (1,'admin','admin@yeah.net','cb13131a512ff854c8bc0dc0b
 * clazz
 ```sql
 CREATE TABLE `clazz` (
-  `cno` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `cname` varchar(100) NOT NULL,
-  `cdesc` varchar(300) DEFAULT NULL,
+  `cno` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '分类ID',
+  `cname` varchar(100) NOT NULL COMMENT '分类名',
+  `cdesc` varchar(300) DEFAULT NULL COMMENT '描述',
   PRIMARY KEY (`cno`),
   UNIQUE KEY `cname` (`cname`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
