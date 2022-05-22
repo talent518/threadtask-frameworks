@@ -1,4 +1,12 @@
 <?php
+$cookieFile = \Fwe::getAlias('@app/runtime/cookie.key');
+if(is_file($cookieFile) && filemtime($cookieFile) + 86400 * 30 > time()) {
+	$cookieKey = file_get_contents($cookieFile);
+} else {
+	$cookieKey = random_bytes(8);
+	file_put_contents($cookieFile, $cookieKey);
+}
+
 return [
 	'class' => 'fwe\web\Application',
 	'id' => 'web',
@@ -16,11 +24,17 @@ return [
 	'statics' => [
 		'/favicon.ico' => '@app/static/favicon.ico',
 		'/static/' => '@app/static/',
+		'/backend/static/' => '@app/modules/backend/static/',
 	],
 	'controllerMap' => [
 		'generator' => 'fwe\web\GeneratorController', // 需要安全控制的重构该类即可
 	],
 	'modules' => [
+		'backend' => [
+			'class' => 'app\modules\backend\Module',
+			'cookieKey' => $cookieKey,
+			'cacheId' => 'cache2',
+		],
 		'test' => 'app\modules\test\Module',
 	],
 ];

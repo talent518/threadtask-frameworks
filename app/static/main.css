@@ -1,7 +1,7 @@
 *{box-sizing:border-box;}
 
 .search-form a{text-decoration:none;}
-.search-form input[type=text], .fields-form input[type=text]{border:1px #999 solid;border-radius:3px;height:30px;line-height:30px;outline:0 none;vertical-align:middle;}
+.search-form input[type=text], .fields-form input[type=text], .fields-form input[type=password]{border:1px #999 solid;border-radius:3px;height:30px;line-height:30px;outline:0 none;vertical-align:middle;}
 .search-form table, .view-details table{width:100%;}
 .search-form table, .search-form th, .search-form td, .view-details table, .view-details th, .view-details td{padding:5px;border:1px #999 solid;border-collapse:collapse;}
 .search-form th > input{width:100%;}
@@ -29,7 +29,7 @@
 .search-form h1, .update-form h1, .view-details h1{margin:0;line-height:1.2em;}
 .fields-form .error{display:block;color:red;}
 .fields-form .row{margin:10px 0 0;}
-.fields-form input[type=text]{width:100%;}
+.fields-form input[type=text], .fields-form input[type=password]{width:100%;}
 
 .search-form table, .view-details table{margin:10px 0 0;}
 .view-details th{width:5em;white-space:nowrap;text-align:right;}
