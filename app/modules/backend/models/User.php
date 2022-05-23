@@ -98,6 +98,12 @@ class User extends \fwe\db\MySQLModel {
 		$this->attributes['loginTime'] = ($value === '' ? null : $value);
 	}
 	
+	public function setScene(?string $scene) {
+		parent::setScene($scene);
+		
+		$this->safeAttributes['username'] = $this->safeAttributes['email'] = $this->safeAttributes['newpass'] = 1;
+	}
+	
 	protected $newpass;
 	
 	public function getNewpass() {

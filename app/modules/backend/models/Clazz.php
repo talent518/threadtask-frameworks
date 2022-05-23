@@ -56,4 +56,10 @@ class Clazz extends \fwe\db\MySQLModel {
 			['cname', 'unique'], // cname
 		];
 	}
+	
+	public function setScene(?string $scene) {
+		parent::setScene($scene);
+		
+		$this->safeAttributes['cname'] = $this->safeAttributes['cdesc'] = 1;
+	}
 }
