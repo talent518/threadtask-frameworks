@@ -147,12 +147,25 @@ class GeneratorController extends Controller {
 		$n = strlen(ROOT)+1;
 		if($status) {
 			$_newFile = strncmp($newFile, ROOT . '/', $n) ? $newFile : substr($newFile, $n);
-			return [
-				'status' => true,
-				'message' => $newFile === $oldFile ? "写入文件成功: $_newFile" : "文件已存在: $_newFile",
-				'source' => $newFile === $oldFile ? null : file_get_contents($newFile),
-				'target' => $newFile === $oldFile ? highlight_file($oldFile, true) : file_get_contents($oldFile),
-			];
+			if($newFile === $oldFile) {
+				return [
+					'status' => true,
+					'message' => "写入文件成功: $_newFile",
+					'source' => null,
+					'target' => highlight_file($oldFile, true),
+				];
+			} else {
+				$source = file_get_contents($newFile);
+				$target = file_get_contents($oldFile);
+				$msg = ($source === $target ? '相同' : '<b>不同</b>');
+				unlink($oldFile);
+				return [
+					'status' => true,
+					'message' => "文件已存在($msg): $_newFile",
+					'source' => $source,
+					'target' => $target,
+				];
+			}
 		} else {
 			$_oldFile = strncmp($oldFile, ROOT . '/', $n) ? $oldFile : substr($oldFile, $n);
 			return [

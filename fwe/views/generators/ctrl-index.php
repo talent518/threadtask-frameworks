@@ -64,7 +64,7 @@ use fwe\utils\StringHelper;
 	</tbody>
 </table>
 <div class="multi-page">
-<?="<?php if(\$model->pages > 1):\$min = max(1, \$model->page - 5);\$max = min(\$model->pages, \$min + 10);?>\n"?>
+<?="<?php if(\$model->pages > 1):\$min = max(1, \$model->page - 5);\$max = min(\$model->pages, \$min + 10);\$min = max(1, \$max - 10);?>\n"?>
 	<div class="multi">
 <?="	<?php for(\$i=\$min; \$i<=\$max; \$i++):?>\n"?>
 		<span<?="<?=\$i==\$model->page?' class=\"cur\"':null?>"?>><?="<?=\$i?>"?></span>

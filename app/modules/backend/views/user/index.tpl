@@ -43,9 +43,9 @@
 </table>
 <div class="multi-page">
 {if $model:pages > 1}
-{var $min = max(1, $model->page - 5);$max = min($model->pages, $min + 10);}
+{var $min = max(1, $model->page - 5);$max = min($model->pages, $min + 10); $min = max(1, $max - 10);}
 	<div class="multi">
-	{for $i $min $max}
+	{for $i $min $max+1}
 		<span{if $i==$model:page} class="cur"{/if}>{$i}</span>
 	{/for}
 	</div>
