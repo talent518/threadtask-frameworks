@@ -336,5 +336,38 @@ class DefaultController extends Controller {
 		$n = \Fwe::$app->logCount();
 		echo "logCount: $n\n";
 	}
+	
+	private $_events = [];
+	
+	/**
+	 * 异步读取文件：会报 “Operation not permitted”错误。
+	 */
+	public function actionFile(string $path) {
+		$fp = fopen($path, 'r+');
+		if(!$fp) return;
+		stream_set_blocking($fp, false);
+		stream_set_read_buffer($fp, 0);
+		
+		$event = null;
+		$this->_events[] = &$event;
+		$event = new \EventBufferEvent(\Fwe::$base, $fp, 0, function($bev, $arg) {
+			$len = strlen($bev->read(16 * 1024));
+			echo "read: $len\n";
+		}, null, function($bev, $event, $arg) use($fp) {
+			if($event & (\EventBufferEvent::EOF | \EventBufferEvent::TIMEOUT | \EventBufferEvent::ERROR)) {
+				fclose($fp);
+				$bev->free();
+				unset($this->_events[$arg]);
+				\Fwe::$app->events --;
+				
+				echo "ended: $arg $events\n";
+			}
+		}, array_key_last($this->_events));
+		
+		$event->enable(\Event::READ);
+		\Fwe::$app->events ++;
+		
+		return false;
+	}
 
 }
