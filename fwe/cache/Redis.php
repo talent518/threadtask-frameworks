@@ -47,15 +47,20 @@ class Redis extends Cache {
 		return parent::del(
 			$key,
 			function(string $status) use($key, $ok) {
-				$redis = redis($this->redisId)->pop()->beginAsync();
-				$redis->del($this->prefixKey . $key)
-				->goAsync(function() use($redis, $ok, $status) {
-					$redis->push();
-					$ok($status);
-				}, function($e) use($redis, $ok) {
-					$redis->push();
+				try {
+					$redis = redis($this->redisId)->pop()->beginAsync();
+					$redis->del($this->prefixKey . $key)
+					->goAsync(function() use($redis, $ok, $status) {
+						$redis->push();
+						$ok($status);
+					}, function($e) use($redis, $ok) {
+						$redis->push();
+						$ok($e->getMessage());
+					});
+				} catch(\Throwable $e) {
+					\Fwe::$app->error($e, 'cache-redis');
 					$ok($e->getMessage());
-				});
+				}
 			}
 		);
 	}
