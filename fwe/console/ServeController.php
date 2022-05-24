@@ -26,19 +26,32 @@ class ServeController extends Controller {
 
 	/**
 	 * 启动Web服务器
-	 *
-	 * @param array $__params__
-	 * @param string $route
+	 * 
+	 * @param string $name 配置文件名
+	 * @param string $host 监听IP
+	 * @param int $port 监听端口
+	 * @param int $backlog 最大连接队列
+	 * @param int $maxThreads 最大工作线程数
+	 * @param int $keepAlive 保持连接秒数
+	 * @param int $logLevel 日志级别
+	 * @param int $traceLevel 跟踪层次
+	 * @param int $logSize 日志文件大小的最大值
+	 * @param int $logMax 日志文件的最大份数
+	 * @param string $logFormat 日子文件名的格式(sprintf)
+	 * @param bool $isToFile 是否把上传的文件保存到临时目录中
+	 * @return mixed
 	 */
-	public function actionIndex(string $name = 'web', ?int $maxThreads = null, ?int $backlog = null, ?int $keepAlive = null, ?int $logLevel = null, ?int $traceLevel = null, ?int $logSize = null, ?int $logMax = null, ?string $logFormat = null, ?bool $isToFile = null) {
+	public function actionIndex(string $name = 'web', ?string $host = null, ?int $port = null, ?int $backlog = null, ?int $maxThreads = null, ?int $keepAlive = null, ?int $logLevel = null, ?int $traceLevel = null, ?int $logSize = null, ?int $logMax = null, ?string $logFormat = null, ?bool $isToFile = null) {
 		\Fwe::$app->logAll();
 		redefine('THREAD_TASK_NAME', $name);
 		\Fwe::$name = $name;
 		\Fwe::$names = [];
-		$ret = \Fwe::createObject(\Fwe::$config->getOrSet(\Fwe::$name, (function () use($maxThreads, $backlog, $keepAlive, $logLevel, $traceLevel, $logSize, $logMax, $logFormat, $isToFile) {
+		$ret = \Fwe::createObject(\Fwe::$config->getOrSet(\Fwe::$name, (function () use($host, $port, $backlog, $maxThreads, $keepAlive, $logLevel, $traceLevel, $logSize, $logMax, $logFormat, $isToFile) {
 			$cfg = include \Fwe::getAlias('@app/config/' . \Fwe::$name . '.php');
-			if($maxThreads !== null) $cfg['maxThreads'] = $maxThreads;
+			if($host !== null) $cfg['host'] = $host;
+			if($port !== null) $cfg['port'] = $port;
 			if($backlog !== null) $cfg['backlog'] = $backlog;
+			if($maxThreads !== null) $cfg['maxThreads'] = $maxThreads;
 			if($keepAlive !== null) $cfg['keepAlive'] = $keepAlive;
 			if($logLevel !== null) $cfg['logLevel'] = $logLevel;
 			if($traceLevel !== null) $cfg['traceLevel'] = $traceLevel;

@@ -41,6 +41,8 @@ class Application extends \fwe\base\Application {
 	protected $_mh;
 	
 	public function boot() {
+		if(is_main_task()) return;
+		
 		$this->_taskIndex = (int) array_shift(\Fwe::$names);
 		$this->_var = new TsVar("__curl{$this->_taskIndex}__", 0, null, true);
 		$this->_var->bindReadEvent(function(int $len, string $buf) {
