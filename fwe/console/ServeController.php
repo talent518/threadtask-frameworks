@@ -5,7 +5,7 @@ use fwe\base\Action;
 
 class ServeController extends Controller {
 	
-	public function beforeAction(Action $action, array $params = []): bool {
+	public function beforeAction(Action $action, array &$params = []): bool {
 		// 强制覆盖父类
 		restore_error_handler();
 		restore_exception_handler();
@@ -13,7 +13,7 @@ class ServeController extends Controller {
 		return true;
 	}
 	
-	public function afterAction(Action $action, array $params = []) {
+	public function afterAction(Action $action, array &$params = []) {
 		// 强制覆盖父类
 	}
 	

@@ -65,15 +65,15 @@ class Action implements IAction {
 		}
 	}
 	
-	public function beforeAction(array $params = []): bool {
+	public function beforeAction(array &$params = []): bool {
 		return $this->controller->beforeAction($this, $params);
 	}
 
-	public function afterAction(array $params = []) {
+	public function afterAction(array &$params = []) {
 		$this->controller->afterAction($this, $params);
 	}
 	
-	final public function runWithEvent(array $params = []) {
+	final public function runWithEvent(array &$params = []) {
 		if($this->beforeAction($params)) {
 			$ret = $this->run($params);
 			$this->afterAction($params);
@@ -82,7 +82,7 @@ class Action implements IAction {
 		}
 	}
 
-	final public function run(array $params = []) {
+	final public function run(array &$params = []) {
 		return \Fwe::invoke($this->callback, $params, $this->funcName);
 	}
 

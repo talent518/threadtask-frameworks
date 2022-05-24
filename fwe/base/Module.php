@@ -169,11 +169,11 @@ class Module {
 		}
 	}
 
-	public function beforeAction(Action $action, array $params = []): bool {
+	public function beforeAction(Action $action, array &$params = []): bool {
 		return $this->module->beforeAction($action, $params);
 	}
 
-	public function afterAction(Action $action, array $params = []) {
+	public function afterAction(Action $action, array &$params = []) {
 		$this->module->afterAction($action, $params);
 	}
 

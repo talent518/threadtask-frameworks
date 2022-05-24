@@ -70,7 +70,7 @@ class Controller extends \fwe\base\Controller {
 		return false;
 	}
 	
-	public function beforeAction(Action $action, array $params = []): bool {
+	public function beforeAction(Action $action, array &$params = []): bool {
 		if(parent::beforeAction($action, $params)) {
 			$response = $params['request']->getResponse();
 			$response->headers['Access-Control-Allow-Origin'] = ['*'];

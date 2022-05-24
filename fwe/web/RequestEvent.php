@@ -274,7 +274,7 @@ class RequestEvent {
 				'addr' => $this->clientAddr,
 				'port' => $this->clientPort,
 				'key' => $this->key,
-				'keepAlive' => $this->keepAlive
+				'keepAlive' => $this->keepAlive,
 			]);
 			\Fwe::$app->setReqEvent($this->key, $reqEvent);
 			// echo "{$this->key} keep alive\n";
@@ -295,15 +295,6 @@ class RequestEvent {
 		$this->runTime = microtime(true);
 		$this->params += $this->post;
 		
-		$parent = $this->action->controller;
-		while($parent) {
-			if(method_exists($parent, 'runAction')) {
-				return $parent->runAction($this, $this->action, $this->params);
-			}
-			
-			$parent = $parent->module;
-		}
-		
 		$ret = $this->action->run($this->params);
 		$this->action->afterAction($this->params);
 
@@ -315,19 +306,20 @@ class RequestEvent {
 		$ret = null;
 		try {
 			$ret = $this->read();
-			if($ret === false) return;
+			if($ret === false || $this->isFree) return;
 
 			if($this->bodylen !== $this->bodyoff || !\Fwe::$app->isRunning()) {
 				$this->isKeepAlive = false;
 			}
 
 			$this->isKeepAlive = ($this->isKeepAlive && microtime(true) < $this->keepAlive);
+			$this->event->disable(\Event::READ);
 			
 			if($ret) {
 				$events = \Fwe::$app->events;
 				$response = $this->getResponse();
 				$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
-				$ret = $this->runAction($response);
+				$ret = $this->runAction();
 				if(is_string($ret)) $response->end($ret);
 				elseif(!$response->isHeadSent() && $events == \Fwe::$app->events) {
 					\Fwe::$app->error("Not Content in the route({$this->key}): {$this->action->route}", 'web');
@@ -387,6 +379,28 @@ class RequestEvent {
 			}
 		} finally {
 			// printf("%s: %d\n", __METHOD__, __LINE__);
+		}
+	}
+	
+	protected $isRecvBody;
+	
+	public function recv() {
+		if($this->isRecvBody === null) return;
+		
+		$isRecvBody = $this->isRecvBody;
+		$this->isRecvBody = null;
+		
+		if($this->isFree) {
+			$key = $this->getKey();
+			\Fwe::$app->error("request freed({$key}): {$this->action->route}", 'web');
+		} elseif($isRecvBody) {
+			$this->event->enable(\Event::READ);
+			if(isset($this->headers['Expect']) && $this->headers['Expect'] === '100-continue') {
+				if(!$this->send("{$this->protocol} 100 Continue\r\n\r\n")) return null;
+			}
+			$this->readHandler($this->event, null);
+		} else {
+			$this->readHandler($this->event, null);
 		}
 	}
 	
@@ -500,7 +514,17 @@ class RequestEvent {
 								break;
 						}
 						
-						if($this->beforeAction()) return false;
+						$events = \Fwe::$app->events;
+						$this->beforeAction();
+						if($events != \Fwe::$app->events) {
+							$this->isRecvBody = $this->bodylen > 0;
+							if(!$this->isRecvBody) {
+								$this->mode = self::MODE_END;
+							}
+							$this->buf = substr($buf, $i);
+							$this->event->disable(\Event::READ);
+							return false;
+						}
 						
 						if(isset($this->headers['Expect']) && $this->headers['Expect'] === '100-continue') {
 							if(!$this->send("{$this->protocol} 100 Continue\r\n\r\n")) return null;

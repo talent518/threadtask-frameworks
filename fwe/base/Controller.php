@@ -80,7 +80,7 @@ class Controller {
 		return $this->_route;
 	}
 
-	public function beforeAction(Action $action, array $params = []): bool {
+	public function beforeAction(Action $action, array &$params = []): bool {
 		if($action instanceof InlineAction) {
 			$methodName = 'before' . ucfirst($action->method);
 			if(method_exists($this, $methodName)) {
@@ -93,7 +93,7 @@ class Controller {
 		return $this->module->beforeAction($action, $params);
 	}
 
-	public function afterAction(Action $action, array $params = []) {
+	public function afterAction(Action $action, array &$params = []) {
 		$this->module->afterAction($action, $params);
 		if($action instanceof InlineAction) {
 			$methodName = 'after' . ucfirst($action->method);

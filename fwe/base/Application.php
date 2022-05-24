@@ -91,7 +91,7 @@ abstract class Application extends Module {
 	
 	public function handleException(\Throwable $e) {
 		echo "$e\n";
-		$this->log($e, static::LOG_ERROR | static::LOG_SKIP, 'handleException');
+		$this->log($e, static::LOG_ERROR, 'handleException');
 	}
 	
 	public function handleError(int $code, string $message, string $file, int $line) {
@@ -382,11 +382,11 @@ abstract class Application extends Module {
 		return parent::getAction(preg_replace('/[\/]+/', '/', ltrim($route, '/')), $params);
 	}
 
-	public function beforeAction(Action $action, array $params = []): bool {
+	public function beforeAction(Action $action, array &$params = []): bool {
 		return true;
 	}
 
-	public function afterAction(Action $action, array $params = []) {
+	public function afterAction(Action $action, array &$params = []) {
 	}
 
 	public $signalTimeout = 0.25;

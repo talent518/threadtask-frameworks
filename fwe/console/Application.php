@@ -27,13 +27,13 @@ class Application extends \fwe\base\Application {
 		}
 	}
 	
-	public function beforeAction(Action $action, array $params = []): bool {
+	public function beforeAction(Action $action, array &$params = []): bool {
 		$this->logInit();
 
 		return parent::beforeAction($action, $params);
 	}
 	
-	public function afterAction(Action $action, array $params = []) {
+	public function afterAction(Action $action, array &$params = []) {
 		parent::afterAction($action, $params);
 
 		if($this->events > 0) {

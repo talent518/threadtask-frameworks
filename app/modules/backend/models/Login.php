@@ -46,12 +46,12 @@ class Login extends Model {
 			$db = db()->pop();
 			User::find()->whereArgs('=', $this->scene, $this->{$this->scene})->fetchOne($db, 'user')->goAsync(
 				function(?User $user) use($db, $ok) {
-					$this->user = $user;
 					if(!$user || $user->password !== md5(md5($this->password) . $user->salt)) {
 						$db->push();
 						$this->addError('error', ($this->scene === 'username' ? '用户名或密码错误' : '邮箱或密码错误'));
 						$ok(1);
 					} else {
+						$this->user = $user;
 						$user->loginTime = date('Y-m-d H:i:s');
 						$user->loginTimes ++;
 						$user->update($db)->goAsync(

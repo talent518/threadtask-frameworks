@@ -9,7 +9,7 @@ use fwe\web\RequestEvent;
 class DefaultController extends Controller {
 	use TplView;
 
-	public function beforeAction(Action $action, array $params = []): bool {
+	public function beforeAction(Action $action, array &$params = []): bool {
 		$this->replaceWhiteSpace = $params['REPLACE_WHITE_SPACE'] ?? null;
 		
 		return parent::beforeAction($action, $params);

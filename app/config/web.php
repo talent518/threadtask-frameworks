@@ -3,7 +3,7 @@ $cookieFile = \Fwe::getAlias('@app/runtime/cookie.key');
 if(is_file($cookieFile) && filemtime($cookieFile) + 86400 * 30 > time()) {
 	$cookieKey = file_get_contents($cookieFile);
 } else {
-	$cookieKey = random_bytes(8);
+	$cookieKey = bin2hex(random_bytes(8));
 	file_put_contents($cookieFile, $cookieKey);
 }
 
@@ -35,8 +35,8 @@ return [
 			'class' => 'fwe\web\StaticController',
 			'path' => '@app/static/dav/',
 			'isDav' => true,
-			'username' => 'admin',
-			'password' => 'admin8',
+			// 'username' => 'admin',
+			// 'password' => 'admin8',
 		],
 	],
 	'modules' => [

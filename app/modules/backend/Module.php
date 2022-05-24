@@ -47,49 +47,35 @@ class Module extends \fwe\base\Module {
 		});
 	}
 	
-	public function runAction(RequestEvent $request, Action $action, array $params) {
-		if($action->controller instanceof StaticController) {
-			$ret = $action->run($params);
-			$action->afterAction($params);
-			return $ret;
-		}
+	public function beforeAction(Action $action, array &$params = []): bool {
+		if(!parent::beforeAction($action, $params)) return false;
 		
-		$ok = function($user) use($request, $action, $params) {
-			$events = \Fwe::$app->events;
+		if($action->controller instanceof StaticController) return true;
+		
+		$request = $params['request']; /* @var RequestEvent $request */
+		
+		$route = trim($this->route, '/');
+		$ok = (function($user) use($request, $route, $action, &$params) {
 			$response = $request->getResponse();
-			$redirect = "{$this->route}default/login";
+			$redirect = "{$route}/default/login";
 			
 			if($user instanceof User) {
 				if($action->route === $redirect) {
-					$route = trim($this->route, '/');
 					$response->redirect("/$route");
-					$ret = null;
 				} else {
 					$request->data['user'] = $params['user'] = $user;
-					$ret = $action->run($params);
-					$action->afterAction($params);
+					$request->recv();
 				}
 			} elseif($user) {
 				$response->setStatus(500)->end($user);
-				$ret = null;
 			} elseif($action->route === $redirect) {
 				$request->data['user'] = $params['user'] = null;
-				$ret = $action->run($params);
-				$action->afterAction($params);
+				$request->recv();
 			} else {
 				$response->redirect("/$redirect");
-				$ret = null;
 			}
-			
-			if(is_string($ret)) {
-				$response->end($ret);
-			} elseif(!$response->isHeadSent() && $events == \Fwe::$app->events) {
-				$key = $request->getKey();
-				\Fwe::$app->error("Not Content in the route({$key}): {$action->route}", 'web');
-				$response->setStatus(501);
-				$response->end();
-			}
-		};
+		})->bindTo(null);
+		
 		$request->data = [];
 		$auth = ($request->cookies['backend-auth'] ?? false);
 		if($auth && ($auth = Crypt::decode($auth, $this->cookieKey, $this->cookieExpire)) !== '') {
@@ -97,10 +83,10 @@ class Module extends \fwe\base\Module {
 			if($uid && $password) {
 				cache($this->cacheId)->get(
 					$auth,
-					function($user) use($ok) {
+					(function($user) use($ok) {
 						$ok($user);
-					},
-					function(callable $ok) use($uid, $password) {
+					})->bindTo(null),
+					(function(callable $ok) use($uid, $password) {
 						$db = db()->pop();
 						User::find()->whereArgs('and', ['uid'=>$uid, 'password'=>$password])->fetchOne($db, 'user', function(?User $user) use($ok) {
 							$ok($user);
@@ -114,7 +100,7 @@ class Module extends \fwe\base\Module {
 								$ok($e->getMessage());
 							}
 						);
-					},
+					})->bindTo(null),
 					$this->cacheExpire
 				);
 			} else {
@@ -123,6 +109,8 @@ class Module extends \fwe\base\Module {
 		} else {
 			$ok(null);
 		}
+		
+		return true;
 	}
 	
 	public function layoutHandler(callable $ok, RequestEvent $request) {
