@@ -206,10 +206,6 @@ class Module {
 				$id = $route;
 				$route = '';
 			}
-
-			if(preg_match('/[^a-z0-9-\/]/', $id)) {
-				throw new Exception("controller or module id invalid: $id");
-			}
 			
 			$ID = $prefix . $id;
 			

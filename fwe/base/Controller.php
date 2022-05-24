@@ -130,10 +130,6 @@ class Controller {
 		} else {
 			$route = '';
 		}
-		
-		if(preg_match('/[^a-z0-9-\/]/', $id)) {
-			throw new Exception("action id invalid: $id");
-		}
 
 		$params['route__'] = $this->_route . $id;
 		$params['__route'] = $route;

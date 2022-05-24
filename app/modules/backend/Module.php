@@ -5,6 +5,7 @@ use fwe\web\RequestEvent;
 use app\modules\backend\utils\Crypt;
 use app\modules\backend\models\User;
 use fwe\base\Action;
+use fwe\web\StaticController;
 
 class Module extends \fwe\base\Module {
 	public $cookieKey;
@@ -47,6 +48,12 @@ class Module extends \fwe\base\Module {
 	}
 	
 	public function runAction(RequestEvent $request, Action $action, array $params) {
+		if($action->controller instanceof StaticController) {
+			$ret = $action->run($params);
+			$action->afterAction($params);
+			return $ret;
+		}
+		
 		$ok = function($user) use($request, $action, $params) {
 			$events = \Fwe::$app->events;
 			$response = $request->getResponse();
