@@ -329,12 +329,11 @@ abstract class StringHelper {
 		$ret = xml_parse_into_struct($parser, $xml, $values);
 		if(!$ret) {
 			$code = xml_get_error_code($parser);
-			$e = new Exception(xml_error_string($code), [
-				'line' => xml_get_current_line_number($parser),
-				'column' => xml_get_current_column_number($parser),
-				'index' => xml_get_current_byte_index($parser),
-			], $code);
-			
+			$msg = xml_error_string($code);
+			$line = xml_get_current_line_number($parser);
+			$column = xml_get_current_column_number($parser);
+			$index = xml_get_current_byte_index($parser);
+			$e = new Exception("$msg at line $line, column $column, index $index: $xml", $code);
 			xml_parser_free($parser);
 			
 			throw $e;
@@ -362,10 +361,13 @@ abstract class StringHelper {
 				}
 				if(isset($val['attributes'])) {
 					$ret = $val['attributes'];
-					if(isset($ret['value'])) {
-						$ret['@value'] = $val['value'] ?? null;
+					unset($ret['xmlns']);
+					if(empty($ret)) {
+						$ret = $val['value'] ?? '';
+					} elseif(isset($ret['value'])) {
+						$ret['@value'] = $val['value'] ?? '';
 					} else {
-						$ret['value'] = $val['value'] ?? null;
+						$ret['value'] = $val['value'] ?? '';
 					}
 				} else {
 					$ret = $val['value'] ?? '';
@@ -375,10 +377,6 @@ abstract class StringHelper {
 			}
 		}
 		
-		if(count($return) > 1) {
-			return $return;
-		} else {
-			return reset($return);
-		}
+		return reset($return);
 	}
 }
