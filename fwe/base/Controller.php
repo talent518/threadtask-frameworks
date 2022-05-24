@@ -55,6 +55,25 @@ class Controller {
 
 	public function init() {
 		$this->module->controllerObjects[$this->id] = $this;
+		
+		$class = get_class($this);
+		$this->actionMap += \Fwe::$config->getOrSet($class, function() use($class) {
+			$rets = [];
+			foreach((new \ReflectionClass($class))->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
+				if(!$method->isStatic() && strpos($method->getName(), '_') === false && substr($method->getName(), 0 , 6) === 'action') {
+					$id = trim(preg_replace_callback('/[A-Z]/', function ($matches) {
+						return '-' . strtolower($matches[0]);
+					}, substr($method->getName(), 6)), '-');
+					
+					$rets[$id] = [
+						'class' => InlineAction::class,
+						'method' => $method->getName()
+					];
+				}
+			}
+			
+			return $rets;
+		});
 	}
 
 	public function getRoute() {
@@ -111,37 +130,20 @@ class Controller {
 		} else {
 			$route = '';
 		}
+		
+		if(preg_match('/[^a-z0-9-\/]/', $id)) {
+			throw new Exception("action id invalid: $id");
+		}
 
 		$params['route__'] = $this->_route . $id;
 		$params['__route'] = $route;
-
-		$id = preg_replace('/[_-]+/', '-', $id);
-		$id = trim(preg_replace_callback('/[A-Z]/', function ($matches) {
-			return '-' . strtolower($matches[0]);
-		}, $id), '-');
 
 		if(isset($this->actionObjects[$id])) {
 			return $this->actionObjects[$id];
 		}
 
-		if(! isset($this->actionMap[$id])) {
-			$methodName = 'action' . preg_replace_callback('/-([a-z])/i', function ($matches) {
-				return ucfirst($matches[1]);
-			}, ucfirst($id));
-
-			if(method_exists($this, $methodName)) {
-				$method = new \ReflectionMethod($this, $methodName);
-				if($method->isPublic() && $method->getName() === $methodName) {
-					$this->actionMap[$id] = [
-						'class' => InlineAction::class,
-						'method' => $methodName
-					];
-				}
-			}
-		}
-
-		$action = $this->actionMap[$id] ?? false;
-		if($action) {
+		if(isset($this->actionMap[$id])) {
+			$action = $this->actionMap[$id];
 			$class = $action['class'] ?? $action;
 			if(is_string($class) && is_subclass_of($class, 'fwe\base\IAction')) {
 				return \Fwe::createObject($action, [
@@ -149,7 +151,7 @@ class Controller {
 					'controller' => $this
 				]);
 			} else {
-				$this->actionMap[$id] = 1;
+				unset($this->actionMap[$id]);
 				throw new Exception("{$class}不是fwe\base\IAction的子类");
 			}
 		} else {

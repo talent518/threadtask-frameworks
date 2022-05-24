@@ -2,7 +2,6 @@
 namespace fwe\web;
 
 use fwe\base\Action;
-use fwe\base\RouteException;
 use fwe\base\TsVar;
 use fwe\db\IPool;
 
@@ -355,31 +354,6 @@ class Application extends \fwe\base\Application {
 		} else {
 			return true;
 		}
-	}
-	
-	public $statics = [];
-	public function getAction(string $route, array &$params) {
-		foreach($this->statics as $prefix => $path) {
-			if(substr($prefix, -1) === '/') {
-				$n = strlen($prefix);
-				if(strncmp($route, $prefix, $n)) {
-					continue;
-				}
-				$file = \Fwe::getAlias($path . substr($route, $n));
-			} else {
-				if($route !== $prefix) {
-					continue;
-				}
-				$file = $file = \Fwe::getAlias($path);
-			}
-
-			if(is_file($file)) {
-				return \Fwe::createObject(StaticAction::class, compact('route', 'prefix', 'path', 'file', 'params'));
-			} else {
-				throw new RouteException($route, 'Not Found');
-			}
-		}
-		return parent::getAction($route, $params);
 	}
 	
 	public function isService() {

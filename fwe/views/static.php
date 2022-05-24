@@ -1,7 +1,6 @@
 <?php
 /**
- * @var string $__route 路由前缀
- * @var string $route__ 路由后缀
+ * @var string $file 当前路径
  * @var string $key 要排序的列名
  * @var string $sort 排序方式: asc, desc
  * @var array $files 目录名或文件名列表
@@ -15,7 +14,7 @@
     <meta http-equiv="Cache-Control" content="no-transform" />
     <meta http-equiv="Cache-Control" content="no-siteapp" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title><?=$__route?>/</title>
+    <title><?=$file?>/</title>
     <style type="text/css">
     body{margin:0;padding:5px;}
     table{border:1px #ccc solid;border-width:1px 0 0 1px;border-spacing:0;margin:0 auto;}
@@ -47,8 +46,8 @@
 		?></tr>
 	</thead>
 	<tbody><?php
-	if($__route !== ''):
-		?><tr><td colspan="7"><a href="<?=strrpos($__route, '/') ? '..' : '/'?>">..</a></td></tr><?php
+	if($file !== ''):
+		?><tr><td colspan="7"><a href="<?=strrpos($file, '/') ? '..' : '/'?>">..</a></td></tr><?php
 	endif;
 	foreach($files as $file):
 		?><tr>

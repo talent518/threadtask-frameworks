@@ -2,6 +2,7 @@
 namespace fwe\web;
 
 use fwe\base\RouteException;
+use fwe\utils\StringHelper;
 
 class RequestEvent {
 	public $clientAddr = null;
@@ -56,6 +57,7 @@ class RequestEvent {
 	const BODY_MODE_URL_ENCODED = 1;
 	const BODY_MODE_FORM_DATA = 2;
 	const BODY_MODE_JSON = 3;
+	const BODY_MODE_XML = 4;
 	
 	const FORM_MODE_BOUNDARY = 1;
 	const FORM_MODE_HEAD = 2;
@@ -147,6 +149,28 @@ class RequestEvent {
 		}
 
 		return $this->response;
+	}
+	
+	private $_isAuth;
+	public function isAuth(callable $ok) {
+		if($this->_isAuth !== null) {
+			return $this->_isAuth;
+		}
+		
+		if(empty($this->headers['Authorization'])) {
+			$this->_isAuth = $ok('', '');
+		} else {
+			@list($user, $pass) = explode(':', base64_decode(substr($this->headers['Authorization'], 6)), 2);
+			$this->_isAuth = $ok($user, $pass);
+		}
+		
+		if(!$this->_isAuth) {
+			$response = $this->getResponse();
+			$response->headers['WWW-Authenticate'] = 'Basic realm="threadtask-frameworks WebDAV"';
+			$response->setStatus(401)->end();
+		}
+		
+		return $this->_isAuth;
 	}
 	
 	public function webSocket($class = null) {
@@ -358,6 +382,7 @@ class RequestEvent {
 			} else {
 				$this->isKeepAlive = false;
 				\Fwe::$app->stat('error');
+				\Fwe::$app->error($ex, 'web');
 				$this->free();
 			}
 		} finally {
@@ -400,8 +425,15 @@ class RequestEvent {
 						$this->head = substr($buf, $i, $pos-$i);
 						@list($this->method, $this->uri, $this->protocol) = explode(' ', $this->head, 3);
 						$this->isHTTP = preg_match('/HTTP\/1\.[01]/', $this->protocol) > 0;
-						if(!$this->isHTTP) return null; // Access Denied
+						if(!$this->isHTTP) {
+							\Fwe::$app->warn("not http protocol: {$this->head}", 'web');
+							return null; // Access Denied
+						}
 						$uri = parse_url($this->uri);
+						if(!$uri || isset($uri['host'])) {
+							\Fwe::$app->warn("parse url error or invalid: {$this->uri}", 'web');
+							return null;
+						}
 						if(isset($uri['path'])) {
 							$this->path = $uri['path'];
 							if(strpos($this->path, '%') !== false) $this->path = urldecode($this->path);
@@ -460,6 +492,9 @@ class RequestEvent {
 								break;
 							case 'application/json':
 								$this->bodymode = self::BODY_MODE_JSON;
+								break;
+							case 'application/xml':
+								$this->bodymode = self::BODY_MODE_XML;
 								break;
 							default:
 								break;
@@ -573,7 +608,8 @@ class RequestEvent {
 						}
 						
 						if($this->bodyoff >= $this->bodylen && $this->mode !== self::MODE_END) {
-							\Fwe::$app->error("BODYOFF: $buf", 'web');
+							$buf = substr($buf, $i);
+							\Fwe::$app->error("Receive request body error(bodyoff: {$this->bodyoff}, bodylen: {$this->bodylen}): $buf", 'web');
 							return 0;
 						}
 					} elseif($this->fp) {
@@ -602,8 +638,16 @@ class RequestEvent {
 										if(is_array($json)) {
 											$this->post = & $json;
 										}
+										break;
 									} else {
-										fprintf(STDERR, "JSON(%d): %s\n", $errno, json_last_error_msg());
+										$error = json_last_error_msg();
+										\Fwe::$app->warn("JSON error($errno): $error", 'web');
+									}
+								case self::BODY_MODE_XML:
+									try {
+										$this->post = StringHelper::xml2array($this->buf);
+									} catch(\Throwable $e) {
+										\Fwe::$app->warn($e, 'web');
 									}
 									break;
 								default:

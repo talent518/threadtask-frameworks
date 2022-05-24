@@ -1,6 +1,8 @@
 <?php
 namespace fwe\utils;
 
+use fwe\base\Exception;
+
 abstract class StringHelper {
 
 	/**
@@ -318,5 +320,65 @@ abstract class StringHelper {
 		for ($i = 0; $size >= 1024 && $i < 4; $i++) $size /= 1024;
 		return round($size, 3).$units[$i];
 	}
-
+	
+	public static function xml2array(string $xml) {
+		$parser = xml_parser_create();
+		xml_parser_set_option($parser, XML_OPTION_CASE_FOLDING, 0);
+		xml_parser_set_option($parser, XML_OPTION_SKIP_WHITE, 1);
+		$values = [];
+		$ret = xml_parse_into_struct($parser, $xml, $values);
+		if(!$ret) {
+			$code = xml_get_error_code($parser);
+			$e = new Exception(xml_error_string($code), [
+				'line' => xml_get_current_line_number($parser),
+				'column' => xml_get_current_column_number($parser),
+				'index' => xml_get_current_byte_index($parser),
+			], $code);
+			
+			xml_parser_free($parser);
+			
+			throw $e;
+		} else {
+			xml_parser_free($parser);
+		}
+		
+		$return = [];
+		$stack = [];
+		foreach($values as $val) {
+			if($val['type'] == "open") {
+				array_push($stack, $val['tag']);
+			} elseif($val['type'] == "close") {
+				array_pop($stack);
+			} elseif($val['type'] == "complete") {
+				array_push($stack, $val['tag']);
+				$_stack = $stack;
+				$ret = &$return;
+				while($_stack) {
+					$key = array_shift($_stack);
+					$ret2 = &$ret[$key];
+					unset($ret);
+					$ret = &$ret2;
+					unset($ret2);
+				}
+				if(isset($val['attributes'])) {
+					$ret = $val['attributes'];
+					if(isset($ret['value'])) {
+						$ret['@value'] = $val['value'] ?? null;
+					} else {
+						$ret['value'] = $val['value'] ?? null;
+					}
+				} else {
+					$ret = $val['value'] ?? '';
+				}
+				unset($ret);
+				array_pop($stack);
+			}
+		}
+		
+		if(count($return) > 1) {
+			return $return;
+		} else {
+			return reset($return);
+		}
+	}
 }

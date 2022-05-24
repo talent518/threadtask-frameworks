@@ -377,6 +377,10 @@ abstract class Application extends Module {
 			$this->set($name, $compontent);
 		}
 	}
+	
+	public function getAction(string $route, array &$params) {
+		return parent::getAction(preg_replace('/[\/]+/', '/', ltrim($route, '/')), $params);
+	}
 
 	public function beforeAction(Action $action, array $params = []): bool {
 		return true;

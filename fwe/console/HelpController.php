@@ -141,9 +141,6 @@ class HelpController extends Controller {
 			$this->help($app->getModule($id), $defaultRoutes);
 		}
 
-		$path = \Fwe::getAlias('@' . str_replace('\\', '/', $app->controllerNamespace));
-		$this->scandir($app, $app->controllerNamespace, $path, '');
-
 		ksort($app->controllerMap, SORT_REGULAR);
 
 		foreach($app->controllerMap as $id => $controller) {
@@ -158,19 +155,9 @@ class HelpController extends Controller {
 				foreach($object->actionMap as $id2 => $action) {
 					$class = $action['class'] ?? $action;
 					if(is_subclass_of($class, 'fwe\base\Action')) {
-						$reflection = new \ReflectionClass($class);
-						$this->print($object, "{$object->route}$id2", $this->parseDocCommentSummary($reflection), $defaultRoutes);
+						$this->print($object, "{$object->route}$id2", $this->parseDocCommentSummary(empty($action['method']) ? new \ReflectionClass($class) : $reflection->getMethod($action['method'])), $defaultRoutes);
 					} else {
 						$this->print($object, "{$object->route}$id2", $this->asFormatColor("\"$class\"没有继承\"fwe\base\Action\"", self::FG_RED), $defaultRoutes);
-					}
-				}
-				foreach($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
-					$matches = [];
-					if(preg_match('/^action([A-Z][A-Za-z0-9]*)$/', $method->getName(), $matches)) {
-						$id2 = trim(preg_replace_callback('/[A-Z]/', function ($matches) {
-							return '-' . strtolower($matches[0]);
-						}, $matches[1]), '-');
-						$this->print($object, "{$object->route}$id2", $this->parseDocCommentSummary($method), $defaultRoutes);
 					}
 				}
 			} else {
@@ -193,33 +180,6 @@ class HelpController extends Controller {
 		} else {
 			printf("%s %s\n", str_pad(trim($route, '/'), self::ROUTE_LEN, ' ', STR_PAD_RIGHT), $msg);
 		}
-	}
-
-	private function scandir(Module $app, string $ns, string $path, string $prefix) {
-		if(! is_dir($path))
-			return;
-		$dh = @opendir($path);
-		if($dh === false)
-			return;
-		while(($file = readdir($dh)) !== false) {
-			if($file === '.' || $file === '..')
-				continue;
-
-			$_path = "$path/$file";
-			if(is_dir($_path)) {
-				$id = trim(preg_replace_callback('/[A-Z]/', function ($matches) {
-					return '-' . strtolower($matches[0]);
-				}, $file), '-');
-				$this->scandir($app, "$ns\\$file", $_path, "{$prefix}{$id}/");
-			} elseif(strlen($file) > 14 && substr($file, - 14) === 'Controller.php') {
-				$id = trim(preg_replace_callback('/[A-Z]/', function ($matches) {
-					return '-' . strtolower($matches[0]);
-				}, substr($file, 0, - 14)), '-');
-				$file = substr($file, 0, - 4);
-				$app->controllerMap["{$prefix}{$id}"] = "$ns\\$file";
-			}
-		}
-		closedir($dh);
 	}
 
 	private function parseDocCommentSummary($reflection) {

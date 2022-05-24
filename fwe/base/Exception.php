@@ -7,8 +7,8 @@ class Exception extends \Exception {
 	 */
 	private $_data;
 	
-	public function __construct(string $message, $data = null) {
-		parent::__construct($message);
+	public function __construct(string $message, $data = null, $code = null, $previous = null) {
+		parent::__construct($message, $code, $previous);
 		$this->_data = $data;
 	}
 	

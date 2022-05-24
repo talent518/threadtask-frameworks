@@ -1,138 +1,83 @@
 <?php
 namespace app\controllers;
 
-use fwe\base\Controller;
-use fwe\web\RequestEvent;
-use fwe\db\IEvent;
-use fwe\curl\Request;
 use app\ws\Demo as WsDemo;
 use app\ws\Monitor as WsMonitor;
+use fwe\base\Controller;
+use fwe\base\Module;
+use fwe\curl\Request;
+use fwe\db\IEvent;
+use fwe\web\RequestEvent;
 
 class DefaultController extends Controller {
-	public function splitId(string &$id, array &$params) {
-		if($id === '') {
-			$id = $this->defaultAction;
-			return false;
-		} else {
-			return !strncasecmp("$id/", 'index/', 6);
-		}
+	public function actionIndex() {
+		ob_start();
+		ob_implicit_flush(false);
+		echo '<style type="text/css">
+body{margin:0;padding:10px;font-size:14px;}
+p{margin:0;line-height:20px;}
+span{color:#000;}
+span.doc{color:#666;}
+span.doc:before{content:"-";color:gray;margin:0 1em;}
+em{color:#6c9;font-style:normal;}
+</style>';
+		$this->help(\Fwe::$app);
+		return ob_get_clean();
 	}
-
-	protected function getperms(int $mode, ?string &$type = null) {
-		if (($mode & 0xC000) == 0xC000) {
-			// Socket
-			$info = 's';
-			$type = 'Socket';
-		} elseif (($mode & 0xA000) == 0xA000) {
-			// Symbolic Link
-			$info = 'l';
-			$type = 'Symbolic Link';
-		} elseif (($mode & 0x8000) == 0x8000) {
-			// Regular
-			$info = '-';
-			$type = 'Regular';
-		} elseif (($mode & 0x6000) == 0x6000) {
-			// Block special
-			$info = 'b';
-			$type = 'Block special';
-		} elseif (($mode & 0x4000) == 0x4000) {
-			// Directory
-			$info = 'd';
-			$type = 'Directory';
-		} elseif (($mode & 0x2000) == 0x2000) {
-			// Character special
-			$info = 'c';
-			$type = 'Character special';
-		} elseif (($mode & 0x1000) == 0x1000) {
-			// FIFO pipe
-			$info = 'p';
-			$type = 'FIFO pipe';
-		} else {
-			// Unknown
-			$info = 'u';
-			$type = 'Unknown';
-		}
-
-		// Owner
-		$info .= (($mode & 0x0100) ? 'r' : '-');
-		$info .= (($mode & 0x0080) ? 'w' : '-');
-		$info .= (($mode & 0x0040) ?
-				    (($mode & 0x0800) ? 's' : 'x' ) :
-				    (($mode & 0x0800) ? 'S' : '-'));
-
-		// Group
-		$info .= (($mode & 0x0020) ? 'r' : '-');
-		$info .= (($mode & 0x0010) ? 'w' : '-');
-		$info .= (($mode & 0x0008) ?
-				    (($mode & 0x0400) ? 's' : 'x' ) :
-				    (($mode & 0x0400) ? 'S' : '-'));
-
-		// World
-		$info .= (($mode & 0x0004) ? 'r' : '-');
-		$info .= (($mode & 0x0002) ? 'w' : '-');
-		$info .= (($mode & 0x0001) ?
-				    (($mode & 0x0200) ? 't' : 'x' ) :
-				    (($mode & 0x0200) ? 'T' : '-'));
-		return $info;
-	}
-	public function actionIndex(RequestEvent $request, string $route__, string $__route) {
-		if($__route !== '') {
-			$__route = preg_replace('/(\/\.\.\/|\/\.\.$)/', '/', "/$__route");
-			if($__route === '/') $__route = '';
-		}
-		$path = \Fwe::getAlias("@app/static{$__route}");
-		$files = [];
-		if(($dh = @opendir($path)) !== false) {
-			while(($f=readdir($dh)) !== false) {
-				if($f === '.' || $f === '..') continue;
-				
-				$type = null;
-				$st = @stat($path . '/' . $f);
-				$perms = $this->getperms($st['mode'] ?? 0, $type);
-				$files[] = [
-					'name' => $f,
-					'url' => $type === 'Directory' ? "/{$route__}{$__route}/$f/" : "/static{$__route}/$f",
-					'size' => $st['size']??0,
-					'perms' => $perms,
-					'type' => $type,
-					'atime' => $st['atime']??0,
-					'mtime' => $st['mtime']??0,
-					'ctime' => $st['ctime']??0,
-				];
-			}
-			closedir($dh);
-		} else {
-			$request->getResponse()->setStatus(404);
-			return;
+	private function help(Module $app, array $defaultRoutes = []) {
+		$defaultRoutes[$app->route . $app->defaultRoute] = trim($app->route ?? '', '/');
+		
+		$moduleIds = array_keys($app->getModules(false));
+		sort($moduleIds, SORT_REGULAR);
+		foreach($moduleIds as $id) {
+			$this->help($app->getModule($id), $defaultRoutes);
 		}
 		
-		$key = ($request->get['key'] ?? 'name');
-		$sort = ($request->get['sort'] ?? 'asc');
-
-		if($files) {
-			if($key === 'url' || !isset($files[0][$key])) $key = 'name';
-			switch($key) {
-				case 'size':
-				case 'atime':
-				case 'mtime':
-				case 'ctime':
-					$call = function(array $a, array $b) use($key) {return $a[$key] <=> $b[$key];};
-					break;
-				default:
-					$call = function(array $a, array $b) use($key) {return strcmp($a[$key], $b[$key]);};
-					break;
+		ksort($app->controllerMap, SORT_REGULAR);
+		
+		foreach($app->controllerMap as $id => $controller) {
+			$class = $controller['class'] ?? $controller;
+			if(is_subclass_of($class, 'fwe\base\Controller')) {
+				$object = \Fwe::createObject($controller, [
+					'id' => $id,
+					'module' => $app
+				]); /* @var \fwe\base\Controller $object */
+				$reflection = new \ReflectionClass($object);
+				$defaultRoutes[$object->route . $object->defaultAction] = trim($object->route ?? '', '/');
+				foreach($object->actionMap as $id2 => $action) {
+					$class = $action['class'] ?? $action;
+					if(is_subclass_of($class, 'fwe\base\Action')) {
+						$this->print($object, "{$object->route}$id2", $this->parseDocCommentSummary(empty($action['method']) ? new \ReflectionClass($class) : $reflection->getMethod($action['method'])), $defaultRoutes);
+					} else {
+						$this->print($object, "{$object->route}$id2", $this->asFormatColor("\"$class\"没有继承\"fwe\base\Action\"", self::FG_RED), $defaultRoutes);
+					}
+				}
+			} else {
+				$this->print($app, "{$app->route}$id", $this->asFormatColor("\"$class\"没有继承\"fwe\base\Controller\"", self::FG_RED), $defaultRoutes);
 			}
-			
-			if($sort === 'asc') usort($files, $call);
-			else usort($files, function(array $a, array $b) use($call) {return -$call($a, $b);});
 		}
-
-		if(isset($request->get['json'])) {
-			$request->getResponse()->setContentType('application/json; charset=utf-8');
-			return json_encode($files, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+	}
+	const ROUTE_LEN = 32;
+	private function print($app, string $route, string $msg, array $defaultRoutes = []) {
+		$defRoute = $route;
+		while(isset($defaultRoutes[$defRoute])) {
+			$defRoute = $defaultRoutes[$defRoute];
 		}
-
-		return $this->renderView('index', get_defined_vars());
+		echo '<p>';
+		if($route !== $defRoute) {
+			echo '<span class="prefix">', $defRoute, '</span><em>', substr($route, strlen($defRoute)), '</em>';
+		} else {
+			echo '<span class="full">', $route, '</span>';
+		}
+		if($msg) echo '<span class="doc">' , $msg , '</span>';
+		echo "</p>\n";
+	}
+	private function parseDocCommentSummary($reflection) {
+		$docLines = preg_split('/\R/u', $reflection->getDocComment());
+		if(isset($docLines[1])) {
+			return trim($docLines[1], "\t *");
+		}
+		return '';
 	}
 	public function actionWs(RequestEvent $request) {
 		$request->webSocket();

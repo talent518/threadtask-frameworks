@@ -80,6 +80,40 @@ class Module {
 				$this->controllerNamespace = substr($class, 0, $pos) . '\\controllers';
 			}
 		}
+		
+		$this->controllerMap += \Fwe::$config->getOrSet(get_class($this), function() {
+			$path = \Fwe::getAlias('@' . str_replace('\\', '/', $this->controllerNamespace));
+			$rets = [];
+			$this->scandir($rets, $this->controllerNamespace, $path, '');
+			return $rets;
+		});
+	}
+	
+	protected function scandir(array &$maps, string $ns, string $path, string $prefix) {
+		if(! is_dir($path))
+			return;
+		$dh = @opendir($path);
+		if($dh === false)
+			return;
+		while(($file = readdir($dh)) !== false) {
+			if($file === '.' || $file === '..')
+				continue;
+
+			$_path = "$path/$file";
+			if(is_dir($_path)) {
+				$id = trim(preg_replace_callback('/[A-Z]/', function ($matches) {
+					return '-' . strtolower($matches[0]);
+				}, $file), '-');
+				$this->scandir($maps, "$ns\\$file", $_path, "{$prefix}{$id}/");
+			} elseif(strlen($file) > 14 && substr($file, - 14) === 'Controller.php') {
+				$id = trim(preg_replace_callback('/[A-Z]/', function ($matches) {
+					return '-' . strtolower($matches[0]);
+				}, substr($file, 0, - 14)), '-');
+				$file = substr($file, 0, - 4);
+				$maps["{$prefix}{$id}"] = "$ns\\$file";
+			}
+		}
+		closedir($dh);
 	}
 
 	/**
@@ -158,12 +192,6 @@ class Module {
 	 * @return Action
 	 */
 	public function getAction(string $route, array &$params) {
-		// double slashes or leading/ending slashes may cause substr problem
-		$route = trim($route, '/');
-		if(strpos($route, '//') !== false) {
-			throw new Exception("路由\"$route\"中包括了//");
-		}
-		
 		if($route === '') {
 			$route = $this->defaultRoute;
 		}
@@ -179,13 +207,12 @@ class Module {
 				$route = '';
 			}
 
-			$id = preg_replace('/[_-]+/', '-', $id);
-			$id = trim(preg_replace_callback('/[A-Z]/', function ($matches) {
-				return '-' . strtolower($matches[0]);
-			}, $id), '-');
+			if(preg_match('/[^a-z0-9-\/]/', $id)) {
+				throw new Exception("controller or module id invalid: $id");
+			}
 			
 			$ID = $prefix . $id;
-
+			
 			if(($module = $this->getModule($ID)) !== null) {
 				return $module->getAction($route, $params);
 			}
@@ -193,20 +220,10 @@ class Module {
 			if(isset($this->controllerObjects[$ID])) {
 				return $this->controllerObjects[$ID]->getAction($route, $params);
 			}
-
-			if(! isset($this->controllerMap[$ID])) {
-				$className = $this->controllerNamespace . '\\' . ($prefix === '' ? null : str_replace('/', '\\', preg_replace_callback('/-([a-z0-9_])/i', function ($matches) {
-					return ucfirst($matches[1]);
-				}, $prefix))) . preg_replace_callback('/-([a-z])/i', function ($matches) {
-					return ucfirst($matches[1]);
-				}, ucfirst($id)) . 'Controller';
-				if(strpos($className, '-') === false && class_exists($className)) {
-					$this->controllerMap[$ID] = $className;
-				}
-			}
-
-			$controller = $this->controllerMap[$ID]??false;
-			if($controller) {
+			
+			if(isset($this->controllerMap[$ID])) {
+				$controller = $this->controllerMap[$ID];
+				
 				$class = $controller['class'] ?? $controller;
 				if(is_string($class) && is_subclass_of($class, 'fwe\base\Controller')) {
 					return \Fwe::createObject($controller, [
@@ -214,13 +231,13 @@ class Module {
 						'module' => $this
 					])->getAction($route, $params);
 				} else {
-					$this->controllerMap[$ID] = 1;
+					unset($this->controllerMap[$ID]);
 					throw new Exception("{$class}不是fwe\base\Controller的子类");
 				}
 			} else {
 				$prefix .= "$id/";
 			}
-		} while(! $controller && $route !== '');
+		} while($route !== '');
 		
 		throw new RouteException($_route, "没有发现路由\"$_route\"");
 	}
