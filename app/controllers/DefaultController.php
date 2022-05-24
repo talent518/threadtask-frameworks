@@ -8,6 +8,7 @@ use fwe\base\Module;
 use fwe\curl\Request;
 use fwe\db\IEvent;
 use fwe\web\RequestEvent;
+use fwe\web\StaticController;
 
 class DefaultController extends Controller {
 	public function actionIndex() {
@@ -16,10 +17,11 @@ class DefaultController extends Controller {
 		echo '<style type="text/css">
 body{margin:0;padding:10px;font-size:14px;}
 p{margin:0;line-height:20px;}
-span{color:#000;}
-span.doc{color:#666;}
-span.doc:before{content:"-";color:gray;margin:0 1em;}
-em{color:#6c9;font-style:normal;}
+span.doc{color:#000;}
+span.doc:before{content:"-";color:gray;margin:0 2em;}
+em{color:gray;font-style:normal;}
+a{color:blue;text-decoration:none;}
+a:hover{color:#F60;}
 </style>';
 		$this->help(\Fwe::$app);
 		return ob_get_clean();
@@ -42,32 +44,36 @@ em{color:#6c9;font-style:normal;}
 					'id' => $id,
 					'module' => $app
 				]); /* @var \fwe\base\Controller $object */
-				$reflection = new \ReflectionClass($object);
-				$defaultRoutes[$object->route . $object->defaultAction] = trim($object->route ?? '', '/');
-				foreach($object->actionMap as $id2 => $action) {
-					$class = $action['class'] ?? $action;
-					if(is_subclass_of($class, 'fwe\base\Action')) {
-						$this->print($object, "{$object->route}$id2", $this->parseDocCommentSummary(empty($action['method']) ? new \ReflectionClass($class) : $reflection->getMethod($action['method'])), $defaultRoutes);
-					} else {
-						$this->print($object, "{$object->route}$id2", $this->asFormatColor("\"$class\"没有继承\"fwe\base\Action\"", self::FG_RED), $defaultRoutes);
+				if($object instanceof StaticController) {
+					$this->print(rtrim($object->route, '/'), 'Static');
+				} else {
+					$reflection = new \ReflectionClass($object);
+					$defaultRoutes[$object->route . $object->defaultAction] = trim($object->route ?? '', '/');
+					foreach($object->actionMap as $id2 => $action) {
+						$class = $action['class'] ?? $action;
+						if(is_subclass_of($class, 'fwe\base\Action')) {
+							$this->print("{$object->route}$id2", $this->parseDocCommentSummary(empty($action['method']) ? new \ReflectionClass($class) : $reflection->getMethod($action['method'])), $defaultRoutes);
+						} else {
+							$this->print("{$object->route}$id2", $this->asFormatColor("\"$class\"没有继承\"fwe\base\Action\"", self::FG_RED), $defaultRoutes);
+						}
 					}
 				}
 			} else {
-				$this->print($app, "{$app->route}$id", $this->asFormatColor("\"$class\"没有继承\"fwe\base\Controller\"", self::FG_RED), $defaultRoutes);
+				$this->print("{$app->route}$id", "\"$class\"没有继承\"fwe\base\Controller\"", $defaultRoutes);
 			}
 		}
 	}
 	const ROUTE_LEN = 32;
-	private function print($app, string $route, string $msg, array $defaultRoutes = []) {
+	private function print(string $route, string $msg, array $defaultRoutes = []) {
 		$defRoute = $route;
 		while(isset($defaultRoutes[$defRoute])) {
 			$defRoute = $defaultRoutes[$defRoute];
 		}
 		echo '<p>';
 		if($route !== $defRoute) {
-			echo '<span class="prefix">', $defRoute, '</span><em>', substr($route, strlen($defRoute)), '</em>';
+			echo '<a href="/', $defRoute, '"><span class="prefix">', $defRoute, '</span><em>', substr($route, strlen($defRoute)), '</em></a>';
 		} else {
-			echo '<span class="full">', $route, '</span>';
+			echo '<a href="/', $route, '"><span class="full">', $route, '</span></a>';
 		}
 		if($msg) echo '<span class="doc">' , $msg , '</span>';
 		echo "</p>\n";
