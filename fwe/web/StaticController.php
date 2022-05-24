@@ -18,8 +18,8 @@ class StaticController extends Controller {
 			throw new Exception('path property is not empty');
 		}
 		
-		$this->_authOK = function($user, $pass) {
-			return ($user === $this->username && $pass === $this->password);
+		$this->_authOK = function($user, $pass, callable $ok) {
+			$ok($user === $this->username && $pass === $this->password);
 		};
 	}
 	

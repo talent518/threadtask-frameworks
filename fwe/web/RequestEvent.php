@@ -157,17 +157,21 @@ class RequestEvent {
 			return $this->_isAuth;
 		}
 		
+		$ret = function(bool $value) {
+			$this->_isAuth = $value;
+			
+			if(!$value) {
+				$response = $this->getResponse();
+				$response->headers['WWW-Authenticate'] = 'Basic realm="threadtask-frameworks WebDAV"';
+				$response->setStatus(401)->end();
+			}
+		};
+		
 		if(empty($this->headers['Authorization'])) {
-			$this->_isAuth = $ok('', '');
+			$ok('', '', $ret);
 		} else {
 			@list($user, $pass) = explode(':', base64_decode(substr($this->headers['Authorization'], 6)), 2);
-			$this->_isAuth = $ok($user, $pass);
-		}
-		
-		if(!$this->_isAuth) {
-			$response = $this->getResponse();
-			$response->headers['WWW-Authenticate'] = 'Basic realm="threadtask-frameworks WebDAV"';
-			$response->setStatus(401)->end();
+			$ok($user, $pass, $ret);
 		}
 		
 		return $this->_isAuth;
