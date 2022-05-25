@@ -45,7 +45,9 @@ a:hover{color:#F60;}
 					'module' => $app
 				]); /* @var \fwe\base\Controller $object */
 				if($object instanceof StaticController) {
-					$this->print(rtrim($object->route, '/'), $object->isDav ? 'WebDAV' : 'Static');
+					$isIndex = ($object->isIndex ? 'true' : 'false');
+					$defaults = implode(', ', $object->defaults);
+					$this->print(rtrim($object->route, '/'), $object->isDav ? "WebDAV: {$controller['path']}, username: {$object->username}" : "Static: {$controller['path']}, isIndex: $isIndex, defaults: [$defaults]");
 				} else {
 					$reflection = new \ReflectionClass($object);
 					$defaultRoutes[$object->route . $object->defaultAction] = trim($object->route ?? '', '/');

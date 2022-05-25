@@ -196,7 +196,6 @@ class StaticController extends Controller {
 		if(!$request->isAuth($this->_authOK)) return;
 		
 		$path = $this->path . $file;
-		$body = null;
 		switch($request->method) {
 			case 'OPTIONS':
 				$response->headers['Allow'] = 'OPTIONS,HEAD,GET,PUT,DELETE,TRACE,PROPFIND,PROPPATCH,COPY,MOVE,LOCK,UNLOCK';
@@ -230,7 +229,7 @@ class StaticController extends Controller {
 						$files[is_dir($p) ? "$f/" : $f] = stat($p);
 					}
 					$response->setContentType('application/xml');
-					$response->setStatus(207)->end($body = $this->renderView('@fwe/views/dav/propfind.tpl', ['post' => $request->post, 'file' => $file, 'files' => $files, 'stat' => stat($path)]));
+					$response->setStatus(207)->end($this->renderView('@fwe/views/dav/propfind.tpl', ['post' => $request->post, 'file' => $file, 'files' => $files, 'stat' => stat($path)]));
 				} else {
 					$response->setStatus(500)->end('Request Params Error');
 				}
@@ -255,6 +254,7 @@ class StaticController extends Controller {
 				break;
 		}
 		
-		echo json_encode(compact('request', 'response'), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), PHP_EOL, $body, PHP_EOL;
+		echo json_encode(compact('request', 'response'), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), PHP_EOL;
+		if(isset($body)) echo "=== {$request->method} ===\n$body\n";
 	}
 }
