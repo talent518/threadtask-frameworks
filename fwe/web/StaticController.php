@@ -38,9 +38,6 @@ class StaticController extends Controller {
 		};
 		
 		$this->_lock = new TsVar("__dav:lock:{$this->route}__");
-		$this->_lockOk = function(bool &$isLock) {
-			return 1;
-		};
 		
 		// $this->replaceWhiteSpace = "\n";
 	}
