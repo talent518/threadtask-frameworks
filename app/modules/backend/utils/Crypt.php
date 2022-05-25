@@ -2,17 +2,16 @@
 namespace app\modules\backend\utils;
 
 class Crypt {
-
-	public static function encode(string $str, string $key, int $expiry = 0) {
-		return self::code($str, $key, false, $expiry);
+	public static function encode(string $str, string $key, int $expire = 0) {
+		return self::code($str, $key, false, $expire);
 	}
 
-	public static function decode(string $str, string $key, int $expiry = 0) {
-		return self::code($str, $key, true, $expiry);
+	public static function decode(string $str, string $key, int $expire = 0) {
+		return self::code($str, $key, true, $expire);
 	}
 
 	// 字符串解密加密
-	private static function code(string $string, string $key, bool $mode, int $expiry) {
+	private static function code(string $string, string $key, bool $mode, int $expire) {
 		$ckey_length = 20; // 随机密钥长度 取值 0-32;
 		                   // 加入随机密钥，可以令密文无任何规律，即便是原文和密钥完全相同，加密结果也会每次不同，增大破解难度。
 		                   // 取值越大，密文变动规律越大，密文变化 = 16 的 $ckey_length 次方
@@ -26,7 +25,7 @@ class Crypt {
 		$cryptkey = $keya . md5($keya . $keyc);
 		$key_length = strlen($cryptkey);
 
-		$string = $mode ? base64_decode(substr($string, $ckey_length)) : sprintf('%010d', $expiry ? $expiry + time() : 0) . substr(md5($string . $keyb), 0, 16) . $string;
+		$string = $mode ? base64_decode(substr($string, $ckey_length)) : sprintf('%010d', $expire ? $expire + time() : 0) . substr(md5($string . $keyb), 0, 16) . $string;
 		$string_length = strlen($string);
 
 		$result = '';
@@ -54,7 +53,8 @@ class Crypt {
 		}
 
 		if($mode) {
-			if((substr($result, 0, 10) == 0 || substr($result, 0, 10) - time() > 0) && substr($result, 10, 16) == substr(md5(substr($result, 26) . $keyb), 0, 16)) {
+			$expire = substr($result, 0, 10);
+			if(preg_match('/^\d{10}/', $expire) && ($expire == 0 || $expire - time() > 0) && substr($result, 10, 16) == substr(md5(substr($result, 26) . $keyb), 0, 16)) {
 				return substr($result, 26);
 			} else {
 				return '';

@@ -241,7 +241,7 @@ abstract class Application extends Module {
 		$rootLen = strlen($rootDir);
 
 		if($message instanceof \Throwable) {
-			$log['message'] =  get_class($message) . ': ' . $message->getMessage();
+			$log['message'] =  get_class($message) . ': ' . $message->getMessage() . ' in ' . (strncmp($message->getFile(), $rootDir, $rootLen) ? $message->getFile() : substr($message->getFile(), $rootLen)) . ':' . $message->getLine();
 			$traces = [];
 			
 		trace:
@@ -253,7 +253,7 @@ abstract class Application extends Module {
 				}
 			}
 			if($message = $message->getPrevious()) {
-				$traces[] = ' ' . get_class($message) . ': ' . $message->getMessage();
+				$traces[] = ' ' . get_class($message) . ': ' . $message->getMessage() . ' in ' . (strncmp($message->getFile(), $rootDir, $rootLen) ? $message->getFile() : substr($message->getFile(), $rootLen)) . ':' . $message->getLine();
 				goto trace;
 			}
 			$log['traces'] = implode("\n", $traces);
