@@ -5,6 +5,7 @@ use fwe\base\Controller;
 use fwe\base\Exception;
 use fwe\traits\TplView;
 use fwe\utils\FileHelper;
+use fwe\base\TsVar;
 
 class StaticController extends Controller {
 	use TplView;
@@ -14,6 +15,11 @@ class StaticController extends Controller {
 	public $isIndex = true, $isDav = false;
 	public $defaults = ['index.html', 'index.htm', 'default.html', 'default.htm'];
 	protected $_authOK;
+
+	/**
+	 * @var TsVar
+	 */
+	protected $_lock;
 	
 	public function init() {
 		parent::init();
@@ -29,6 +35,11 @@ class StaticController extends Controller {
 		
 		$this->_authOK = function($user, $pass, callable $ok) {
 			$ok($user === $this->username && $pass === $this->password);
+		};
+		
+		$this->_lock = new TsVar("__dav:lock:{$this->route}__");
+		$this->_lockOk = function(bool &$isLock) {
+			return 1;
 		};
 		
 		// $this->replaceWhiteSpace = "\n";
@@ -176,7 +187,7 @@ class StaticController extends Controller {
 				} else {
 					$path = '/dev/null';
 				}
-				$fp = fopen($path, 'a');
+				$fp = fopen($path, 'w');
 				$request->setFp($fp);
 				return $fp !== false;
 			}
@@ -198,31 +209,52 @@ class StaticController extends Controller {
 		$path = $this->path . $file;
 		switch($request->method) {
 			case 'OPTIONS':
-				$response->headers['Allow'] = 'OPTIONS,HEAD,GET,PUT,DELETE,TRACE,PROPFIND,PROPPATCH,COPY,MOVE,LOCK,UNLOCK';
+				$response->headers['Access-Control-Allow-Methods'] = 'OPTIONS,HEAD,GET,PUT,DELETE,MKCOL,PROPFIND,MOVE,LOCK,UNLOCK';
 				$response->headers['Content-Type'] = 'httpd/unix-directory';
 				$response->end();
 				break;
 			case 'HEAD':
-				$response->end();
+				$stat = stat($path);
+				if($stat) {
+					$this->headers['Last-Modified'] = gmdate('D, d-M-Y H:i:s T', $stat['mtime']);
+					$this->headers['ETag'] = sprintf('%xT-%xO', $stat['mtime'], $stat['size']);
+					$this->headers['Accept-Ranges'] = 'bytes';
+					$this->headers['Expires'] = gmdate('D, d-M-Y H:i:s T', time() + 3600);
+					$this->headers['Cache-Control'] = ['must-revalidate', 'public', 'max-age=3600'];
+					$response->headSend($stat['size']);
+					$response->end();
+				} else {
+					$response->setStatus(404)->end('Not Found');
+				}
 				break;
 			case 'GET':
-				$response->end();
+				$response->sendFile($path);
 				break;
 			case 'PUT':
 				if($request->bodylen === $request->bodyoff) {
 					$response->setStatus(201)->end('Created');
 				} else {
+					unlink($path);
 					$response->setStatus(507)->end('Insufficient Storage');
 				}
 				break;
 			case 'DELETE':
-				$response->end();
+				if($file !== '' && (substr($file, -1) === '/' ? rmdir($path) : unlink($path))) {
+					$response->end();
+				} else {
+					$response->setStatus(400)->end('Bad Request');
+				}
 				break;
-			case 'TRACE':
-				$response->end();
+			case 'MKCOL':
+				$isCreated = substr($file, -1) === '/' && FileHelper::mkdir($path);
+				if($isCreated) {
+					$response->setStatus(201)->end($this->renderView('@fwe/views/dav/mkcol.tpl', compact('file', 'isCreated')));
+				} else {
+					$response->setStatus(400)->end('Bad Request');
+				}
 				break;
 			case 'PROPFIND':
-				if($request->mode === RequestEvent::BODY_MODE_XML && ($file === '' || ssubstr($file, -1) === '/') && isset($request->post['prop']['resourcetype'], $request->post['prop']['getcontentlength'], $request->post['prop']['getetag'], $request->post['prop']['getlastmodified'], $request->post['prop']['executable'])) {
+				if($request->mode === RequestEvent::BODY_MODE_XML && ($file === '' || substr($file, -1) === '/') && isset($request->post['prop']['resourcetype'], $request->post['prop']['getcontentlength'], $request->post['prop']['getetag'], $request->post['prop']['getlastmodified'], $request->post['prop']['executable'])) {
 					$files = [];
 					foreach(FileHelper::list($path) as $f) {
 						$p = $path . $f;
@@ -234,27 +266,33 @@ class StaticController extends Controller {
 					$response->setStatus(500)->end('Request Params Error');
 				}
 				break;
-			case 'PROPPATCH':
-				$response->end();
-				break;
-			case 'COPY':
-				$response->end();
-				break;
 			case 'MOVE':
-				$response->end();
+				if(isset($request->headers['Host'], $request->headers['Destination']) && ($uri = @parse_url($request->headers['Destination'])) && isset($uri['host'], $uri['path'])) {
+					if($request->headers['Host'] === $uri['host'] . (isset($uri['port']) ? ":{$uri['port']}" : null) && !strncmp($uri['path'], "/{$this->route}", $n = strlen($this->route) + 1) && rename($path, $this->path . substr($uri['path'], $n))) {
+						$response->end();
+					} else {
+						$response->setStatus(500)->end('Request Params Error');
+					}
+				} else {
+					$response->setStatus(500)->end('Request Params Error');
+				}
 				break;
 			case 'LOCK':
-				$response->end();
+				$isLock = $this->_lock->lock($file, 1800, isset($request->post['locktype']['write']));
+				$token = md5($this->route . $file);
+				$response->headers['Dav-Lock'] = ($isLock ? 'true' : 'false');
+				$response->headers['Lock-Token'] = "<opaquelocktoken:{$token}>";
+				$response->setContentType('application/xml');
+				$response->end($this->renderView('@fwe/views/dav/lock.tpl', compact('token')));
 				break;
 			case 'UNLOCK':
-				$response->end();
+				$isUnlock = $this->_lock->unlock($file, 1800, isset($request->post['locktype']['write']));
+				$response->headers['Dav-Unlock'] = ($isUnlock ? 'true' : 'false');
+				$response->setStatus(204)->end();
 				break;
 			default:
 				$response->setStatus(405)->end('Method Not Allowed: ' . $request->method);
 				break;
 		}
-		
-		echo json_encode(compact('request', 'response'), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), PHP_EOL;
-		if(isset($body)) echo "=== {$request->method} ===\n$body\n";
 	}
 }

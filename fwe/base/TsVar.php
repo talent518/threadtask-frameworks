@@ -194,6 +194,14 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 	public function getOrSet($key, callable $callback, int $expire = 0, ...$params) {
 		return ts_var_get_or_set($this->_var, $key, $callback, $expire, ...$params);
 	}
+	
+	public function lock($key, int $expire, bool $isWrite = false) {
+		return ts_var_lock($this->_var, $key, $expire, $isWrite);
+	}
+	
+	public function unlock($key, bool $isWrite = false) {
+		return ts_var_unlock($this->_var, $key, $isWrite);
+	}
 
 	public function set($key, $value, int $expire = 0) {
 		return ts_var_set($this->_var, $key, $value, $expire);

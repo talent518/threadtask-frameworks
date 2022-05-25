@@ -81,6 +81,8 @@ class Controller {
 	}
 
 	public function beforeAction(Action $action, array &$params = []): bool {
+		if(!$this->module->beforeAction($action, $params)) false;
+		
 		if($action instanceof InlineAction) {
 			$methodName = 'before' . ucfirst($action->method);
 			if(method_exists($this, $methodName)) {
@@ -90,7 +92,8 @@ class Controller {
 				}
 			}
 		}
-		return $this->module->beforeAction($action, $params);
+		
+		return true;
 	}
 
 	public function afterAction(Action $action, array &$params = []) {

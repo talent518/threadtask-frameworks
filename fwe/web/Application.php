@@ -347,12 +347,16 @@ class Application extends \fwe\base\Application {
 	
 	public $maxBodyLen = 8*1024*1024;
 	public function beforeAction(Action $action, array &$params = []): bool {
-		$request = $params['request'];
-		if($request->bodylen > $this->maxBodyLen) {
-			$request->getResponse()->setStatus(403)->end('<h1>Request Entity Too Large</h1>');
-			return false;
-		} else {
+		if($action->controller instanceof StaticController && $action->controller->isDav) {
 			return true;
+		} else {
+			$request = $params['request'];
+			if($request->bodylen > $this->maxBodyLen) {
+				$request->getResponse()->setStatus(403)->end('<h1>Request Entity Too Large</h1>');
+				return false;
+			} else {
+				return true;
+			}
 		}
 	}
 	
