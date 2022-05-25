@@ -2,6 +2,7 @@
 namespace fwe\base;
 
 use fwe\traits\MethodProperty;
+use fwe\utils\FileHelper;
 
 /**
  * @property-read string $route 控制器的路由
@@ -90,15 +91,7 @@ class Module {
 	}
 	
 	protected function scandir(array &$maps, string $ns, string $path, string $prefix) {
-		if(! is_dir($path))
-			return;
-		$dh = @opendir($path);
-		if($dh === false)
-			return;
-		while(($file = readdir($dh)) !== false) {
-			if($file === '.' || $file === '..')
-				continue;
-
+		foreach(FileHelper::list($path) as $file) {
 			$_path = "$path/$file";
 			if(is_dir($_path)) {
 				$id = trim(preg_replace_callback('/[A-Z]/', function ($matches) {
@@ -113,7 +106,6 @@ class Module {
 				$maps["{$prefix}{$id}"] = "$ns\\$file";
 			}
 		}
-		closedir($dh);
 	}
 
 	/**

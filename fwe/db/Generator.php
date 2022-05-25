@@ -2,6 +2,7 @@
 namespace fwe\db;
 
 use fwe\base\Controller;
+use fwe\utils\FileHelper;
 
 class Generator {
 	const TYPE_CHAR = 'char';
@@ -154,9 +155,7 @@ class Generator {
 			$tmpFile = $targetFile;
 		}
 
-		$tmpPath = dirname($tmpFile);
-		if(!is_dir($tmpPath)) mkdir($tmpPath, 0755, true);
-		return [file_put_contents($tmpFile, $cont) !== false, $targetFile, $tmpFile];
+		return [FileHelper::mkdir(dirname($tmpFile)) && file_put_contents($tmpFile, $cont) !== false, $targetFile, $tmpFile];
 	}
 	
 	protected function getColumnPhpType(array $column) {

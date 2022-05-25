@@ -1,6 +1,7 @@
 <?php
 namespace fwe\traits;
 
+use fwe\utils\FileHelper;
 use fwe\utils\StringHelper;
 
 trait TplView {
@@ -32,8 +33,6 @@ trait TplView {
 	
 	protected function buildView(string $viewFile, string $view) {
 		$phpFile = $this->getViewPhpFile($view);
-		$phpPath = dirname($phpFile);
-		if(!is_dir($phpPath)) mkdir($phpPath, 0755, true);
 		
 		if(!is_file($phpFile) || filemtime($phpFile) < filemtime($viewFile)) {
 			$template = file_get_contents($viewFile);
@@ -46,7 +45,7 @@ trait TplView {
 
 			// 受保护的，不进行模板规则的影响
 			$template = preg_replace_callback('/\{keep\}(.+?)\{\/keep\}/s', [$this, 'keepTags'], $template);
-			$template = preg_replace_callback('/(\<\?|\?\>)/s', [$this, 'srcTags'], $template);
+			$template = preg_replace_callback('/(\<\?\s*|\?\>\s*)/s', [$this, 'srcTags'], $template);
 			
 			// 控制语句
 			$template = preg_replace_callback('/\{elseif\s+(.+?)\}/s', [$this, 'elseifTags'], $template);
@@ -89,7 +88,7 @@ trait TplView {
 			
 			$template = preg_replace('/\s+\?\>[\s]*\<\?php\s+/s', '', $template);
 			
-			file_put_contents($phpFile, $template);
+			FileHelper::mkdir(dirname($phpFile)) and file_put_contents($phpFile, $template);
 			
 			$this->_ireplace = 0;
 			$this->_replaces = [];
@@ -202,7 +201,13 @@ trait TplView {
 		$matches[1] = $this->makeVar($matches[1]);
 		
 		$key = $this->makeKey();
-		switch($matches[2]){
+		switch($matches[2]) {
+			case 'gmt':// date GMT
+				$this->_replaces[$key] = "<?=date('D, d F Y H:i:s', {$matches[1]})?> GMT";
+				break;
+			case 'date':// date
+				$this->_replaces[$key] = "<?=date('Y-m-d H:i:s', {$matches[1]})?> GMT";
+				break;
 			case 'url'://urlencode
 				$this->_replaces[$key] = "<?=urlencode({$matches[1]})?>";
 				break;

@@ -2,6 +2,7 @@
 namespace fwe\console;
 
 use fwe\base\Action;
+use fwe\utils\FileHelper;
 
 class ServeController extends Controller {
 	
@@ -63,14 +64,12 @@ class ServeController extends Controller {
 		})->bindTo(null)))->boot();
 		if($ret) {
 			$pidFile = \Fwe::getAlias('@app/runtime/' . $name . '.pid');
-			$pidPath = dirname($pidFile);
-			is_dir($pidPath) or mkdir($pidPath, 0755, true);
 			$pid = @file_get_contents($pidFile);
 			if($pid == posix_getpid()) {
 				echo "Service restart\n";
 				\Fwe::$app->info('Restart', 'service');
 			} else {
-				file_put_contents($pidFile, posix_getpid());
+				FileHelper::mkdir(dirname($pidFile)) and file_put_contents($pidFile, posix_getpid());
 				echo "Service started\n";
 				\Fwe::$app->info('Started', 'service');
 			}

@@ -1,14 +1,15 @@
 <?php
 namespace app\commands;
 
+use fwe\base\Application;
 use fwe\base\ITask;
 use fwe\console\Controller;
 use fwe\curl\FtpRequest;
 use fwe\curl\Request;
 use fwe\db\IEvent;
 use fwe\db\MySQLConnection;
+use fwe\utils\FileHelper;
 use fwe\utils\StringHelper;
-use fwe\base\Application;
 
 class DefaultController extends Controller {
 
@@ -237,11 +238,7 @@ class DefaultController extends Controller {
 
 				$this->tries = $tries;
 				$this->path = \Fwe::getAlias($path);
-				$this->mkdir($this->path);
-			}
-
-			private function mkdir(string $path) {
-				return is_dir($path) || mkdir($path, 0755, true);
+				FileHelper::mkdir($this->path);
 			}
 
 			public function run($arg) {
@@ -297,7 +294,7 @@ class DefaultController extends Controller {
 					$url = $req->url . $href;
 					$file = $prefix . urldecode($href);
 					if(substr($href, -1) === '/') {
-						$this->mkdir($this->path . '/' . $file);
+						FileHelper::mkdir($this->path . '/' . $file);
 						$this->push([$url, $file, false]);
 					} else {
 						$this->push([$url, $file, true]);

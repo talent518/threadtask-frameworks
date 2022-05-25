@@ -45,7 +45,7 @@ a:hover{color:#F60;}
 					'module' => $app
 				]); /* @var \fwe\base\Controller $object */
 				if($object instanceof StaticController) {
-					$this->print(rtrim($object->route, '/'), 'Static');
+					$this->print(rtrim($object->route, '/'), $object->isDav ? 'WebDAV' : 'Static');
 				} else {
 					$reflection = new \ReflectionClass($object);
 					$defaultRoutes[$object->route . $object->defaultAction] = trim($object->route ?? '', '/');
