@@ -446,6 +446,28 @@ function ts_var_get($var, $key = null, bool $is_del = false) {}
 function ts_var_get_or_set($var, $key, callable $callback, int $expire = 0, ...$parameters) {}
 
 /**
+ * 线程安全的加写锁或加读锁
+ *
+ * @param resource $var 由ts_var_declare函数返回的变量
+ * @param int|string $key 键名
+ * @param int $expire 过期时间戳，为0时永不过期，大于0时自动加time()
+ * @param bool $isWrite 是否为写锁
+ * @return bool
+ */
+function ts_var_lock($var, $key, int $expire, bool $isWrite): bool {}
+
+/**
+ * 线程安全的解写锁或解读锁
+ *
+ * @param resource $var 由ts_var_declare函数返回的变量
+ * @param int|string $key 键名
+ * @param bool $isWrite 是否为写锁
+ *
+ * @return bool
+ */
+function ts_var_unlock($var, $key, bool $isWrite): bool {}
+
+/**
  * 删除线程安全变量中的数据
  *
  * @param resource $var 由ts_var_declare函数返回的变量
