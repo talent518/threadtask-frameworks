@@ -23,7 +23,8 @@ abstract class Application extends Module {
 	const LOG_INFO = 0x04;
 	const LOG_DEBUG = 0x08;
 	const LOG_VERBOSE = 0x10;
-	const LOG_ALL = 0x1f;
+	const LOG_ACCESS = 0x20;
+	const LOG_ALL = 0x3f;
 	const LOG_SKIP = 0x100;
 	
 	public $id, $name;
@@ -232,6 +233,9 @@ abstract class Application extends Module {
 			case self::LOG_VERBOSE:
 				$log['level'] = 'verbose';
 				break;
+			case self::LOG_ACCESS:
+				$log['level'] = 'access';
+				break;
 			default:
 				$log['level'] = 'unknown';
 				break;
@@ -333,6 +337,16 @@ abstract class Application extends Module {
 	 */
 	public function verbose($message, string $category = 'app') {
 		$this->log($message, static::LOG_VERBOSE|static::LOG_SKIP, $category);
+	}
+	
+	/**
+	 * 打印一些访问日志
+	 *
+	 * @param mixed $message
+	 * @param string $category
+	 */
+	public function access($message, string $category = 'app') {
+		$this->log($message, static::LOG_ACCESS|static::LOG_SKIP, $category);
 	}
 	
 	public function __isset($name) {

@@ -3,6 +3,7 @@ namespace fwe\web;
 
 use fwe\base\RouteException;
 use fwe\utils\StringHelper;
+use fwe\base\Application;
 
 class RequestEvent {
 	public $clientAddr = null;
@@ -37,8 +38,6 @@ class RequestEvent {
 	public $bodyargs = [];
 	public $bodylen = 0;
 	public $bodyoff = 0;
-	
-	public $isDav = false;
 	
 	protected $fp = null;
 	protected $formmode = self::FORM_MODE_BOUNDARY;
@@ -214,7 +213,12 @@ class RequestEvent {
 
 		\Fwe::$app->events--;
 
-		// echo __METHOD__ . ":{$this->key}\n";
+		if($this->head !== null && (\Fwe::$app->logLevel & Application::LOG_ACCESS)) {
+			$response = ($this->response ? "{$this->response->protocol} {$this->response->status} {$this->response->statusText}" : 'null');
+			$time = round(microtime(true) - $this->recvTime, 6);
+			\Fwe::$app->access("{$this->head} {$this->key} {$this->readlen} {$this->bodyoff} {$this->sendlen} {$time} {$response}", 'web');
+			unset($response, $time);
+		}
 		
 		foreach($this->onFrees as $free) {
 			$free($this);
@@ -323,12 +327,14 @@ class RequestEvent {
 				$events = \Fwe::$app->events;
 				$response = $this->getResponse();
 				$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
-				$ret = $this->runAction();
-				if(is_string($ret)) $response->end($ret);
-				elseif(!$response->isHeadSent() && $events == \Fwe::$app->events) {
-					\Fwe::$app->error("Not Content in the route({$this->key}): {$this->action->route}", 'web');
-					$response->setStatus(501);
-					$response->end();
+				if(!$response->isEnd) {
+					$ret = $this->runAction();
+					if(is_string($ret)) $response->end($ret);
+					elseif(!$response->isHeadSent() && $events == \Fwe::$app->events) {
+						\Fwe::$app->error("Not Content in the route({$this->key}): {$this->action->route}", 'web');
+						$response->setStatus(501);
+						$response->end();
+					}
 				}
 			} else if($ret === 0) {
 				$this->isKeepAlive = false;
@@ -707,6 +713,7 @@ class RequestEvent {
 		return $ret;
 	}
 	
+	public $sendlen = 0;
 	public function send(string $data): bool {
 		if($this->isFree) {
 			\Fwe::$app->debug("Write freed({$this->key}): $data", 'web');
@@ -714,7 +721,11 @@ class RequestEvent {
 		}
 
 		$ret = $this->event->write($data);
-		if(!$ret) \Fwe::$app->error("Writed error({$this->key}): $data");
+		if($ret) {
+			$this->sendlen += strlen($data);
+		} else {
+			\Fwe::$app->error("Writed error({$this->key}): $data");
+		}
 		return $ret;
 	}
 }
