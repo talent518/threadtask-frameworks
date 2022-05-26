@@ -216,7 +216,7 @@ class RequestEvent {
 		if($this->head !== null && (\Fwe::$app->logLevel & Application::LOG_ACCESS)) {
 			$response = ($this->response ? "{$this->response->protocol} {$this->response->status} {$this->response->statusText}" : 'null');
 			$time = round(microtime(true) - $this->recvTime, 6);
-			\Fwe::$app->access("{$this->head} {$this->key} {$this->readlen} {$this->bodyoff} {$this->sendlen} {$time} {$response}", 'web');
+			\Fwe::$app->access("{$this->head} key({$this->key}) recv({$this->readlen}) body({$this->bodyoff}/{$this->bodylen}) send({$this->sendlen}) time({$time}) {$response}", 'web');
 			unset($response, $time);
 		}
 		
@@ -327,7 +327,7 @@ class RequestEvent {
 				$events = \Fwe::$app->events;
 				$response = $this->getResponse();
 				$response->headers['Connection'] = ($this->isKeepAlive ? 'keep-alive' : 'close');
-				if(!$response->isEnd) {
+				if(!$response->isHeadSent()) {
 					$ret = $this->runAction();
 					if(is_string($ret)) $response->end($ret);
 					elseif(!$response->isHeadSent() && $events == \Fwe::$app->events) {
