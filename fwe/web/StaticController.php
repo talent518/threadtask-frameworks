@@ -213,11 +213,11 @@ class StaticController extends Controller {
 			case 'HEAD':
 				$stat = stat($path);
 				if($stat) {
-					$this->headers['Last-Modified'] = gmdate('D, d-M-Y H:i:s T', $stat['mtime']);
-					$this->headers['ETag'] = sprintf('%xT-%xO', $stat['mtime'], $stat['size']);
-					$this->headers['Accept-Ranges'] = 'bytes';
-					$this->headers['Expires'] = gmdate('D, d-M-Y H:i:s T', time() + 3600);
-					$this->headers['Cache-Control'] = ['must-revalidate', 'public', 'max-age=3600'];
+					$response->headers['Last-Modified'] = gmdate('D, d-M-Y H:i:s T', $stat['mtime']);
+					$response->headers['ETag'] = sprintf('%xT-%xO', $stat['mtime'], $stat['size']);
+					$response->headers['Accept-Ranges'] = 'bytes';
+					$response->headers['Expires'] = gmdate('D, d-M-Y H:i:s T', time() + 3600);
+					$response->headers['Cache-Control'] = ['must-revalidate', 'public', 'max-age=3600'];
 					$response->headSend($stat['size']);
 					$response->end();
 				} else {
