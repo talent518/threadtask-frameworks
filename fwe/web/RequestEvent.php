@@ -216,8 +216,9 @@ class RequestEvent {
 		if($this->head !== null && (\Fwe::$app->logLevel & Application::LOG_ACCESS)) {
 			$response = ($this->response ? "{$this->response->protocol} {$this->response->status} {$this->response->statusText}" : 'null');
 			$time = round(microtime(true) - $this->recvTime, 6);
-			\Fwe::$app->access("{$this->head} key({$this->key}) recv({$this->readlen}) body({$this->bodyoff}/{$this->bodylen}) send({$this->sendlen}) time({$time}) {$response}", 'web');
-			unset($response, $time);
+			$closed = ($isClose ? 'true' : 'false');
+			\Fwe::$app->access("{$this->head} closed({$closed}) key({$this->key}) recv({$this->readlen}) body({$this->bodyoff}/{$this->bodylen}) send({$this->sendlen}) time({$time}) {$response}", 'web');
+			unset($response, $time, $closed);
 		}
 		
 		foreach($this->onFrees as $free) {
@@ -484,7 +485,7 @@ class RequestEvent {
 						if($this->bodylen < 0) $this->bodylen = 0;
 						$this->mode = ($this->bodylen ? self::MODE_BODY : self::MODE_END);
 						
-						$this->isKeepAlive = (isset($this->headers['Connection']) && !strcasecmp($this->headers['Connection'], 'keep-alive'));
+						$this->isKeepAlive = (isset($this->headers['Connection']) && ($this->headers['Connection'] === 'TE' || !strcasecmp($this->headers['Connection'], 'keep-alive')));
 						
 						$args = $this->getHeadArgs($this->headers['Content-Type'] ?? '');
 						$this->bodytype = $args[0];
