@@ -38,7 +38,7 @@ class ServeController extends Controller {
 	 * @param int $traceLevel 跟踪层次
 	 * @param int $logSize 日志文件大小的最大值
 	 * @param int $logMax 日志文件的最大份数
-	 * @param string $logFormat 日子文件名的格式(sprintf)
+	 * @param string $logFormat 日志文件名的格式(sprintf)
 	 * @param bool $isToFile 是否把上传的文件保存到临时目录中
 	 * @return mixed
 	 */

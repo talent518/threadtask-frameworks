@@ -176,12 +176,12 @@ abstract class Application extends Module {
 
 		for($i=0; $i<$n; $i++) {
 			$log = $this->_logVar->shift();
-			if(!$log) continue;
-			
-			$time = sprintf('%s.%06d', date('Y-m-d H:i:s', (int) $log['time']), ($log['time'] * 1000000) % 1000000);
-			fwrite($this->_logFp, "[$time][{$log['level']}][{$log['category']}][{$log['memory']}][{$log['taskName']}] {$log['message']}\n");
-			if(isset($log['traces'])) {
-				fwrite($this->_logFp, "TRACE:\n{$log['traces']}\n");
+			if(isset($log['time'], $log['level'], $log['category'], $log['memory'], $log['taskName'], $log['message'])) {
+				$time = sprintf('%s.%06d', date('Y-m-d H:i:s', (int) $log['time']), ($log['time'] * 1000000) % 1000000);
+				fwrite($this->_logFp, "[$time][{$log['level']}][{$log['category']}][{$log['memory']}][{$log['taskName']}] {$log['message']}\n");
+				if(isset($log['traces'])) {
+					fwrite($this->_logFp, "TRACE:\n{$log['traces']}\n");
+				}
 			}
 		}
 		
