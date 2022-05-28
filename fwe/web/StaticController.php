@@ -275,16 +275,20 @@ class StaticController extends Controller {
 				}
 				break;
 			case 'LOCK':
-				$isLock = $this->_lock->lock($file, 1800, isset($request->post['locktype']['write']));
+				$isWrite = isset($request->post['locktype']['write']);
+				$isOk = $this->_lock->lock($file, 1800, $isWrite);
+				// printf("  LOCK %s %s %s %d\n", $isWrite ? 'write' : 'read', $file, $isOk ? 'true' : 'false', $this->_lock->count());
 				$token = md5($this->route . $file);
-				$response->headers['Dav-Lock'] = ($isLock ? 'true' : 'false');
+				$response->headers['Dav-Lock'] = ($isOk ? 'true' : 'false');
 				$response->headers['Lock-Token'] = "<opaquelocktoken:{$token}>";
 				$response->setContentType('application/xml');
 				$response->end($this->renderView('@fwe/views/dav/lock.tpl', compact('token')));
 				break;
 			case 'UNLOCK':
-				$isUnlock = $this->_lock->unlock($file, 1800, isset($request->post['locktype']['write']));
-				$response->headers['Dav-Unlock'] = ($isUnlock ? 'true' : 'false');
+				$isWrite = isset($request->post['locktype']['write']);
+				$isOk = $this->_lock->unlock($file, $isWrite);
+				// printf("UNLOCK %s %s %s %d\n", $isWrite ? 'write' : 'read', $file, $isOk ? 'true' : 'false', $this->_lock->count());
+				$response->headers['Dav-Unlock'] = ($isOk ? 'true' : 'false');
 				$response->setStatus(204)->end();
 				break;
 			default:
