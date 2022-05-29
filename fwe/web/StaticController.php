@@ -251,14 +251,25 @@ class StaticController extends Controller {
 				}
 				break;
 			case 'PROPFIND':
-				if($request->mode === RequestEvent::BODY_MODE_XML && ($file === '' || substr($file, -1) === '/') && isset($request->post['prop']['resourcetype'], $request->post['prop']['getcontentlength'], $request->post['prop']['getetag'], $request->post['prop']['getlastmodified'], $request->post['prop']['executable'])) {
-					$files = [];
-					foreach(FileHelper::list($path) as $f) {
-						$p = $path . $f;
-						$files[is_dir($p) ? "$f/" : $f] = stat($p);
+				if($request->mode === RequestEvent::BODY_MODE_XML && ($file === '' || substr($file, -1) === '/')) {
+					if(isset($request->post['prop']['resourcetype'], $request->post['prop']['getcontentlength'], $request->post['prop']['getetag'], $request->post['prop']['getlastmodified'], $request->post['prop']['executable'])) {
+						$files = [];
+						foreach(FileHelper::list($path) as $f) {
+							$p = $path . $f;
+							$files[is_dir($p) ? "$f/" : $f] = stat($p);
+						}
+						$response->setContentType('application/xml');
+						$response->setStatus(207)->end($this->renderView('@fwe/views/dav/propfind.tpl', ['file' => $file, 'files' => $files, 'stat' => stat($path)]));
+					} elseif(isset($request->post['prop']['quota-available-bytes'], $request->post['prop']['quota-used-bytes'])) {
+						$total = disk_total_space($path);
+						$available = disk_free_space($path);
+						$used = $total - $available;
+						
+						$response->setContentType('application/xml');
+						$response->setStatus(207)->end($this->renderView('@fwe/views/dav/propfind-quota.tpl', compact('file', 'available', 'used')));
+					} else {
+						$response->setStatus(500)->end('Request Params Error');
 					}
-					$response->setContentType('application/xml');
-					$response->setStatus(207)->end($this->renderView('@fwe/views/dav/propfind.tpl', ['post' => $request->post, 'file' => $file, 'files' => $files, 'stat' => stat($path)]));
 				} else {
 					$response->setStatus(500)->end('Request Params Error');
 				}
