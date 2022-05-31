@@ -22,7 +22,15 @@ return [
 		'cache2' => 'fwe\cache\Redis',
 	],
 	'controllerMap' => [
-		'generator' => 'fwe\web\GeneratorController', // 需要安全控制的重构该类即可
+		'generator' => [
+			'class' => 'fwe\web\GeneratorController', // 需要安全控制的重构该类即可
+			'actionMap' => [
+				'index' => [
+					'class' => 'fwe\web\RedirectAction',
+					'url' => '/static/generator.html',
+				],
+			],
+		],
 		'favicon.ico' => [
 			'class' => 'fwe\web\StaticController',
 			'path' => '@app/static/favicon.ico',
