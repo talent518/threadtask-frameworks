@@ -1,5 +1,6 @@
 <?php
 /**
+ * @var fwe\web\StaticController $this
  * @var string $file 当前路径
  * @var string $key 要排序的列名
  * @var string $sort 排序方式: asc, desc
@@ -14,7 +15,7 @@
     <meta http-equiv="Cache-Control" content="no-transform" />
     <meta http-equiv="Cache-Control" content="no-siteapp" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title><?=$file?>/</title>
+    <title>/<?php echo $this->route, $file;?></title>
     <style type="text/css">
     body{margin:0;padding:5px;}
     table{border:1px #ccc solid;border-width:1px 0 0 1px;border-spacing:0;margin:0 auto;}
