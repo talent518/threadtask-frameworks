@@ -20,6 +20,11 @@ class Module {
 	 * @var array
 	 */
 	public $controllerMap = [];
+	
+	/**
+	 * @var integer
+	 */
+	public $controllerLevel;
 
 	/**
 	 * 控制器命名空间
@@ -82,11 +87,22 @@ class Module {
 			}
 		}
 		
-		$this->controllerMap += \Fwe::$config->getOrSet(get_class($this), function() {
+		$this->controllerMap += \Fwe::$config->getOrSet("{$this->controllerNamespace}:map", function() {
 			$path = \Fwe::getAlias('@' . str_replace('\\', '/', $this->controllerNamespace));
 			$rets = [];
 			$this->scandir($rets, $this->controllerNamespace, $path, '');
 			return $rets;
+		});
+		
+		$this->controllerLevel = \Fwe::$config->getOrSet("{$this->controllerNamespace}:level", function() {
+			$level = 1;
+			foreach(array_keys($this->controllerMap) as $key) {
+				$n = substr_count($key, '/') + 1;
+				if($n > $level) {
+					$level = $n;
+				}
+			}
+			return $level;
 		});
 	}
 	
@@ -191,6 +207,7 @@ class Module {
 		$_route = $route;
 
 		$prefix = '';
+		$i = 0;
 		do {
 			if(strpos($route, '/') !== false) {
 				list($id, $route) = explode('/', $route, 2);
@@ -225,7 +242,7 @@ class Module {
 			} else {
 				$prefix .= "$id/";
 			}
-		} while($route !== '');
+		} while((++ $i) < $this->controllerLevel && $route !== '');
 		
 		throw new RouteException($_route, "没有发现路由\"$_route\"");
 	}
