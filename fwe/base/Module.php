@@ -220,13 +220,9 @@ class Module {
 			
 			if(($module = $this->getModule($ID)) !== null) {
 				return $module->getAction($route, $params);
-			}
-			
-			if(isset($this->controllerObjects[$ID])) {
+			} elseif(isset($this->controllerObjects[$ID])) {
 				return $this->controllerObjects[$ID]->getAction($route, $params);
-			}
-			
-			if(isset($this->controllerMap[$ID])) {
+			} elseif(isset($this->controllerMap[$ID])) {
 				$controller = $this->controllerMap[$ID];
 				
 				$class = $controller['class'] ?? $controller;
