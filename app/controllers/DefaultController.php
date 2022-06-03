@@ -113,9 +113,11 @@ a:hover{color:#F60;}
 		if($isChunk) {
 			$response->write(json_encode($request, JSON_PRETTY_PRINT));
 			$response->write("\r\n\r\n");
+			$response->write(json_encode(['isSecure' => $request->isSecure(), 'host' => $request->getHost(), 'clientIp' => $request->getClientIp()], JSON_PRETTY_PRINT));
+			$response->write("\r\n\r\n");
 			$response->end(json_encode($response, JSON_PRETTY_PRINT));
 		} else {
-			$response->end(json_encode($request, JSON_PRETTY_PRINT) . "\r\n\r\n" . json_encode($response, JSON_PRETTY_PRINT));
+			$response->end(json_encode($request, JSON_PRETTY_PRINT) . "\r\n\r\n" .json_encode(['isSecure' => $request->isSecure(), 'host' => $request->getHost(), 'clientIp' => $request->getClientIp()], JSON_PRETTY_PRINT) . "\r\n\r\n" . json_encode($response, JSON_PRETTY_PRINT));
 		}
 	}
 	public function actionTables(RequestEvent $request) {

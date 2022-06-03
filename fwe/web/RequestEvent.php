@@ -178,26 +178,76 @@ class RequestEvent {
 	
 	public function webSocket($class = null) {
 		$isClass = ($class !== null && !is_subclass_of($class['class'] ?? $class, IWsEvent::class));
-		if(!isset($this->headers['Upgrade'], $this->headers['Sec-WebSocket-Key'], $this->headers['Sec-WebSocket-Version']) || empty($this->headers['Sec-WebSocket-Key']) || $this->headers['Upgrade'] !== 'websocket' || $isClass) {
+		if(!isset($this->headers['Upgrade'], $this->headers['Sec-WebSocket-Key'], $this->headers['Sec-WebSocket-Version']) || empty($this->headers['Sec-WebSocket-Key']) || strcasecmp($this->headers['Upgrade'], 'websocket') || $isClass) {
 			$response = $this->getResponse()->setStatus(404);
 			$response->setContentType('text/plain; charset=utf-8');
 			$response->headers['Connection'] = 'close';
 			$response->end($isClass ? "class $class is not implements " . IWsEvent::class : "WebSocket Error\n");
 			$this->isKeepAlive = false;
 		} else {
-			$host = $this->headers['Host'] ?? '127.0.0.1:5000';
 			$secAccept = base64_encode(pack('H*', sha1($this->headers['Sec-WebSocket-Key'] . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')));
 			$response = $this->getResponse()->setStatus(101);
-			$response->headers['Upgrade'] = 'websocket';
+			$response->headers['Upgrade'] = $this->headers['Upgrade'];
 			$response->headers['Connection'] = 'Upgrade';
-			$response->headers['WebSocket-Origin'] = $host;
-			$response->headers['WebSocket-Location'] = 'ws://' . $host . $this->path;
+			$response->headers['WebSocket-Origin'] = $this->getHost();
+			$response->headers['WebSocket-Location'] = ($this->isSecure() ? 'wss://' : 'ws://') . $this->getHost() . $this->path;
 			$response->headers['Sec-WebSocket-Version'] = $this->headers['Sec-WebSocket-Version'];
 			$response->headers['Sec-WebSocket-Accept'] = $secAccept;
 			$response->isWebSocket = true;
 			$response->wsClass = $class;
 			$response->end();
 		}
+	}
+	
+	protected $secure;
+	public function isSecure() {
+		if($this->secure === null) {
+			if(isset($this->headers['X-Forwarded-Proto'])) {
+				$this->secure = !strcasecmp($this->headers['X-Forwarded-Proto'], 'https');
+			} elseif(isset($this->headers['Front-End-Https'])) {
+				$this->secure = !strcasecmp($this->headers['Front-End-Https'], 'on');
+			}else {
+				$this->secure = false;
+			}
+		}
+		
+		return $this->secure;
+	}
+	
+	protected $host;
+	public function getHost() {
+		if($this->host === null) {
+			if(isset($this->headers['X-Forwarded-Host'])) {
+				$host = $this->headers['X-Forwarded-Host'];
+				$pos = strpos($host, ',');
+				$this->host = ($pos === false ? $host : substr($host, 0, $pos));
+			} elseif(isset($this->headers['X-Original-Host'])) {
+				$host = $this->headers['X-Original-Host'];
+				$pos = strpos($host, ',');
+				$this->host = ($pos === false ? $host : substr($host, 0, $pos));
+			} elseif(isset($this->headers['Host'])) {
+				$this->host = $this->headers['Host'];
+			} else {
+				$this->host = '127.0.0.1:' . \Fwe::$app->port;
+			}
+		}
+		
+		return $this->host;
+	}
+	
+	protected $clientIp;
+	public function getClientIp() {
+		if($this->clientIp === null) {
+			if(isset($this->headers['X-Forwarded-For'])) {
+				$ip = $this->headers['X-Forwarded-For'];
+				$pos = strpos($ip, ',');
+				$this->clientIp = ($pos === false ? $ip : substr($ip, 0, $pos));
+			} else {
+				$this->clientIp = $this->clientAddr;
+			}
+		}
+		
+		return $this->clientIp;
 	}
 	
 	protected $onFrees = [];
@@ -511,9 +561,9 @@ class RequestEvent {
 							case 'multipart/form-data':
 								$this->bodymode = self::BODY_MODE_FORM_DATA;
 								$this->boundary = $this->bodyargs['boundary'];
-								$this->boundaryBgn = '--' . $this->boundary;
+								$this->boundaryBgn = "--{$this->boundary}";
 								$this->boundaryPos = "\r\n--{$this->boundary}";
-								$this->boundaryEnd = '--' . $this->boundary . '--';
+								$this->boundaryEnd = "--{$this->boundary}--";
 								break;
 							case 'application/json':
 								$this->bodymode = self::BODY_MODE_JSON;
