@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Upload Demo</title>
+<style type="text/css">
+body{margin:10px;text-align:center;}
+.wrapper{display:inline-block;text-align:left;}
+h1{margin:0;}
+form > .row{padding:10px 0 0;}
+form > .row > label:first-child{display:inline-block;width:3em;}
+form input[type=file],form input[type=text],form textarea {border:1px #666 solid;border-radius:5px;line-height:30px;height:30px;width:400px;padding:2px;}
+form textarea{height:100px;}
+form button{height:30px;border:1px #666 solid;border-radius:5px;background:#ccc;}
+form input,form textarea,form button{outline:none;}
+form input:focus,form textarea:focus,form button:focus{outline:1px #999 dashed;}
+</style>
+</head>
+<body>
+<div class="wrapper">
+	<h1>Upload Demo</h1>
+	<form action="/default/info" method="post" enctype="multipart/form-data">
+		<div class="row">
+			<label>File1:</label>
+			<input name="file1" type="file" value="" />
+		</div>
+		<div class="row">
+			<label>File2:</label>
+			<input name="file2" type="file" value="" />
+		</div>
+		<div class="row">
+			<label>Text1:</label>
+			<input name="text1" type="text" value="" />
+		</div>
+		<div class="row">
+			<label>Text2:</label>
+			<textarea name="text2"></textarea>
+		</div>
+		<div class="row">
+			<label></label>
+			<button>Submit</button>
+			<input id="isToFile" name="isToFile" type="checkbox" value="0" /> <label for="isToFile">放入post属性中</label>
+		</div>
+	</form>
+</div>
+</body>
+</html>
