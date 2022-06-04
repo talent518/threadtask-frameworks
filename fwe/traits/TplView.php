@@ -37,15 +37,13 @@ trait TplView {
 		if(!is_file($phpFile) || filemtime($phpFile) < filemtime($viewFile)) {
 			$template = file_get_contents($viewFile);
 			
-			// 把PHP标记
-			
 			// PHP代码
 			$template = preg_replace_callback('/\<\!\-\-\{php\s+(.+?)\s*\}\-\-\>/is', [$this, 'phpTags'], $template);
 			$template = preg_replace_callback('/\{php\s+(.+?)\s*\}/is', [$this, 'phpTags'], $template);
 
 			// 受保护的，不进行模板规则的影响
 			$template = preg_replace_callback('/\{keep\}(.+?)\{\/keep\}/s', [$this, 'keepTags'], $template);
-			$template = preg_replace_callback('/(\<\?\s*|\?\>\s*)/s', [$this, 'srcTags'], $template);
+			$template = preg_replace_callback($this->replaceWhiteSpace === null ? '/(\<\?\s*|\?\>\s*)/s' : '/(\<\?|\?\>)/s', [$this, 'srcTags'], $template);
 			
 			// 控制语句
 			$template = preg_replace_callback('/\{elseif\s+(.+?)\}/s', [$this, 'elseifTags'], $template);
@@ -66,8 +64,11 @@ trait TplView {
 				$count = 0;
 				$template = preg_replace_callback('/\{if\s+(.+?)\}(.+?)\{\/if\}/s', [$this, 'ifTags'], $template, -1, $count);
 			} while($count > 0);
-
-			//变量
+			
+			// 匿名函数
+			$template = preg_replace_callback('/\{(\$[a-zA-Z0-9_]+)\s*=\s*func\s*\(([^\)]+)\)(\s*use\s*\([^\)]+\))?\}(.+?)\{\/func\}/s', [$this, 'funcTags'], $template);
+			
+			// 变量
 			$template = preg_replace_callback('/\{([a-zA-Z][a-zA-Z0-9_]+)\}/', [$this, 'echoTags'], $template);
 			$template = preg_replace_callback('/\{([a-zA-Z][a-zA-Z0-9_]+)\|(\w+)\}/', [$this, 'formatTags'], $template);
 			$template = preg_replace_callback('/\{(\$[a-zA-Z0-9_\.:]+)\}/', [$this, 'echoTags'], $template);
@@ -85,8 +86,6 @@ trait TplView {
 			}
 
 			$template = strtr($template, $this->_replaces);
-			
-			$template = preg_replace('/\s+\?\>[\s]*\<\?php\s+/s', '', $template);
 			
 			FileHelper::mkdir(dirname($phpFile)) and file_put_contents($phpFile, $template);
 			
@@ -189,6 +188,15 @@ trait TplView {
 		return $key . $matches[4] . $key2;
 	}
 	
+	public function funcTags(array $matches) {
+		$key = $this->makeKey();
+		$key2 = $this->makeKey();
+		$this->_replaces[$key] = "<?php {$matches[1]} = function({$matches[2]}){$matches[3]} {?>";
+		$this->_replaces[$key2] = '<?php }?>';
+		
+		return $key . $matches[4] . $key2;
+	}
+	
 	public function echoTags(array $matches) {
 		$matches[1] = $this->makeVar($matches[1]);
 		
@@ -224,7 +232,7 @@ trait TplView {
 				$this->_replaces[$key] = "<?=json_encode({$matches[1]}, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)?>";
 				break;
 			case 'money'://numeric to money
-				$this->_replaces[$key] = "<?php printf('<b class=\"numeric\"><font style=\"font-family:Arial;\">¥</font>%.2f</b>', {$matches[1]})?>";
+				$this->_replaces[$key] = "<?php printf('<b class=\"numeric\"><font style=\"font-family:Arial;\">¥</font>%.2f</b>', {$matches[1]});?>";
 				break;
 			default:
 				$this->_replaces[$key] = "<?={$matches[1]} /* {$matches[2]} */?>";

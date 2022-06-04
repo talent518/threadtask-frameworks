@@ -2,6 +2,9 @@
 .template-rule .pre{white-space:pre;}
 .template-rule pre{margin:0;}
 .template-rule .html{border-top:1px #999 solid;border-bottom:1px #999 solid;padding:10px 0;}
+.template-rule ol{list-style-type:none;margin:0;padding:0 0 0 1em;}
+.template-rule dd > ol{padding:0;}
+.template-rule p{margin:0;}
 </style>
 <div class="template-rule">
 
@@ -108,4 +111,39 @@
 	<dd>{tpl subtpl get hdrs=$headers post=$request:post i=1 b=false s='str'}</dd>
 </dl>
 
+<dl>
+	<dt>{keep}{$func=func(array $vars, string $name)}{/keep}</dt>
+	<dd>
+{$func=func(array $vars, string $name)}
+		<p>{$name}</p>
+		<ol>
+		{loop $vars $key $val}
+			<li>{$key} {$val|html}</li>
+		{/loop}
+		</ol>
+{/func}
+	{php $func($headers, 'headers');}
+	{php $func($get, 'get');}
+	</dd>
+</dl>
+
+<dl>
+	<dt>{keep}{$func=func($pid)use(&$tree, &$func)}{/keep}</dt>
+	<dd>
+{$func=func(int $pid)use(&$tree, &$func)}
+	{if isset($tree[$pid])}
+		<ol title="{php echo count($tree[$pid]);}">
+		{loop $tree[$pid] $val}
+			<li>
+				<p>{$val.id} {$val.pid} {$val.name}</p>
+				{php $func($val['id']);}
+			</li>
+		{/loop}
+		</ol>
+		{php unset($tree[$pid]);}
+	{/if}
+{/func}
+	{php $func(0);}
+	</dd>
+</dl>
 </div>
