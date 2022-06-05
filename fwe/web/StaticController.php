@@ -261,9 +261,11 @@ class StaticController extends Controller {
 						$response->setContentType('application/xml');
 						$response->setStatus(207)->end($this->renderView('@fwe/views/dav/propfind.tpl', ['file' => $file, 'files' => $files, 'stat' => stat($path)]));
 					} elseif(isset($request->post['prop']['quota-available-bytes'], $request->post['prop']['quota-used-bytes'])) {
-						$total = disk_total_space($path);
-						$available = disk_free_space($path);
-						$used = $total - $available;
+						$stat = statfs($path);
+						$total = $stat['total'] ?? 0;
+						$available = $stat['avail'] ?? 0;
+						$free = $stat['free'] ?? 0;
+						$used = $total - $free;
 						
 						$response->setContentType('application/xml');
 						$response->setStatus(207)->end($this->renderView('@fwe/views/dav/propfind-quota.tpl', compact('file', 'available', 'used')));

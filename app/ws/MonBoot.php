@@ -2,6 +2,7 @@
 namespace app\ws;
 
 use fwe\base\TsVar;
+use fwe\utils\StringHelper;
 
 class MonBoot {
     /**
@@ -352,12 +353,14 @@ class MonBoot {
             $this->mounts = [];
             foreach($matches[1] as $i => $k) {
                 $path = $matches[2][$i];
+                $stat = statfs($path);
                 $this->mounts[$k] = [
                     'path' => $path,
                     'type' => $matches[3][$i],
                     // 'loop' => strncmp($k, 'loop', 4) === 0 ? file_get_contents("/sys/block/$k/loop/backing_file") : '',
-                    'total' => disk_total_space($path),
-                    'free' => disk_free_space($path),
+                    'total' => StringHelper::formatBytes($stat['total'] ?? 0),
+                    'avail' => StringHelper::formatBytes($stat['avail'] ?? 0),
+                    'free' => StringHelper::formatBytes($stat['free'] ?? 0),
                 ];
             }
         }
@@ -389,7 +392,7 @@ class MonBoot {
                 } else {
                     $_key = $key;
                 }
-                $mount['total'] = file_get_contents("/sys/block/$_key/size") * 512;
+                $mount['total'] = StringHelper::formatBytes(file_get_contents("/sys/block/$_key/size") * 512);
             }
             $this->_disk[$key] = $mount + $disk;
         }
