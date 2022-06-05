@@ -353,7 +353,7 @@ class Application extends \fwe\base\Application {
 	
 	public $maxBodyLen = 8*1024*1024;
 	public function beforeAction(Action $action, array &$params = []): bool {
-		if($action->controller instanceof StaticController && $action->controller->isDav) {
+		if($action->controller instanceof StaticController) {
 			return true;
 		} else {
 			$request = $params['request'];

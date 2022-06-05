@@ -48,6 +48,10 @@ class StaticController extends Controller {
 		return parent::getAction($this->isDav ? 'dav' : 'index', $params);
 	}
 	
+	public function beforeActionIndex(RequestEvent $request) {
+		return $request->bodylen <= 0;
+	}
+	
 	public function actionIndex(RequestEvent $request, string $file, string $key = 'name', string $sort = 'asc', bool $isJson = false) {
 		$path = $this->path . $file;
 		
