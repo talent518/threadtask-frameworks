@@ -203,6 +203,12 @@ class Application extends \fwe\base\Application {
 			if(!$fd) return;
 
 			@socket_set_option($fd, SOL_SOCKET, SO_LINGER, ['l_onoff'=>1, 'l_linger'=>1]) or $this->strerror('socket_set_option', false);
+			$addr2 = $port2 = null;
+			if(!socket_getsockname($fd, $addr2, $port2)) {
+				$addr2 = $this->host;
+				$port2 = $this->port;
+			}
+			
 			$fd = socket_export_fd($fd, true);
 			
 			$this->stat('realConns');
@@ -212,7 +218,7 @@ class Application extends \fwe\base\Application {
 			$this->_connStatVar->minmax($i);
 			$this->_connStatVar->inc($i, 1);
 			$reqVar = $this->_reqVars[$i]; /* @var $reqVar TsVar */
-			$reqVar->set($key, [$fd, $addr, $port]);
+			$reqVar->set($key, [$fd, $addr, $port, $addr2, $port2]);
 			$reqVar->write();
 			
 			if(empty($reqTasks[$i])) {
@@ -337,10 +343,10 @@ class Application extends \fwe\base\Application {
 		$this->_reqVars->bindReadEvent(function(int $len, string $buf) use($index) {
 			for($i=0; $i<$len; $i++) {
 				$key = null;
-				list($fd, $addr, $port) = $this->_reqVars->shift(true, $key);
+				list($fd, $addr, $port, $addr2, $port2) = $this->_reqVars->shift(true, $key);
 				
 				$keepAlive = microtime(true) + $this->keepAlive;
-				$this->_reqEvents[$key] = \Fwe::createObject(RequestEvent::class, compact('fd', 'addr', 'port', 'key', 'keepAlive'));
+				$this->_reqEvents[$key] = \Fwe::createObject(RequestEvent::class, compact('fd', 'addr', 'port', 'addr2', 'port2', 'key', 'keepAlive'));
 			}
 		});
 	}

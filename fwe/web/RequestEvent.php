@@ -6,8 +6,8 @@ use fwe\utils\StringHelper;
 use fwe\base\Application;
 
 class RequestEvent {
-	public $clientAddr = null;
-	public $clientPort = 0;
+	public $clientAddr, $localAddr;
+	public $clientPort, $localPort;
 	public $readlen = 0;
 	
 	public $head = null;
@@ -94,10 +94,12 @@ class RequestEvent {
 	 */
 	public $data;
 	
-	public function __construct(int $fd, string $addr, int $port, int $key, float $keepAlive) {
+	public function __construct(int $fd, string $addr, int $port, string $addr2, int $port2, int $key, float $keepAlive) {
 		$this->fd = $fd;
 		$this->clientAddr = $addr;
 		$this->clientPort = $port;
+		$this->localAddr = $addr2;
+		$this->localPort = $port2;
 		$this->key = $key;
 		$this->time = microtime(true);
 		$this->keepAlive = $keepAlive;
@@ -228,7 +230,7 @@ class RequestEvent {
 			} elseif(isset($this->headers['Host'])) {
 				$this->host = $this->headers['Host'];
 			} else {
-				$this->host = '127.0.0.1:' . \Fwe::$app->port;
+				$this->host = "{$this->localAddr}:{$this->localPort}";
 			}
 		}
 		
@@ -332,6 +334,8 @@ class RequestEvent {
 				'fd' => $this->fd,
 				'addr' => $this->clientAddr,
 				'port' => $this->clientPort,
+				'addr2' => $this->localAddr,
+				'port2' => $this->localPort,
 				'key' => $this->key,
 				'keepAlive' => $this->keepAlive,
 			]);
