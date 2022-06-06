@@ -315,7 +315,8 @@ class RequestEvent {
 			return;
 		}
 		
-		\Fwe::$app->stat($this->response->status < 400 ? 'success' : 'error');
+		$status = $this->response->status;
+		\Fwe::$app->stat(($status >= 100 && $status < 400) ? 'success' : 'error');
 		
 		if(!\Fwe::$app->isRunning()) {
 			// echo "closed: {$this->key}\n";

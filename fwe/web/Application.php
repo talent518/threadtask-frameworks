@@ -145,8 +145,7 @@ class Application extends \fwe\base\Application {
 	/**
 	 * @var integer
 	 */
-	public $maxThreads = 4, $backlog = 128, $maxWsGroups = 2;
-	
+	public $maxThreads = 4, $backlog = 128, $maxWsGroups = 2, $maxAccepts = 1;
 	public $isToFile = true;
 	
 	/**
@@ -159,6 +158,9 @@ class Application extends \fwe\base\Application {
 	public function listen() {
 		($this->_sock = @socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) or $this->strerror('socket_create');
 		@socket_set_option($this->_sock, SOL_SOCKET, SO_REUSEADDR, 1) or $this->strerror('socket_set_option', false);
+		if($this->maxAccepts > 1) {
+			@socket_set_nonblock($this->_sock) or $this->strerror('socket_set_nonblock');
+		}
 		@socket_bind($this->_sock, $this->host, (int) $this->port) or $this->strerror('socket_bind');
 		@socket_listen($this->_sock, $this->backlog) or $this->strerror('socket_listen');
 		
@@ -195,39 +197,6 @@ class Application extends \fwe\base\Application {
 		});
 		$this->_statEvent->addTimer(1);
 		
-		$fmt = '%s:req:%0' . strlen((string) $this->maxThreads) . 'd';
-		$reqTasks = [];
-		$this->_lstEvent = new \Event(\Fwe::$base, $this->_fd, \Event::READ | \Event::PERSIST, function() use(&$reqTasks, $fmt) {
-			$addr = $port = null;
-			$fd = socket_accept_ex($this->_fd, $addr, $port);
-			if(!$fd) return;
-
-			@socket_set_option($fd, SOL_SOCKET, SO_LINGER, ['l_onoff'=>1, 'l_linger'=>1]) or $this->strerror('socket_set_option', false);
-			$addr2 = $port2 = null;
-			if(!socket_getsockname($fd, $addr2, $port2)) {
-				$addr2 = $this->host;
-				$port2 = $this->port;
-			}
-			
-			$fd = socket_export_fd($fd, true);
-			
-			$this->stat('realConns');
-			$key = $this->stat('conns');
-
-			$i = null;
-			$this->_connStatVar->minmax($i);
-			$this->_connStatVar->inc($i, 1);
-			$reqVar = $this->_reqVars[$i]; /* @var $reqVar TsVar */
-			$reqVar->set($key, [$fd, $addr, $port, $addr2, $port2]);
-			$reqVar->write();
-			
-			if(empty($reqTasks[$i])) {
-				$reqTasks[$i] = 1;
-				create_task(sprintf($fmt, \Fwe::$name, $i), INFILE, [$i]);
-			}
-		});
-		$this->_lstEvent->add();
-		
 		for($i = 0; $i < $this->maxWsGroups; $i++) {
 			$this->_wsVars[$i] = new TsVar("__ws{$i}__", 0, null, true);
 		}
@@ -241,7 +210,64 @@ class Application extends \fwe\base\Application {
 		
 		echo "Listened on {$this->host}:{$this->port}\n";
 		
+		if($this->maxAccepts) {
+			for($i=0; $i < $this->maxAccepts; $i++) {
+				create_task(\Fwe::$name . ':accept:' . $i, INFILE, [$i, $this->_fd]);
+			}
+		} else {
+			create_task(\Fwe::$name . ':accept', INFILE, [0, $this->_fd]);
+		}
+		
 		return true;
+	}
+	
+	protected $_index;
+	public function accept(int $index, int $fd) {
+		$this->_index = $index;
+		$this->_fd = $fd;
+		$this->_connStatVar = new TsVar("conn:stat");
+		for($i = 0; $i < $this->maxThreads; $i++) {
+			$this->_reqVars[$i] = new TsVar("req:$i", 0, null, true);
+		}
+		
+		$fmt = '%s:req:%0' . strlen((string) $this->maxThreads) . 'd';
+		$reqTasks = [];
+		$this->_lstEvent = new \Event(\Fwe::$base, $this->_fd, \Event::READ | \Event::PERSIST, function() use(&$reqTasks, $fmt) {
+			$addr = $port = null;
+			$fd = socket_accept_ex($this->_fd, $addr, $port);
+			if(!$fd) {
+				// printf("accept: %d\n", $this->_index);
+				return;
+			}
+			
+			@socket_set_option($fd, SOL_SOCKET, SO_LINGER, ['l_onoff'=>1, 'l_linger'=>1]) or $this->strerror('socket_set_option', false);
+			$addr2 = $port2 = null;
+			if(!socket_getsockname($fd, $addr2, $port2)) {
+				$addr2 = $this->host;
+				$port2 = $this->port;
+			}
+			
+			$fd = socket_export_fd($fd, true);
+			
+			$this->stat('realConns');
+			$key = $this->stat('conns');
+			
+			$i = null;
+			$this->_connStatVar->minmax($i);
+			$this->_connStatVar->inc($i, 1);
+			$reqVar = $this->_reqVars[$i]; /* @var $reqVar TsVar */
+			$reqVar->set($key, [$fd, $addr, $port, $addr2, $port2]);
+			$reqVar->write();
+			
+			if(empty($reqTasks[$i])) {
+				$reqTasks[$i] = 1;
+				$name = sprintf($fmt, \Fwe::$name, $i);
+				\Fwe::$config->getOrSet($name, function() use($name, $i) {
+					return create_task($name, INFILE, [$i]);
+				});
+			}
+		});
+		$this->_lstEvent->add();
 	}
 	
 	protected $_reqIndex = 0, $_reqEvents = [];
