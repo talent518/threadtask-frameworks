@@ -66,6 +66,8 @@ class Cache {
 			$oks = $this->_keys[$key];
 			unset($this->_keys[$key]);
 			
+			\Fwe::$app->stat('cache:get', count($oks));
+			
 			foreach($oks as $ok) {
 				\Fwe::$app->events --;
 				
@@ -134,6 +136,7 @@ class Cache {
 			$this->_keys[$key][] = $ok;
 			\Fwe::$app->events ++;
 		} else {
+			\Fwe::$app->stat('cache:get');
 			$ok($val);
 		}
 		
@@ -149,6 +152,7 @@ class Cache {
 	 */
 	public function set(string $key, $value, int $expire = 0) {
 		$this->_var->set($key, $value, $expire);
+		\Fwe::$app->stat('cache:set');
 		
 		return $this;
 	}
