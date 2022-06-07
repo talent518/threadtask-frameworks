@@ -57,8 +57,10 @@ class Cache {
 		$this->_keys = $this->_notifies = null;
 		$this->_var = $this->_notify = null;
 		
-		$this->_event->free();
-		$this->_event = null;
+		if($this->_event) {
+			$this->_event->free();
+			$this->_event = null;
+		}
 	}
 	
 	protected function notify(string $key, $value) {
