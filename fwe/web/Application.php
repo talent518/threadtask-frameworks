@@ -210,7 +210,7 @@ class Application extends \fwe\base\Application {
 		
 		echo "Listened on {$this->host}:{$this->port}\n";
 		
-		if($this->maxAccepts) {
+		if($this->maxAccepts > 1) {
 			for($i=0; $i < $this->maxAccepts; $i++) {
 				create_task(\Fwe::$name . ':accept:' . $i, INFILE, [$i, $this->_fd]);
 			}
