@@ -45,10 +45,12 @@ class Cache {
 		$this->_notifies[$name] = $this->_notify;
 		$this->_name->set($name, 0);
 		
-		$this->_event = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() {
-			$this->_var->clean(time());
+		\Fwe::$config->getOrSet("{$this->_prefix}:once", function() {
+			$this->_event = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() {
+				$this->_var->clean(time());
+			});
+			$this->_event->addTimer(0.25); // 每1/4秒清理一次过期数据
 		});
-		$this->_event->addTimer(0.25); // 每1/4秒清理一次过期数据
 	}
 	
 	public function __destruct() {
