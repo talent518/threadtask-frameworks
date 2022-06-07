@@ -21,6 +21,13 @@ class Cache {
 	
 	protected $_prefix;
 	
+	/**
+	 * 最大过期时间(以秒为单位)
+	 * 
+	 * @var integer
+	 */
+	public $expire = 0;
+	
 	public function __construct(string $prefix = '__cache') {
 		$this->_prefix = $prefix;
 		
@@ -85,6 +92,10 @@ class Cache {
 						$expire = $expire2;
 					}
 					
+					if($this->expire > 0 && $expire > $this->expire) {
+						$expire = $this->expire;
+					}
+					
 					$ret = $this->set($key, $value, $expire > 0 ? $expire + time() : 0);
 					
 					$names = $this->_name->keys();
@@ -110,6 +121,11 @@ class Cache {
 				return $e->getMessage();
 			}
 		};
+		
+		if($this->expire > 0 && $expire > $this->expire) {
+			$expire = $this->expire;
+		}
+		
 		$val = $this->_var->getOrSet($key, $call, $expire > 0 ? $expire + time() : 0);
 		
 		if($val instanceof Notify) {
