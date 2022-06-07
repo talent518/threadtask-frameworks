@@ -2,6 +2,7 @@
 基于项目threadtask封装的框架。
 
 * 运行先决条件就是必须安装 [threadtask](/talent518/threadtask)
+* docker容器仓库 [docker-threadtask](https://hub.docker.com/repository/docker/talent518/threadtask/general)
 
 ### DEMO使用有用户表
 * 用户表: user
