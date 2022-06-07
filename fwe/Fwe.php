@@ -378,6 +378,7 @@ abstract class Fwe {
 				if($app->isService()) {
 					printf("Exited: %.6f\n", microtime(true) - $t);
 				}
+				// var_dump(static::$config->all(true));
 			}, static::$app);
 		}
 
