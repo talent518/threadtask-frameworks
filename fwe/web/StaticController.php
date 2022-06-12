@@ -289,10 +289,12 @@ class StaticController extends Controller {
 						$stat = stat($path);
 						$mode = ($stat['mode'] ?? 0644);
 						if($executable === 'T') {
-							chmod($path, $mode | 0111);
+							$mode2 = $mode | 0111;
 						} else {
-							chmod($path, $mode & (~0111));
+							$mode2 = $mode & (~0111);
 						}
+						chmod($path, $mode2);
+						// printf("%s - %s - %o %o\n", $path, $executable, $mode, $mode2);
 						$response->setContentType('application/xml');
 						$response->setStatus(207)->end($this->renderView('@fwe/views/dav/proppatch.tpl', compact('file')));
 					} else {

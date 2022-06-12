@@ -37,7 +37,7 @@
 				<lp1:getcontentlength>{$stat.size}</lp1:getcontentlength>
 				<lp1:getetag>"{php printf('%xT-%xO', $stat['mtime'], $stat['size'])}"</lp1:getetag>
 				<lp1:getlastmodified>{$stat.mtime|gmt}</lp1:getlastmodified>
-				<lp2:executable>F</lp2:executable>
+				<lp2:executable>{if $stat.mode & 0111}T{else}F{/if}</lp2:executable>
 			</D:prop>
 			<D:status>HTTP/1.1 200 OK</D:status>
 		</D:propstat>
