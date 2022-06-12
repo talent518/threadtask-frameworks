@@ -207,10 +207,12 @@ class StaticController extends Controller {
 		
 		if(!$request->isAuth($this->_authOK)) return;
 		
+		// echo json_encode($request, JSON_PRETTY_PRINT), PHP_EOL;
+		
 		$path = $this->path . $file;
 		switch($request->method) {
 			case 'OPTIONS':
-				$response->headers['Access-Control-Allow-Methods'] = 'OPTIONS,HEAD,GET,PUT,DELETE,MKCOL,PROPFIND,MOVE,LOCK,UNLOCK';
+				$response->headers['Access-Control-Allow-Methods'] = 'OPTIONS,HEAD,GET,PUT,DELETE,MKCOL,PROPFIND,PROPPATCH,MOVE,COPY,LOCK,UNLOCK';
 				$response->headers['Content-Type'] = 'httpd/unix-directory';
 				$response->end();
 				break;
@@ -280,9 +282,40 @@ class StaticController extends Controller {
 					$response->setStatus(500)->end('Request Params Error');
 				}
 				break;
+			case 'PROPPATCH':
+				if($request->mode === RequestEvent::BODY_MODE_XML && ($file !== '' && substr($file, -1) !== '/')) {
+					if(isset($request->post['D:set']['D:prop']['executable'])) {
+						$executable = $request->post['D:set']['D:prop']['executable'];
+						$stat = stat($path);
+						$mode = ($stat['mode'] ?? 0644);
+						if($executable === 'T') {
+							chmod($path, $mode | 0111);
+						} else {
+							chmod($path, $mode & (~0111));
+						}
+						$response->setContentType('application/xml');
+						$response->setStatus(207)->end($this->renderView('@fwe/views/dav/proppatch.tpl', compact('file')));
+					} else {
+						$response->setStatus(500)->end('Request Params Error');
+					}
+				} else {
+					$response->setStatus(500)->end('Request Params Error');
+				}
+				break;
 			case 'MOVE':
 				if(isset($request->headers['Host'], $request->headers['Destination']) && ($uri = @parse_url($request->headers['Destination'])) && isset($uri['host'], $uri['path'])) {
 					if($request->headers['Host'] === $uri['host'] . (isset($uri['port']) ? ":{$uri['port']}" : null) && !strncmp($uri['path'], "/{$this->route}", $n = strlen($this->route) + 1) && rename($path, $this->path . substr($uri['path'], $n))) {
+						$response->end();
+					} else {
+						$response->setStatus(500)->end('Request Params Error');
+					}
+				} else {
+					$response->setStatus(500)->end('Request Params Error');
+				}
+				break;
+			case 'COPY':
+				if(isset($request->headers['Host'], $request->headers['Destination']) && ($uri = @parse_url($request->headers['Destination'])) && isset($uri['host'], $uri['path'])) {
+					if($request->headers['Host'] === $uri['host'] . (isset($uri['port']) ? ":{$uri['port']}" : null) && !strncmp($uri['path'], "/{$this->route}", $n = strlen($this->route) + 1) && copy($path, $this->path . substr($uri['path'], $n))) {
 						$response->end();
 					} else {
 						$response->setStatus(500)->end('Request Params Error');
