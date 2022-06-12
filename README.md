@@ -37,7 +37,8 @@ INSERT INTO `clazz` VALUES (1,'PHP高级班','PHP构架的架构与实例讲解'
 ### API文档
 * 使用phpdoc生成API文档
 ```sh
-phpdoc -i event.lib.php --ignore-tags=hidden --ignore-tags=author
+rm -vrf .phpdoc/
+phpdoc --ignore-tags=hidden --ignore-tags=author -d fwe -d app -i app/views/ -i fwe/views/ -i app/runtime/ -i app/config/
 ```
 * 启动文档服务器
 ```sh
