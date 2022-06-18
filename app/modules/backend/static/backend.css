@@ -47,6 +47,8 @@ body {margin:0;}
 .login-form form.s-email > .row{padding-left:3em;}
 .login-form form.s-email > .row > label:first-child{width:3em;}
 .login-form h1{margin:0 0 10px;}
+.login-form a{text-decoration:none;color:#33F;}
+.login-form a:hover{color:#F60;}
 
 .layout-wrapper {width:100%;min-height:100vh;overflow:hidden;}
 .layout-wrapper a{text-decoration:none;color:#33F;}

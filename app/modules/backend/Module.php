@@ -61,7 +61,7 @@ class Module extends \fwe\base\Module {
 			
 			if($user instanceof User) {
 				if($action->route === $redirect) {
-					$response->redirect("/$route");
+					$response->redirect($request->get['backUrl'] ?? "/$route");
 				} else {
 					$request->data['user'] = $params['user'] = $user;
 					$request->recv();
@@ -72,7 +72,8 @@ class Module extends \fwe\base\Module {
 				$request->data['user'] = $params['user'] = null;
 				$request->recv();
 			} else {
-				$response->redirect("/$redirect");
+				$uri = urlencode($request->uri);
+				$response->redirect("/$redirectRoute?backUrl={$uri}");
 			}
 		})->bindTo(null);
 		

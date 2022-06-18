@@ -1,10 +1,10 @@
 <?php
 namespace app\modules\backend\controllers;
 
+use app\modules\backend\models\Login;
 use fwe\base\Controller;
 use fwe\traits\TplView;
 use fwe\web\RequestEvent;
-use app\modules\backend\models\Login;
 
 class DefaultController extends Controller {
 	use TplView;

@@ -1,6 +1,6 @@
 {var $errors = $model->getErrors();}
 <div class="login-form">
-<form class="fields-form s-{$model:scene}" action="?backUrl={$backUrl|url}" method="post">
+<form class="fields-form s-{$model:scene}" action="?{if $model:scene === 'email'}isEmail=1{/if}backUrl={$backUrl|url}" method="post">
 	<h1>管理端登录</h1>
 {if $model:scene === 'username'}
 	<div class="row">
@@ -31,6 +31,14 @@
 		<button>立即登录</button>
 	{if isset($errors.error)}
 		<span class="error">{$errors.error|join}</span>
+	{/if}
+	</div>
+	<div class="row">
+		<label></label>
+	{if $model:scene === 'username'}
+		<a href="?isEmail=1&backUrl={$backUrl|url}">使用邮箱登录</a>
+	{else}
+		<a href="?backUrl={$backUrl|url}">使用用户名登录</a>
 	{/if}
 	</div>
 </form>
