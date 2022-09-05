@@ -153,17 +153,17 @@ class RequestEvent {
 	}
 	
 	private $_isAuth;
-	public function isAuth(callable $ok) {
+	public function isAuth(callable $ok, $title = 'WebDAV') {
 		if($this->_isAuth !== null) {
 			return $this->_isAuth;
 		}
 		
-		$ret = function(bool $value) {
+		$ret = function(bool $value) use($title) {
 			$this->_isAuth = $value;
 			
 			if(!$value) {
 				$response = $this->getResponse();
-				$response->headers['WWW-Authenticate'] = 'Basic realm="threadtask-frameworks WebDAV"';
+				$response->headers['WWW-Authenticate'] = 'Basic realm="threadtask-frameworks ' . $title . '"';
 				$response->setStatus(401)->end();
 			}
 		};
