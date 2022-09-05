@@ -73,7 +73,7 @@ class Module extends \fwe\base\Module {
 				$request->recv();
 			} else {
 				$uri = urlencode($request->uri);
-				$response->redirect("/$redirectRoute?backUrl={$uri}");
+				$response->redirect("/$redirect?backUrl={$uri}");
 			}
 		})->bindTo(null);
 		

@@ -4,6 +4,7 @@ namespace fwe\web;
 use fwe\base\Action;
 use fwe\base\TsVar;
 use fwe\db\IPool;
+use fwe\utils\FileHelper;
 
 /**
  * @property array $cleanPools
@@ -153,8 +154,21 @@ class Application extends \fwe\base\Application {
 	 */
 	protected $_connStatVar, $_curlStatVar;
 
-	protected $_statEvent, $_lstEvent;
+	/**
+	 * @var \Event
+	 */
+	protected $_statEvent, $_lstEvent, $_watchEvent;
 
+	/**
+	 * @var array
+	 */
+	public $watchs = [];
+	
+	/**
+	 * @var boolean
+	 */
+	public $isWatch = true;
+	
 	public function listen() {
 		($this->_sock = @socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) or $this->strerror('socket_create');
 		@socket_set_option($this->_sock, SOL_SOCKET, SO_REUSEADDR, 1) or $this->strerror('socket_set_option', false);
@@ -224,7 +238,72 @@ class Application extends \fwe\base\Application {
 			create_task(\Fwe::$name . ':accept', INFILE, [0, $this->_fd]);
 		}
 		
+		if($this->isWatch && extension_loaded('inotify')) {
+			$fd = inotify_init();
+			$watchs = $this->watchs;
+			$watchs['@app'] = ['views', 'static', 'runtime'];
+			$watchs['@fwe'] = ['views'];
+			foreach($watchs as $path => $filter) {
+				if(is_int($path)) {
+					$path = $filter;
+					$filter = [];
+				}
+				$this->addWatch($fd, \Fwe::getAlias($path));
+			}
+			$this->_watchEvent = new \Event(\Fwe::$base, $fd, \Event::READ | \Event::PERSIST, function() use($fd) {
+				$events = inotify_read($fd);
+				foreach($events as $event) {
+					if(pathinfo($event['name'], PATHINFO_EXTENSION) !== 'php') continue;
+					
+					$rootDir = ROOT . '/';
+					$rootLen = strlen($rootDir);
+					$path = $this->wdPaths[$event['wd']] ?? '';
+					if(!strncmp($path, $rootDir, $rootLen)) {
+						$path = substr($path, $rootLen);
+					}
+					$path .=  '/' . $event['name'];
+					
+					switch($event['mask']) {
+						case IN_CREATE:
+							$name = 'CREATE';
+							break;
+						case IN_MODIFY:
+							$name = 'MODIFY';
+							break;
+						case IN_DELETE:
+							$name = 'DELETE';
+							break;
+						default:
+							$name = 'Unknown';
+							break;
+					}
+					
+					$this->info("$name $path", 'watch');
+					$this->signalHandler(SIGUSR1);
+					break;
+				}
+			});
+			$this->_watchEvent->add();
+		}
+		
 		return true;
+	}
+	
+	protected $wdPaths = [];
+	protected function addWatch($fd, string $path, array $filter = []) {
+		$wd = inotify_add_watch($fd, $path, IN_CREATE | IN_MODIFY | IN_DELETE);
+		if($wd) {
+			$this->wdPaths[$wd] = $path;
+			
+			foreach(FileHelper::list($path) as $file) {
+				if(in_array($file, $filter)) continue;
+				
+				$fileName = "$path/$file";
+				if(is_dir($fileName)) {
+					$this->addWatch($fd, $fileName, $filter);
+				}
+			}
+		}
 	}
 	
 	protected $_index;
