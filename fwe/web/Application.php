@@ -172,7 +172,7 @@ class Application extends \fwe\base\Application {
 	/**
 	 * @var float
 	 */
-	public $watchDelay = 3.0;
+	public $watchDelay = 3.0, $watchTimeout = 0.1;
 	
 	/**
 	 * @var float
@@ -253,12 +253,12 @@ class Application extends \fwe\base\Application {
 			$watchs = $this->watchs;
 			$watchs['@app'] = ['views', 'static', 'runtime'];
 			$watchs['@fwe'] = ['views'];
-			foreach($watchs as $path => $filter) {
+			foreach($watchs as $path => $filters) {
 				if(is_int($path)) {
-					$path = $filter;
-					$filter = [];
+					$path = $filters;
+					$filters = [];
 				}
-				$this->addWatch($fd, \Fwe::getAlias($path));
+				$this->addWatch($fd, \Fwe::getAlias($path), $filters);
 			}
 			$this->_watchEvent = new \Event(\Fwe::$base, $fd, \Event::READ | \Event::PERSIST, function() use($fd) {
 				$rootDir = ROOT . '/';
@@ -298,24 +298,24 @@ class Application extends \fwe\base\Application {
 					$this->signalHandler(SIGUSR1);
 				}
 			});
-			$this->_watchTimeEvent->addTimer(0.5);
+			$this->_watchTimeEvent->addTimer($this->watchTimeout);
 		}
 		
 		return true;
 	}
 	
 	protected $wdPaths = [];
-	protected function addWatch($fd, string $path, array $filter = []) {
+	protected function addWatch($fd, string $path, array $filters = []) {
 		$wd = inotify_add_watch($fd, $path, IN_CREATE | IN_MODIFY | IN_DELETE);
 		if($wd) {
 			$this->wdPaths[$wd] = $path;
 			
 			foreach(FileHelper::list($path) as $file) {
-				if(in_array($file, $filter)) continue;
+				if(in_array($file, $filters)) continue;
 				
 				$fileName = "$path/$file";
 				if(is_dir($fileName)) {
-					$this->addWatch($fd, $fileName, $filter);
+					$this->addWatch($fd, $fileName, $filters);
 				}
 			}
 		}
