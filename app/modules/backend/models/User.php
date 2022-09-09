@@ -85,6 +85,7 @@ class User extends \fwe\db\MySQLModel {
 			['username', 'unique'], // username
 			['email', 'unique'], // email
 			
+			['email', 'email'],
 			['newpass', 'required', 'scene' => 'create'],
 			['newpass', 'safe'],
 		];

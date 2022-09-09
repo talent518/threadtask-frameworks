@@ -157,7 +157,7 @@ class Application extends \fwe\base\Application {
 	/**
 	 * @var \Event
 	 */
-	protected $_statEvent, $_lstEvent, $_watchEvent;
+	protected $_statEvent, $_lstEvent, $_watchEvent, $_watchTimeEvent;
 
 	/**
 	 * @var array
@@ -168,6 +168,16 @@ class Application extends \fwe\base\Application {
 	 * @var boolean
 	 */
 	public $isWatch = true;
+	
+	/**
+	 * @var float
+	 */
+	public $watchDelay = 3.0;
+	
+	/**
+	 * @var float
+	 */
+	protected $_watchTime;
 	
 	public function listen() {
 		($this->_sock = @socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) or $this->strerror('socket_create');
@@ -251,12 +261,12 @@ class Application extends \fwe\base\Application {
 				$this->addWatch($fd, \Fwe::getAlias($path));
 			}
 			$this->_watchEvent = new \Event(\Fwe::$base, $fd, \Event::READ | \Event::PERSIST, function() use($fd) {
+				$rootDir = ROOT . '/';
+				$rootLen = strlen($rootDir);
 				$events = inotify_read($fd);
 				foreach($events as $event) {
 					if(pathinfo($event['name'], PATHINFO_EXTENSION) !== 'php') continue;
 					
-					$rootDir = ROOT . '/';
-					$rootLen = strlen($rootDir);
 					$path = $this->wdPaths[$event['wd']] ?? '';
 					if(!strncmp($path, $rootDir, $rootLen)) {
 						$path = substr($path, $rootLen);
@@ -279,11 +289,16 @@ class Application extends \fwe\base\Application {
 					}
 					
 					$this->info("$name $path", 'watch');
-					$this->signalHandler(SIGUSR1);
-					break;
+					$this->_watchTime = microtime(true);
 				}
 			});
 			$this->_watchEvent->add();
+			$this->_watchTimeEvent = new \Event(\Fwe::$base, -1, \Event::TIMEOUT | \Event::PERSIST, function() {
+				if($this->_watchTime !== null && microtime(true) - $this->_watchTime >= $this->watchDelay) {
+					$this->signalHandler(SIGUSR1);
+				}
+			});
+			$this->_watchTimeEvent->addTimer(0.5);
 		}
 		
 		return true;
