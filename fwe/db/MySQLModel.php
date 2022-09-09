@@ -41,7 +41,7 @@ abstract class MySQLModel extends Model {
 	 * @return \fwe\db\MySQLConnection
 	 */
 	public static function findById(MySQLConnection $db, $id, ?callable $success = null, ?callable $error = null) {
-		if(is_array($id) && is_assoc($id)) {
+		if(is_array($id) && !array_is_list($id)) {
 			$attrs = $id;
 		} else {
 			$attrs = [];
