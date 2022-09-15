@@ -67,13 +67,14 @@ class ServeController extends Controller {
 		if($ret) {
 			$pidFile = \Fwe::getAlias('@app/runtime/' . $name . '.pid');
 			$pid = @file_get_contents($pidFile);
+			$version = PHP_VERSION;
 			if($pid == posix_getpid()) {
-				echo "Service restart\n";
-				\Fwe::$app->info('Restart', 'service');
+				echo "Service restart, PHP version $version\n";
+				\Fwe::$app->info("Restart, PHP version $version", 'service');
 			} else {
 				FileHelper::mkdir(dirname($pidFile)) and file_put_contents($pidFile, posix_getpid());
-				echo "Service started\n";
-				\Fwe::$app->info('Started', 'service');
+				echo "Service started, PHP version $version\n";
+				\Fwe::$app->info("Started, PHP version $version", 'service');
 			}
 			
 			register_shutdown_function((function($file, $app, $t) {
