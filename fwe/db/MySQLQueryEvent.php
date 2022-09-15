@@ -103,7 +103,7 @@ class MySQLQueryEvent implements IEvent {
 
 	public function recv() {
 		$this->_result = $this->_db->reapAsyncQuery();
-		if($this->_result) {
+		if($this->_result instanceof \mysqli_result) {
 			switch($this->_style) {
 				case static::FETCH_ONE: {
 					$this->_data = $this->fetchOne();
@@ -174,7 +174,7 @@ class MySQLQueryEvent implements IEvent {
 	}
 	
 	public function __destruct() {
-		if($this->_result) {
+		if($this->_result instanceof \mysqli_result) {
 			$this->_result->close();
 			$this->_result = null;
 		}

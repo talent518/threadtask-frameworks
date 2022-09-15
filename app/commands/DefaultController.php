@@ -10,6 +10,8 @@ use fwe\db\IEvent;
 use fwe\db\MySQLConnection;
 use fwe\utils\FileHelper;
 use fwe\utils\StringHelper;
+use fwe\fibers\MySQLFiber;
+use fwe\fibers\RedisFiber;
 
 class DefaultController extends Controller {
 
@@ -365,6 +367,36 @@ class DefaultController extends Controller {
 		\Fwe::$app->events ++;
 		
 		return false;
+	}
+	
+	/**
+	 * 使用Fiber进行异步通信：PHP 8.1
+	 */
+	public function actionFiber() {
+		(new \Fiber(function() {
+			$db = MySQLFiber::pop();
+			$data[] = $db->beginTransaction();
+			try {
+				$data[] = $db->query('SHOW TABLES');
+				$data[] = $db->prepare('SELECT * FROM user WHERE username = ?', ['admin']);
+				$data[] = $db->prepare('UPDATE user SET loginTime = NOW(), loginTimes = loginTimes + 1 WHERE username = ?', ['admin']);
+				$data[] = $db->prepare('SELECT * FROM user WHERE username = ?', ['admin']);
+				$data[] = $db->commit();
+			} catch(\Throwable $e) {
+				$data[] = $db->rollback();
+				\Fwe::$app->error($e, 'fiber');
+			}
+			var_dump($data);
+		}))->start();
+		
+		(new \Fiber(function() {
+			$db = RedisFiber::pop();
+			$data[] = $db->keys('*');
+			$data[] = $db->get('fiber');
+			$data[] = $db->set('fiber', random_int(0, 1000));
+			$data[] = $db->get('fiber');
+			var_dump($data);
+		}))->start();
 	}
 
 }

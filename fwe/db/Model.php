@@ -70,7 +70,7 @@ abstract class Model extends \fwe\base\Model implements \JsonSerializable {
 	}
 	
 	public static function populate(array $row) {
-		/* @var $model MySQLModel */
+		/* @var $model Model */
 		$model = \Fwe::createObject(get_called_class());
 		$model->beforeFind($row);
 		$model->isNewRecord = false;

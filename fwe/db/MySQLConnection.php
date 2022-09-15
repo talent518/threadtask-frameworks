@@ -12,6 +12,14 @@ use fwe\traits\MethodProperty;
  */
 class MySQLConnection extends AsyncConnection {
 	use MethodProperty;
+	
+	const LEVEL_REPEATABLE_READ = 1;
+	const LEVEL_READ_COMMITTED = 2;
+	const LEVEL_READ_UNCOMMITTED = 3;
+	const LEVEL_SERIALIZABLE = 4;
+	
+	const MODE_READ_WRITE = 1;
+	const MODE_READ_ONLY = 2;
 
 	/**
 	 * 
@@ -118,12 +126,45 @@ class MySQLConnection extends AsyncConnection {
 		return $this->_mysqli->autocommit($mode);
 	}
 	
-	public function beginTransaction(int $flags = 0, ?string $name = null) {
-		return $this->_mysqli->begin_transaction($flags, $name);
+	public function beginTransaction(int $flags = 0) {
+		return $this->_mysqli->begin_transaction($flags);
 	}
 	
-	public function commit(int $flags = 0, ?string $name = null) {
-		return $this->_mysqli->commit($flags, $name);
+	public function setTransaction(int $level = 0, int $mode = 0) {
+		$suffix = null;
+		switch($level) {
+			case self::LEVEL_REPEATABLE_READ:
+				$suffix .= ' ISOLATION LEVEL REPEATABLE READ';
+				break;
+			case self::LEVEL_READ_COMMITTED:
+				$suffix .= ' ISOLATION LEVEL READ COMMITTED';
+				break;
+			case self::LEVEL_READ_UNCOMMITTED:
+				$suffix .= ' ISOLATION LEVEL READ UNCOMMITTED';
+				break;
+			case self::LEVEL_SERIALIZABLE:
+				$suffix .= ' ISOLATION LEVEL SERIALIZABLE';
+				break;
+			default:
+				return;
+		}
+		
+		switch($mode) {
+			case self::MODE_READ_WRITE:
+				$suffix .= ' READ WRITE';
+				break;
+			case self::MODE_READ_ONLY:
+				$suffix .= ' READ ONLY';
+				break;
+			default:
+				break;
+		}
+		
+		return $this->query("SET TRANSACTION{$suffix}");
+	}
+	
+	public function commit() {
+		return $this->_mysqli->commit();
 	}
 	
 	public function rollback() {
