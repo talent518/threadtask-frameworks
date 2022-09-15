@@ -11,8 +11,6 @@ class MySQLFiber {
 	 */
 	protected $db;
 
-	protected $idx = 0;
-
 	public function __construct(MySQLConnection $db) {
 		$this->db = $db;
 	}
@@ -40,13 +38,12 @@ class MySQLFiber {
 
 	protected function go() {
 		if(! $this->db->isUsing()) {
-			echo "goAsync\n";
 			$cb = function () {
 			};
 			$this->db->goAsync($cb, $cb);
 		}
 
-		return \Fiber::suspend($this->idx ++);
+		return \Fiber::suspend();
 	}
 
 	public function beginTransaction(int $flags = 0) {
@@ -113,42 +110,32 @@ class MySQLFiber {
 		return true;
 	}
 
-	public function query(string $sql, array $params = [], ?string $key = null) {
+	public function query(string $sql, array $options = []) {
 		$fiber = \Fiber::getCurrent();
 
-		$idx = $this->idx;
-
 		$this->db->asyncQuery($sql, [
-			'success' => function ($result) use ($fiber, $sql, $idx) {
-				echo "[ OK][$idx] $sql\n";
+			'success' => function ($result) use ($fiber) {
 				$fiber->resume($result);
 			},
-			'error' => function ($e) use ($fiber, $sql, $idx) {
-				echo "[ERR][$idx] $sql: $e\n";
+			'error' => function ($e) use ($fiber) {
 				$fiber->throw($e);
 			},
-			'key' => $key
-		]);
+		] + $options);
 
 		return $this->go();
 	}
 
-	public function prepare(string $sql, array $params = [], ?string $key = null) {
+	public function prepare(string $sql, array $params = [], array $options = []) {
 		$fiber = \Fiber::getCurrent();
 
-		$idx = $this->idx;
-
 		$this->db->asyncPrepare($sql, $params, [
-			'success' => function ($result) use ($fiber, $sql, $idx) {
-				echo "[ OK][$idx] $sql\n";
+			'success' => function ($result) use ($fiber) {
 				$fiber->resume($result);
 			},
-			'error' => function ($e) use ($fiber, $sql, $idx) {
-				echo "[ERR][$idx] $sql: $e\n";
+			'error' => function ($e) use ($fiber) {
 				$fiber->throw($e);
 			},
-			'key' => $key
-		]);
+		] + $options);
 
 		return $this->go();
 	}

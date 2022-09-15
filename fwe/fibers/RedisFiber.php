@@ -44,17 +44,14 @@ class RedisFiber {
 		return static::use($db);
 	}
 
-	protected $idx = 0;
-
 	protected function go() {
 		if(! $this->db->isUsing()) {
-			echo "goAsync\n";
 			$cb = function () {
 			};
 			$this->db->goAsync($cb, $cb);
 		}
 
-		return \Fiber::suspend($this->idx ++);
+		return \Fiber::suspend();
 	}
 
 	public function __call(string $name, array $params) {
@@ -63,19 +60,11 @@ class RedisFiber {
 		}
 
 		$fiber = \Fiber::getCurrent();
-		$cmd = implode(' ', [
-			$name,
-			...$params
-		]);
-
-		$idx = $this->idx;
 
 		$this->db->beginAsync();
-		$this->db->setAsyncCallback(function ($result) use ($fiber, $cmd, $idx) {
-			echo "[ OK][$idx] $cmd\n";
+		$this->db->setAsyncCallback(function ($result) use ($fiber) {
 			$fiber->resume($result);
-		}, function ($e) use ($fiber, $cmd, $idx) {
-			echo "[ERR][$idx] $cmd: $e\n";
+		}, function ($e) use ($fiber) {
 			$fiber->throw($e);
 		});
 		$this->db->__call($name, $params);
