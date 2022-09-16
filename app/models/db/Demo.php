@@ -2,11 +2,14 @@
 namespace app\models\db;
 
 use fwe\db\MySQLModel;
+use fwe\db\MySQLTrait;
 
 /**
  * @method static Demo create(array $params = [])
  */
 class Demo extends MySQLModel {
+	use MySQLTrait;
+	
 	public static function tableName() {
 		return 'user';
 	}

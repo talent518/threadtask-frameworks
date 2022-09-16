@@ -83,7 +83,7 @@ class Action implements IAction {
 	}
 
 	final public function run(array &$params = []) {
-		return \Fwe::invoke($this->callback, $params, $this->funcName);
+		return $this->controller->runAction($this, $params);
 	}
 
 }

@@ -109,6 +109,10 @@ class Controller {
 		}
 	}
 	
+	public function runAction(Action $action, array &$params = []) {
+		return \Fwe::invoke($action->callback, $params, $action->funcName);
+	}
+	
 	public function splitId(string &$id, array &$params) {
 		if($id === '') {
 			$id = $this->defaultAction;

@@ -2,7 +2,7 @@
 namespace fwe\validators;
 
 use fwe\base\Model;
-use fwe\db\MySQLConnection;
+use fwe\fibers\MySQLFiber;
 
 class UniqueValidator extends IValidator {
 	public $message = '{attribute} 已存在';
@@ -19,19 +19,26 @@ class UniqueValidator extends IValidator {
 		}
 
 		if($ret) {
-			return function(callable $ok, MySQLConnection $db) use($model) {
-				$model->unique($this->attributes, $db, function(int $exists, ?string $error = null) use($model, $ok) {
-					if($exists > 0) {
-						foreach($this->attributes as $attr) {
-							$model->addError($attr, strtr($this->message, ['{attribute}'=>$model->getLabel($attr)]));
-						}
-					}
-					if($exists < 0) {
-						$ok($exists, $error);
-					} else {
+			return function(callable $ok, $db) use($model) {
+				if($db instanceof MySQLFiber) {
+					(new \Fiber(function() use($ok, $db, $model) {
+						$exists = $model->unique($db, $this->attributes);
 						$ok($exists ? 1 : 0);
-					}
-				});
+					}))->start();
+				} else {
+					$model->unique($db, $this->attributes, function(int $exists, ?string $error = null) use($model, $ok) {
+						if($exists > 0) {
+							foreach($this->attributes as $attr) {
+								$model->addError($attr, strtr($this->message, ['{attribute}'=>$model->getLabel($attr)]));
+							}
+						}
+						if($exists < 0) {
+							$ok($exists, $error);
+						} else {
+							$ok($exists ? 1 : 0);
+						}
+					});
+				}
 			};
 		} else {
 			return $ret;

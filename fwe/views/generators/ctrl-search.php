@@ -14,7 +14,11 @@ $searchKeys = $model::searchKeys();
 ?>
 namespace <?=$namespace?>;
 use <?=$model?> as Model;
+<?php if($isFiber):?>
+use fwe\fibers\MySQLFiber;
+<?php else:?>
 use fwe\db\MySQLConnection;
+<?php endif;?>
 
 /**
  * 由<?=get_class($this)?>生成的代码
@@ -68,6 +72,21 @@ class <?=$className?> extends \fwe\base\Model {
 	 */
 	public $result = [];
 
+<?php if($isFiber):?>
+	public function search(MySQLFiber $db) {
+		$args = ['and'];
+		foreach($this->_searchKeys as $attr => $oper) {
+			$val = $this->$attr;
+			if($val !== null && $val !== '') {
+				$args[] = [$oper, $attr, $val];
+			}
+		}
+		$this->total = Model::find()->select('COUNT(1)')->whereArray($args)->fetchColumn($db, 0, 'searchCount');
+		$orderBy = isset($this->_searchKeys[$this->orderBy]) ? $this->orderBy : array_key_first($this->_searchKeys);
+		$isDesc = $this->isDesc ? 'DESC' : 'ASC';
+		return $this->result = Model::find()->whereArray($args)->orderBy("$orderBy $isDesc")->page($this->page, $this->total, $this->size, $this->pages)->fetchAll($db, 'searchResult');
+	}
+<?php else:?>
 	public function search(MySQLConnection $db, callable $success, callable $error) {
 		$args = ['and'];
 		foreach($this->_searchKeys as $attr => $oper) {
@@ -96,4 +115,5 @@ class <?=$className?> extends \fwe\base\Model {
 			$success($this);
 		}, $error);
 	}
+<?php endif;?>
 }

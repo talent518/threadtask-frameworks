@@ -386,6 +386,8 @@ class RequestEvent {
 				if(!$response->isHeadSent()) {
 					$ret = $this->runAction();
 					if(is_string($ret)) $response->end($ret);
+					elseif(is_array($ret) || is_object($ret)) $response->json($ret);
+					elseif(is_int($ret)) $response->setStatus($ret)->json($ret);
 					elseif(!$response->isHeadSent() && $events == \Fwe::$app->events) {
 						\Fwe::$app->error("Not Content in the route({$this->key}): {$this->action->route}", 'web');
 						$response->setStatus(501);

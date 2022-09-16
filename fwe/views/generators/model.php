@@ -12,6 +12,7 @@ echo "<?php\n";
  * @var $fields array 数据表字段列表
  * @var $indexes array 数据表唯一索引列表
  * @var $isComment bool 是否使用表字段注释作为属性标签
+ * @var $isFiber bool 是否使用\Fiber类: PHP 8.1
  */
 
 $classes = preg_split('/[^a-zA-Z0-9]+/', $class, -1, PREG_SPLIT_NO_EMPTY);
@@ -71,6 +72,8 @@ unset($field);
 
 namespace <?=$namespace?>;
 
+use fwe\<?php if($isFiber):?>fibers<?php else:?>db<?php endif;?>\MySQLTrait;
+
 /**
 <?php if($comment):?>
  * <?="$comment\n"?>
@@ -87,6 +90,8 @@ $ws = $field['comment'] ? ' ' : '';
 <?php endforeach;?>
  */
 class <?=$className?> extends \<?=$baseClass?> {
+	use MySQLTrait;
+	
 	public static function tableName() {
 		return '<?=$table?>';
 	}

@@ -45,6 +45,10 @@ class MySQLFiber {
 
 		return \Fiber::suspend();
 	}
+	
+	public function db() {
+		return $this->db;
+	}
 
 	public function beginTransaction(int $flags = 0) {
 		$suffix = null;

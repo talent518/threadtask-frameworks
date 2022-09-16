@@ -2,6 +2,8 @@
 
 namespace app\modules\backend\models;
 
+use fwe\db\MySQLTrait;
+
 /**
  * 由fwe\web\GeneratorController生成的代码
  *
@@ -12,6 +14,8 @@ namespace app\modules\backend\models;
  * @property string $cdesc 描述
  */
 class Clazz extends \fwe\db\MySQLModel {
+	use MySQLTrait;
+	
 	public static function tableName() {
 		return 'clazz';
 	}

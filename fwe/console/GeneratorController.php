@@ -42,8 +42,9 @@ class GeneratorController extends \fwe\console\Controller {
 	 * @param string $db MySQL数据库的连接ID
 	 * @param bool $isComment 是否使用相应数据表列的注释生成属性标签
 	 * @param bool $isOver 是否覆盖
+	 * @param bool $isFiber 是否使用\Fiber类: PHP 8.1
 	 */
-	public function actionModel(Generator $generator, string $table, string $class, string $base = MySQLModel::class, string $db = 'db', bool $isComment = false, bool $isOver = false) {
+	public function actionModel(Generator $generator, string $table, string $class, string $base = MySQLModel::class, string $db = 'db', bool $isComment = false, bool $isOver = false, bool $isFiber = false) {
 		if($base !== MySQLModel::class && !is_subclass_of($base, MySQLModel::class)) {
 			$class = MySQLModel::class;
 			throw new Exception("$base 不是 $class 的子类");
@@ -51,11 +52,12 @@ class GeneratorController extends \fwe\console\Controller {
 		$generator->oneTable(
 			db($db)->pop(),
 			$table,
-			function($params) use($generator, $table, $class, $base, $isComment, $isOver) {
+			function($params) use($generator, $table, $class, $base, $isComment, $isOver, $isFiber) {
 				$params['table'] = $table;
 				$params['class'] = $class;
 				$params['base'] = $base;
 				$params['isComment'] = $isComment;
+				$params['isFiber'] = $isFiber && class_exists('Fiber', false);
 				$target = '@' . str_replace('\\', '/', $class) . '.php';
 				
 				list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/model.php", $target, $params, $isOver);
@@ -93,6 +95,7 @@ class GeneratorController extends \fwe\console\Controller {
 		$params = compact('model', 'class', 'base', 'search');
 		$params['isRestful'] = ($base === RestfulController::class || is_subclass_of($base, RestfulController::class));
 		$params['isJson'] = ($path === null || $path === '' || $params['isRestful']);
+		$params['isFiber'] = in_array(\fwe\fibers\MySQLTrait::class, class_uses($model));
 		
 		$classes = preg_split('/[^a-zA-Z0-9]+/', $search, -1, PREG_SPLIT_NO_EMPTY);
 		$params['className'] = array_pop($classes);
@@ -108,7 +111,8 @@ class GeneratorController extends \fwe\console\Controller {
 		$params['isTpl'] = $isTpl;
 		
 		$ctrlFile = '@' . str_replace('\\', '/', $class) . '.php';
-		list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-class.php", $ctrlFile, $params, $isOver);
+		$suffix = $params['isFiber'] ? '-fiber' : null;
+		list($status, $newFile, $oldFile) = $generator->generate($this, "{$this->genViewPath}/ctrl-class{$suffix}.php", $ctrlFile, $params, $isOver);
 		$this->generator($status, $newFile, $oldFile);
 		
 		if(!$params['isJson']) {

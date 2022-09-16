@@ -2,6 +2,8 @@
 
 namespace app\modules\backend\models;
 
+use fwe\db\MySQLTrait;
+
 /**
  * 主用户表
  *
@@ -21,6 +23,8 @@ namespace app\modules\backend\models;
  * @property string $newpass 新密码
  */
 class User extends \fwe\db\MySQLModel {
+	use MySQLTrait;
+	
 	public static function tableName() {
 		return 'user';
 	}
