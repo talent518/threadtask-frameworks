@@ -22,8 +22,13 @@ class UniqueValidator extends IValidator {
 			return function(callable $ok, $db) use($model) {
 				if($db instanceof MySQLFiber) {
 					(new \Fiber(function() use($ok, $db, $model) {
-						$exists = $model->unique($db, $this->attributes);
-						$ok($exists ? 1 : 0);
+						try {
+							$exists = $model->unique($db, $this->attributes);
+							$ok($exists ? 1 : 0);
+						} catch(\Throwable $e) {
+							\Fwe::$app->handleException($e, 'fiber');
+							$ok(-1, $e->getMessage());
+						}
 					}))->start();
 				} else {
 					$model->unique($db, $this->attributes, function(int $exists, ?string $error = null) use($model, $ok) {

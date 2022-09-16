@@ -62,7 +62,7 @@ class <?=$className?> extends \<?=$base?> {
 				elseif(is_array($ret) || is_object($ret)) $response->json($ret);
 				elseif(is_int($ret)) $response->setStatus($ret)->json($ret);
 			} catch(\Throwable $e) {
-				\Fwe::$app->handleException($e);
+				\Fwe::$app->handleException($e, 'fiber');
 <?php if($isJson):?>
 				$response->json(['status' => false, 'message' => $e->getMessage(), 'data' => null]);
 <?php else:?>
