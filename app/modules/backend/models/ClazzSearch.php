@@ -63,6 +63,7 @@ class ClazzSearch extends \fwe\base\Model {
 				$args[] = [$oper, $attr, $val];
 			}
 		}
+		if(count($args) == 1) $args[] = '1 > 0';
 		return Model::find()->select('COUNT(1)')->whereArray($args)
 		->fetchColumn(
 			$db,

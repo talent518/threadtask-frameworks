@@ -41,7 +41,7 @@ class MySQLConnection extends AsyncConnection {
 	/**
 	 * @var bool
 	 */
-	protected $_isMaster;
+	protected $_isMaster, $_isConnected;
 	
 	public function __construct(MySQLPool $pool, string $host, int $port, string $username, string $password, string $database, ?string $socket = null, string $charset = 'utf8', bool $isMaster = false) {
 		$this->_pool = $pool;
@@ -55,11 +55,10 @@ class MySQLConnection extends AsyncConnection {
 		$this->_charset = $charset;
 
 		$this->_isMaster = $isMaster;
+		$this->_isConnected = false;
 		
-		$this->open();
+		$this->_mysqli = new \mysqli();
 	}
-	
-	
 	
 	/**
 	 * @return string
@@ -115,11 +114,13 @@ class MySQLConnection extends AsyncConnection {
 	}
 	
 	public function open() {
-		if(!$this->_mysqli) {
-			$this->_mysqli = new \mysqli($this->_host, $this->_username, $this->_password, $this->_database, $this->_port, $this->_socket);
-			$this->_mysqli->set_charset($this->_charset);
-			$this->_time = microtime(true);
+		if($this->_isConnected) {
+			return;
 		}
+		$this->_isConnected = true;
+		$this->_mysqli->connect($this->_host, $this->_username, $this->_password, $this->_database, $this->_port, $this->_socket);
+		$this->_mysqli->set_charset($this->_charset);
+		$this->_time = microtime(true);
 	}
 	
 	public function autoCommit(bool $mode) {
@@ -184,14 +185,14 @@ class MySQLConnection extends AsyncConnection {
 	}
 	
 	public function ping(): bool {
-		if($this->_mysqli) {
+		if($this->_isConnected) {
 			try {
 				return $this->_mysqli->ping();
 			} catch(\Throwable $e) {
 				try {
 					$this->close();
 					$this->open();
-					return $this->_mysqli->ping();
+					return true;
 				} catch(\Throwable $e) {
 					\Fwe::$app->error($e, 'mysql-ping');
 					$this->close();
@@ -199,7 +200,14 @@ class MySQLConnection extends AsyncConnection {
 				}
 			}
 		} else {
-			return false;
+			try {
+				$this->open();
+				return true;
+			} catch(\Throwable $e) {
+				\Fwe::$app->error($e, 'mysql-ping');
+				$this->close();
+				return false;
+			}
 		}
 	}
 	
@@ -316,14 +324,14 @@ class MySQLConnection extends AsyncConnection {
 	}
 	
 	public function close() {
-		if($this->_mysqli) {
+		if($this->_isConnected) {
+			$this->_isConnected = false;
 			$this->_mysqli->close();
-			$this->_mysqli = null;
 		}
 	}
 	
 	public function isClosed(): bool {
-		return !$this->_mysqli;
+		return !$this->isConnected;
 	}
 }
 

@@ -14,6 +14,10 @@ class MySQLFiber {
 	public function __construct(MySQLConnection $db) {
 		$this->db = $db;
 	}
+	
+	public function __destruct() {
+		$this->db->push();
+	}
 
 	/**
 	 *

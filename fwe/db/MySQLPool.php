@@ -60,8 +60,6 @@ class MySQLPool implements IPool {
 	 * @return MySQLConnection
 	 */
 	public function pop(bool $isSalve = true) {
-		reconn:
-		$isNew = false;
 		/* @var $db MySQLConnection */
 		if($isSalve && $this->slaves) {
 			$db = array_pop($this->_sPool);
@@ -78,7 +76,6 @@ class MySQLPool implements IPool {
 				if($this->_sIndex === count($this->slaves)) {
 					$this->_sIndex = 0;
 				}
-				$isNew = true;
 			}
 			$this->_sUsed[] = $db;
 			$db->iUsed = array_key_last($this->_sUsed);
@@ -99,14 +96,13 @@ class MySQLPool implements IPool {
 				if($this->_mIndex === count($this->masters)) {
 					$this->_mIndex = 0;
 				}
-				$isNew = true;
 			}
 			$this->_mUsed[] = $db;
 			$db->iUsed = array_key_last($this->_mUsed);
 		}
-		if(!$isNew && !$db->ping()) {
+		if(!$db->ping()) {
 			$this->remove($db);
-			goto reconn;
+			throw new Exception('MySQL Ping Failure');
 		}
 		$db->pop($this);
 		return $db;

@@ -41,8 +41,6 @@ class RedisPool implements IPool {
 	 * @return RedisConnection
 	 */
 	public function pop(bool $isAsync = false) {
-		reconn:
-		$isNew = false;
 		$db = array_pop($this->_pool);
 		if($db === null) {
 			$db = \Fwe::createObject(RedisConnection::class, [
@@ -58,13 +56,12 @@ class RedisPool implements IPool {
 				'dataTimeout' => $this->dataTimeout,
 				'pool' => $this,
 			]);
-			$isNew = true;
 		}
 		$this->_used[] = $db;
 		$db->iUsed = array_key_last($this->_used);
-		if(!$isNew && !$db->ping()) {
+		if(!$db->ping()) {
 			$this->remove($db);
-			goto reconn;
+			throw new Exception('Redis Ping Failure');
 		}
 		$db->pop($this);
 		

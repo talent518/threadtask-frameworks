@@ -306,8 +306,6 @@ class RedisConnection extends AsyncConnection {
 		} else {
 			$this->connectionString = "tcp://{$this->_host}:{$this->_port}";
 		}
-
-		$this->open();
 	}
 	
 	public function reset() {
@@ -442,6 +440,7 @@ class RedisConnection extends AsyncConnection {
 				}
 			}
 		} else {
+			$this->open();
 			return true;
 		}
 	}
@@ -599,6 +598,6 @@ class RedisConnection extends AsyncConnection {
 	}
 	
 	public function isClosed(): bool {
-		return false;
+		return !$this->_socket;
 	}
 }

@@ -128,18 +128,20 @@ class MySQLQuery {
 			case 'OR':
 				$sqls = [];
 				foreach($args as $arg) {
-					if((is_array($arg) && !isset($arg[0])) || is_object($arg)) {
+					if((is_array($arg) && !array_is_list($arg)) || is_object($arg)) {
 						foreach($arg as $key=>$value) {
 							$sql = static::makeWhere(['=', "`$key`", $value], $params);
 							if($sql !== null) {
 								$sqls[] = $sql;
 							}
 						}
-					} else {
+					} else if(is_array($arg)) {
 						$sql = static::makeWhere($arg, $params);
 						if($sql !== null) {
 							$sqls[] = $sql;
 						}
+					} elseif(is_string($arg)) {
+						$sqls[] = $arg;
 					}
 				}
 				if($sqls) {

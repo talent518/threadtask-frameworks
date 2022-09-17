@@ -81,6 +81,7 @@ class <?=$className?> extends \fwe\base\Model {
 				$args[] = [$oper, $attr, $val];
 			}
 		}
+		if(count($args) == 1) $args[] = '1 > 0';
 		$this->total = Model::find()->select('COUNT(1)')->whereArray($args)->fetchColumn($db, 0, 'searchCount');
 		$orderBy = isset($this->_searchKeys[$this->orderBy]) ? $this->orderBy : array_key_first($this->_searchKeys);
 		$isDesc = $this->isDesc ? 'DESC' : 'ASC';
@@ -95,6 +96,7 @@ class <?=$className?> extends \fwe\base\Model {
 				$args[] = [$oper, $attr, $val];
 			}
 		}
+		if(count($args) == 1) $args[] = '1 > 0';
 		return Model::find()->select('COUNT(1)')->whereArray($args)
 		->fetchColumn(
 			$db,
