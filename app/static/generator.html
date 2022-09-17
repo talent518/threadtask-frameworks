@@ -137,6 +137,7 @@
 			<label></label>
 			<button type="submit">立即生成</button>
 			<label class="chk"><input id="j-isOver" type="checkbox" /> 是否覆盖</label>
+			<label class="chk"><input id="j-isFiber" type="checkbox" /> 是否Fiber</label>
 		</div>
 		<div id="j-message"></div>
 	</form>
@@ -192,6 +193,7 @@
 		isSplit: false,
 		baseClass: 'fwe\\db\\MySQLModel',
 		isComment: false,
+		isFiber: false,
 		
 		// 控制器与视图生成
 		modelClass: '',
@@ -348,6 +350,10 @@
 			isOverElem.attr('checked', false);
 		}).attr('checked', storage.isComment);
 		const isOverElem = $('#j-isOver', $form).attr('checked', false);
+		const isFiberElem = $('#j-isFiber', $form).change(function() {
+			storage.isFiber = $(this).is(':checked');
+			isOverElem.attr('checked', false);
+		}).attr('checked', storage.isFiber);
 		$form.submit(function() {
 			if(storage.db.length) {
 				dbElem.removeClass('error');
@@ -384,6 +390,7 @@
 					base: storage.baseClass,
 					isComment: storage.isComment ? 1 : 0,
 					isOver: isOverElem.is(':checked') ? 1 : 0,
+					isFiber: storage.isFiber ? 1 : 0,
 				},
 				function(json) {
 					isOverElem.attr('checked', false);
