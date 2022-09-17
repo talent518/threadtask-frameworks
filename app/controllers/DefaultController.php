@@ -7,6 +7,8 @@ use fwe\base\Controller;
 use fwe\base\Module;
 use fwe\curl\Request;
 use fwe\db\IEvent;
+use fwe\fibers\MySQLFiber;
+use fwe\fibers\RedisFiber;
 use fwe\web\RequestEvent;
 use fwe\web\StaticController;
 
@@ -296,5 +298,39 @@ a:hover{color:#F60;}
 			},
 			$expire
 		);
+	}
+	
+	/**
+	 * 使用Fiber进行异步通信：PHP 8.1
+	 */
+	public function actionFiber(RequestEvent $request) {
+		(new \Fiber(function() use($request) {
+			$db = MySQLFiber::pop();
+			$data = [];
+			$data[] = $db->beginTransaction();
+			try {
+				$data[] = $db->query('SHOW TABLES');
+				$data[] = $db->prepare('SELECT * FROM user WHERE username = ?', ['admin']);
+				$data[] = $db->prepare('UPDATE user SET loginTime = NOW(), loginTimes = loginTimes + 1 WHERE username = ?', ['admin']);
+				$data[] = $db->prepare('SELECT * FROM user WHERE username = ?', ['admin']);
+				$data[] = $db->commit();
+			} catch(\Throwable $e) {
+				$data[] = $db->rollback();
+				\Fwe::$app->error($e, 'fiber');
+			}
+			$request->data['mysql'] = $data;
+			if(count($request->data) == 2) $request->getResponse()->json($request->data);
+		}))->start();
+		
+		(new \Fiber(function() use($request) {
+			$db = RedisFiber::pop();
+			$data = [];
+			$data[] = $db->keys('*');
+			$data[] = $db->get('fiber');
+			$data[] = $db->set('fiber', random_int(0, 1000));
+			$data[] = $db->get('fiber');
+			$request->data['redis'] = $data;
+			if(count($request->data) == 2) $request->getResponse()->json($request->data);
+		}))->start();
 	}
 }
