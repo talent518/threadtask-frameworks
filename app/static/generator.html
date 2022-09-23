@@ -193,6 +193,7 @@
 		isSplit: false,
 		baseClass: 'fwe\\db\\MySQLModel',
 		isComment: false,
+		isOver: false,
 		isFiber: false,
 		
 		// 控制器与视图生成
@@ -216,7 +217,7 @@
 		}, defstor, json);
 	})();
 	
-	console.log(storage);
+	window.generatorStorage = storage;
 	
 	$(document).ajaxStart(function() {
 		$('#j-loading').show();
@@ -235,7 +236,7 @@
 			const key = $.trim($(this).val());
 			if(key !== '') {
 				storage.name = key;
-				$.extend(storage, storage.list[key]);
+				$.extend(storage, defstor, storage.list[key]);
 				location.reload();
 			} else {
 				storage.name = '';
@@ -307,7 +308,6 @@
 		const $form = $('#j-model-form');
 		const dbElem = $('#j-db', $form).val(storage.db).change(function() {
 			storage.db = $.trim($(this).val());
-			isOverElem.attr('checked', false);
 		});
 		const tableElem = $('#j-table', $form).change(function() {
 			storage.table = $.trim($(this).val());
@@ -319,7 +319,6 @@
 			});
 			storage.className = lst2.join(storage.isSplit ? '\\' : '');
 			classElem.val(storage.className);
-			isOverElem.attr('checked', false);
 		});
 		const tableBtn = $('#j-table-btn', $form).click(function() {
 			$.getJSON(genURL + 'tables', {db: dbElem.val()}, function(list) {
@@ -335,24 +334,21 @@
 		}).attr('checked', storage.isSplit);
 		const namespaceElem = $('#j-namespace', $form).change(function() {
 			storage.namespace = $.trim($(this).val());
-			isOverElem.attr('checked', false);
 		}).val(storage.namespace);
 		const classElem = $('#j-class', $form).change(function() {
 			storage.className = $.trim($(this).val());
-			isOverElem.attr('checked', false);
 		}).val(storage.className);
 		const baseElem = $('#j-base', $form).change(function() {
 			storage.baseClass = $.trim($(this).val());
-			isOverElem.attr('checked', false);
 		}).val(storage.baseClass);
 		const isCommentElem = $('#j-isComment', $form).change(function() {
 			storage.isComment = $(this).is(':checked');
-			isOverElem.attr('checked', false);
 		}).attr('checked', storage.isComment);
-		const isOverElem = $('#j-isOver', $form).attr('checked', false);
+		const isOverElem = $('#j-isOver', $form).change(function() {
+			storage.isOver = $(this).is(':checked');
+		}).attr('checked', storage.isOver);
 		const isFiberElem = $('#j-isFiber', $form).change(function() {
 			storage.isFiber = $(this).is(':checked');
-			isOverElem.attr('checked', false);
 		}).attr('checked', storage.isFiber);
 		$form.submit(function() {
 			if(storage.db.length) {
@@ -389,11 +385,10 @@
 					'class': (storage.namespace + '\\' + storage.className),
 					base: storage.baseClass,
 					isComment: storage.isComment ? 1 : 0,
-					isOver: isOverElem.is(':checked') ? 1 : 0,
+					isOver: storage.isOver ? 1 : 0,
 					isFiber: storage.isFiber ? 1 : 0,
 				},
 				function(json) {
-					isOverElem.attr('checked', false);
 					const $msg = $('#j-message', $form).empty();
 					$('<div class="submsg"/>').appendTo($msg).removeClass('error success').addClass(json.status ? 'success' : 'error').html(json.message).click(function() {
 						$('#j-submsg').addClass(json.status ? 'success' : 'error').html(json.message);
@@ -426,33 +421,28 @@
 		const $form = $('#j-ctrl-form');
 		const modelElem = $('#j-model', $form).change(function() {
 			storage.modelClass = $.trim($(this).val());
-			isOverElem.attr('checked', false);
 		}).val(storage.modelClass);
 		const classElem = $('#j-class', $form).change(function() {
 			storage.ctrlClass = $.trim($(this).val());
-			isOverElem.attr('checked', false);
 		}).val(storage.ctrlClass);
 		const baseElem = $('#j-base', $form).change(function() {
 			storage.ctrlBase = $.trim($(this).val());
-			isOverElem.attr('checked', false);
 		}).val(storage.ctrlBase);
 		const searchElem = $('#j-search', $form).change(function() {
 			storage.searchClass = $.trim($(this).val());
-			isOverElem.attr('checked', false);
 		}).val(storage.searchClass);
 		const pathElem = $('#j-path', $form).change(function() {
 			storage.ctrlPath = $.trim($(this).val());
-			isOverElem.attr('checked', false);
 		}).val(storage.ctrlPath);
 		const titleElem = $('#j-title', $form).change(function() {
 			storage.title = $.trim($(this).val());
-			isOverElem.attr('checked', false);
 		}).val(storage.title);
 		const isTplElem = $('#j-isTpl', $form).change(function() {
 			storage.isTpl = $(this).is(':checked');
-			isOverElem.attr('checked', false);
 		}).attr('checked', storage.isTpl);
-		const isOverElem = $('#j-isOver', $form).attr('checked', false);
+		const isOverElem = $('#j-isOver', $form).change(function() {
+			storage.isOver = $(this).is(':checked');
+		}).attr('checked', storage.isOver);
 		$form.submit(function() {
 			if(storage.modelClass.length) {
 				modelElem.removeClass('error');
@@ -484,11 +474,10 @@
 					search: storage.searchClass,
 					path: storage.ctrlPath,
 					title: storage.title,
-					isTpl: isTplElem.is(':checked') ? 1 : 0,
-					isOver: isOverElem.is(':checked') ? 1 : 0,
+					isTpl: storage.isTpl ? 1 : 0,
+					isOver: storage.isOver ? 1 : 0,
 				},
 				function(list) {
-					isOverElem.attr('checked', false);
 					const $msg = $('#j-message', $form).empty();
 					list.forEach(function(json) {
 						$('<div class="submsg"/>').appendTo($msg).removeClass('error success').addClass(json.status ? 'success' : 'error').html(json.message).click(function() {

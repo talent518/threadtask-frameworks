@@ -11,6 +11,7 @@ use fwe\fibers\MySQLFiber;
 use fwe\fibers\RedisFiber;
 use fwe\web\RequestEvent;
 use fwe\web\StaticController;
+use fwe\fibers\UtilFiber;
 
 class DefaultController extends Controller {
 	public function actionIndex() {
@@ -304,7 +305,12 @@ a:hover{color:#F60;}
 	 * 使用Fiber进行异步通信：PHP 8.1
 	 */
 	public function actionFiber(RequestEvent $request) {
-		(new \Fiber(function() use($request) {
+		$ok = function($key, $val) use($request) {
+			$request->data[$key] = $val;
+			if(count($request->data) == 3) $request->getResponse()->json($request->data);
+		};
+		
+		(new \Fiber(function() use($ok) {
 			$db = MySQLFiber::pop();
 			$data = [];
 			$data[] = $db->beginTransaction();
@@ -318,19 +324,28 @@ a:hover{color:#F60;}
 				$data[] = $db->rollback();
 				\Fwe::$app->error($e, 'fiber');
 			}
-			$request->data['mysql'] = $data;
-			if(count($request->data) == 2) $request->getResponse()->json($request->data);
+			$ok('mysql', $data);
 		}))->start();
 		
-		(new \Fiber(function() use($request) {
+		(new \Fiber(function() use($ok) {
 			$db = RedisFiber::pop();
 			$data = [];
 			$data[] = $db->keys('*');
 			$data[] = $db->get('fiber');
 			$data[] = $db->set('fiber', random_int(0, 1000));
 			$data[] = $db->get('fiber');
-			$request->data['redis'] = $data;
-			if(count($request->data) == 2) $request->getResponse()->json($request->data);
+			$ok('redis', $data);
+		}))->start();
+		
+		(new \Fiber(function() use($ok) {
+			$data = UtilFiber::cache('fiber', function(callable $ok) {
+				$db = MySQLFiber::pop();
+				$data = [];
+				$data['tables'] = $db->query('SHOW TABLES');
+				$data['adminUser'] = $db->prepare('SELECT * FROM user WHERE username = ?', ['admin']);
+				$ok($data);
+			}, 0, 'cache2');
+			$ok('fiber', $data);
 		}))->start();
 	}
 }

@@ -46,14 +46,44 @@ abstract class UtilFiber {
 	}
 	
 	public static function validate(Model $model, bool $isPerOne = false, bool $isOnly = false, ...$args) {
+		$retObj = new \stdClass();
+		$retObj->isReturn = false;
+		$retObj->value = null;
 		$fiber = \Fiber::getCurrent();
-		$model->validate(function (int $n, ?string $errstr = null) use ($fiber) {
+		$model->validate(function (int $n, ?string $errstr = null) use ($fiber, $retObj) {
 			if($errstr) {
 				$fiber->throw(new Exception($errstr, null, $n));
-			} else {
+			} elseif($fiber->isSuspended()) {
 				$fiber->resume(!$n);
+			} else {
+				$retObj->isReturn = true;
+				$retObj->value = !$n;
 			}
 		}, $isPerOne, $isOnly, ...$args);
-		return $fiber->suspend();
+		return $retObj->isReturn ? $retObj->value : $fiber->suspend();
+	}
+	
+	public static function cache(string $key, callable $set, int $expire = 0, string $id = 'cache') {
+		$retObj = new \stdClass();
+		$retObj->isReturn = false;
+		$retObj->value = null;
+		$fiber = \Fiber::getCurrent();
+		cache($id)->get(
+			$key,
+			function($value) use($fiber, $retObj) {
+				if($fiber->isSuspended()) {
+					$fiber->resume($value);
+				} else {
+					$retObj->isReturn = true;
+					$retObj->value = $value;
+				}
+			},
+			function(callable $ok) use($set) {
+				(new \Fiber($set))->start($ok);
+			},
+			$expire
+		);
+		
+		return $retObj->isReturn ? $retObj->value : $fiber->suspend();
 	}
 }

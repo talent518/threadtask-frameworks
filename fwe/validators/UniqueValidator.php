@@ -24,6 +24,11 @@ class UniqueValidator extends IValidator {
 					(new \Fiber(function() use($ok, $db, $model) {
 						try {
 							$exists = $model->unique($db, $this->attributes);
+							if($exists) {
+								foreach($this->attributes as $attr) {
+									$model->addError($attr, strtr($this->message, ['{attribute}'=>$model->getLabel($attr)]));
+								}
+							}
 							$ok($exists ? 1 : 0);
 						} catch(\Throwable $e) {
 							\Fwe::$app->handleException($e, 'fiber');

@@ -116,7 +116,8 @@ class <?=$className?> extends \<?=$base?> {
 			$model->attributes = $request->post;
 			
 			$db = MySQLFiber::pop(false);
-			if($model->save($db)) {
+			$status = $model->save($db);
+			if($status) {
 <?php if($isJson):?>
 				$request->getResponse()->json(['status' => true, 'message' => '创建成功', 'data' => null]);
 <?php else:?>
@@ -124,9 +125,9 @@ class <?=$className?> extends \<?=$base?> {
 <?php endif;?>
 			} else {
 <?php if($isJson):?>
-				$request->getResponse()->json(['status' => false, 'message' => $status->error ?? '数据验证未通过', 'errors' => $model->getErrors(), 'data' => $model]);
+				$request->getResponse()->json(['status' => false, 'message' => '数据验证未通过', 'errors' => $model->getErrors(), 'data' => $model]);
 <?php else:?>
-				$this->render('create', ['model' => $model, 'data' => $status, 'status' => false, 'backUrl' => $backUrl], function(string $html) use($request) {
+				$this->render('create', ['model' => $model, 'data' => null, 'status' => false, 'backUrl' => $backUrl], function(string $html) use($request) {
 					$request->getResponse()->end($html);
 				}, $request);
 <?php endif;?>
@@ -142,7 +143,7 @@ class <?=$className?> extends \<?=$base?> {
 		}
 <?php endif;?>
 		$db = MySQLFiber::pop(false);
-		$row = Model::findById($db, <?=$idFuncParamValues?>);
+		$row = Model::findById($db, <?=$idFuncParamValues?>); /* @var $row Model */
 		if($row === null) {
 <?php if($isJson):?>
 			$request->getResponse()->json(['status' => false, 'message' => '未找到记录', 'data' => null]);
@@ -158,7 +159,8 @@ class <?=$className?> extends \<?=$base?> {
 		} else {
 			$row->setScene('update');
 			$row->attributes = $request->post;
-			if($row->save($db)) {
+			$status = $row->save($db);
+			if($status) {
 <?php if($isJson):?>
 				$request->getResponse()->json(['status' => true, 'message' => '更新成功', 'data' => $status]);
 <?php else:?>
@@ -166,9 +168,9 @@ class <?=$className?> extends \<?=$base?> {
 <?php endif;?>
 			} else {
 <?php if($isJson):?>
-				$request->getResponse()->json(['status' => false, 'message' => $status->error ?? '数据验证未通过', 'errors' => $row->getErrors(), 'data' => $row]);
+				$request->getResponse()->json(['status' => false, 'message' => '数据验证未通过', 'errors' => $row->getErrors(), 'data' => $row]);
 <?php else:?>
-				$this->render('update', ['model' => $row, 'data' => $status, 'status' => false, 'backUrl' => $backUrl], function(string $html) use($request) {
+				$this->render('update', ['model' => $row, 'data' => null, 'status' => false, 'backUrl' => $backUrl], function(string $html) use($request) {
 					$request->getResponse()->end($html);
 				}, $request);
 <?php endif;?>
@@ -178,7 +180,7 @@ class <?=$className?> extends \<?=$base?> {
 	
 	public function actionDelete(RequestEvent $request, <?=$idFuncParams?><?php if(!$isJson):?>, string $backUrl = ''<?php endif?>) {
 		$db = MySQLFiber::pop(false);
-		$row = Model::findById($db, <?=$idFuncParamValues?>);
+		$row = Model::findById($db, <?=$idFuncParamValues?>); /* @var $row Model */
 		if($row === null) {
 <?php if($isJson):?>
 			$request->getResponse()->json(['status' => false, 'message' => '未找到记录', 'errors' => [], 'data' => null]);
@@ -198,7 +200,7 @@ class <?=$className?> extends \<?=$base?> {
 	
 	public function actionView(RequestEvent $request, <?=$idFuncParams?><?php if(!$isJson):?>, string $backUrl = ''<?php endif?>) {
 		$db = MySQLFiber::pop();
-		$row = Model::findById($db, <?=$idFuncParamValues?>);
+		$row = Model::findById($db, <?=$idFuncParamValues?>); /* @var $row Model */
 		if($row === null) {
 <?php if($isJson):?>
 			$request->getResponse()->json(['status' => false, 'message' => '未找到记录', 'errors' => [], 'data' => null]);
