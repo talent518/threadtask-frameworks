@@ -134,7 +134,7 @@ trait MySQLTrait {
 		$where = MySQLQuery::makeWhere($where, $params) ?: '0 > 1';
 		$sql = "DELETE FROM `$table` WHERE $where";
 
-		return $db->prepare($sql, $params, [
+		return (object) $db->prepare($sql, $params, [
 			'key' => 'up-' . (static::$__delete ++),
 		]);
 	}
@@ -146,7 +146,7 @@ trait MySQLTrait {
 		$where = MySQLQuery::makeWhere($where, $params) ?: '0 > 1';
 		$sql = "UPDATE `$table` SET `$data` = ? WHERE $where";
 
-		return $db->prepare($sql, $params, [
+		return (object) $db->prepare($sql, $params, [
 			'key' => 'up-' . (static::$__update ++),
 		]);
 	}
@@ -171,7 +171,7 @@ trait MySQLTrait {
 		}
 		$sql = "INSERT INTO `$table` (`$fields`) VALUES ($data)";
 
-		return $db->prepare($sql, $params, [
+		return (object) $db->prepare($sql, $params, [
 			'key' => 'up-' . (static::$__update ++),
 		]);
 	}
