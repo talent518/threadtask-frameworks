@@ -118,18 +118,22 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 		}
 	}
 
+	#[\ReturnTypeWillChange]
 	public function getIterator() {
 		return new \ArrayIterator(ts_var_get($this->_var));
 	}
 
+	#[\ReturnTypeWillChange]
 	public function offsetExists($offset) {
 		return ts_var_exists($this->_var, $offset);
 	}
 
+	#[\ReturnTypeWillChange]
 	public function offsetGet($offset) {
 		return ts_var_get($this->_var, $offset);
 	}
 
+	#[\ReturnTypeWillChange]
 	public function offsetSet($offset, $value) {
 		if($offset === null)
 			return ts_var_push($this->_var, $value);
@@ -137,10 +141,12 @@ class TsVar implements \IteratorAggregate, \ArrayAccess, \Countable {
 			return ts_var_set($this->_var, $offset, $value);
 	}
 
+	#[\ReturnTypeWillChange]
 	public function offsetUnset($offset) {
 		return ts_var_del($this->_var, $offset);
 	}
 
+	#[\ReturnTypeWillChange]
 	public function count() {
 		return ts_var_count($this->_var);
 	}
