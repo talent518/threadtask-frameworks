@@ -223,6 +223,16 @@ class ResponseEvent {
 		$this->isEnd = true;
 		
 		$n = strlen($data);
+		
+		if(!$this->isHeadSent && $n) {
+			$this->headers['ETag'] = $etag = sprintf('%xS-%xC', $n, crc32($data));
+			$etag2 = ($this->request->headers['If-None-Match'] ?? null);
+			if($etag === $etag2) {
+				$this->setStatus(304);
+				return $this->headSend(0);
+			}
+		}
+		
 		if(!$this->headSend($n)) {
 			return false;
 		}
