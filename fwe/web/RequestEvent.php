@@ -617,9 +617,10 @@ class RequestEvent {
 					if($this->bodyoff > $this->bodylen) {
 						$this->isKeepAlive = false;
 						$n -= ($this->bodyoff - $this->bodylen);
-						$buf = substr($buf, $i, $n - $i);
-						$i = 0;
 						$buf2 = substr($buf, $n);
+						$buf = substr($buf, $i, $n - $i);
+						$n -= $i;
+						$i = 0;
 						\Fwe::$app->warn("Receive request body too long(bodyoff: {$this->bodyoff}, bodylen: {$this->bodylen}): $buf2", 'web');
 					}
 					if($this->bodymode === self::BODY_MODE_FORM_DATA) {
