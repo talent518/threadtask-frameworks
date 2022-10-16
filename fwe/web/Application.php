@@ -283,6 +283,12 @@ class Application extends \fwe\base\Application {
 						case IN_DELETE:
 							$name = 'DELETE';
 							break;
+						case IN_MOVED_FROM:
+							$name = 'MOVED_FROM';
+							break;
+						case IN_MOVED_TO:
+							$name = 'MOVED_TO';
+							break;
 						default:
 							$name = 'Unknown';
 							break;
@@ -306,7 +312,7 @@ class Application extends \fwe\base\Application {
 	
 	protected $wdPaths = [];
 	protected function addWatch($fd, string $path, array $filters = []) {
-		$wd = inotify_add_watch($fd, $path, IN_CREATE | IN_MODIFY | IN_DELETE);
+		$wd = inotify_add_watch($fd, $path, IN_CREATE | IN_MODIFY | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO);
 		if($wd) {
 			$this->wdPaths[$wd] = $path;
 			
