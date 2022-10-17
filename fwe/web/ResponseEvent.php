@@ -225,7 +225,7 @@ class ResponseEvent {
 		$n = strlen($data);
 		
 		if(!$this->isHeadSent && $n) {
-			$this->headers['ETag'] = $etag = sprintf('%xS-%xC', $n, crc32($data));
+			$this->headers['ETag'] = $etag = sprintf('W/"%xS-%xC"', $n, crc32($data));
 			$etag2 = ($this->request->headers['If-None-Match'] ?? null);
 			if($etag === $etag2) {
 				$this->setStatus(304);
@@ -363,7 +363,7 @@ class ResponseEvent {
 				return true;
 			}
 			$this->headers['Last-Modified'] = gmdate('D, d-M-Y H:i:s T', $stat['mtime']);
-			$this->headers['ETag'] = sprintf('%xT-%xO', $stat['mtime'], $stat['size']);
+			$this->headers['ETag'] = sprintf('W/"%xT-%xO"', $stat['mtime'], $stat['size']);
 			$this->headers['Accept-Ranges'] = 'bytes';
 			$this->headers['Expires'] = gmdate('D, d-M-Y H:i:s T', time() + 3600);
 			$this->headers['Cache-Control'] = ['must-revalidate', 'public', 'max-age=3600'];
