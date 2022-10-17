@@ -37,7 +37,7 @@ class Module extends \fwe\base\Module {
 	}
 	
 	public function login(RequestEvent $request, User $user) {
-		$auth = "{$user->uid}\t{$user->password}";
+		$auth = "{$user->uid}:{$user->password}";
 		
 		cache($this->cacheId)->del($auth, function() use($request, $auth) {
 			$auth = Crypt::encode($auth, $this->cookieKey, $this->cookieExpire);
@@ -80,7 +80,7 @@ class Module extends \fwe\base\Module {
 		$request->data = [];
 		$auth = ($request->cookies['backend-auth'] ?? false);
 		if($auth && ($auth = Crypt::decode($auth, $this->cookieKey, $this->cookieExpire)) !== '') {
-			list($uid, $password) = explode("\t", $auth);
+			list($uid, $password) = explode(':', $auth);
 			if($uid && $password) {
 				cache($this->cacheId)->get(
 					$auth,
