@@ -135,12 +135,14 @@ trait MySQLTrait {
 	}
 	
 	public function update(MySQLConnection $db, ?callable $success = null, ?callable $error = null) {
+		$update = $this->attributes;
 		$attrs = [];
 		foreach(static::priKeys() as $key) {
 			$attrs[$key] = $this->$key;
+			unset($update[$key]);
 		}
 		
-		return static::updateAll($db, $this->attributes, ['and', $attrs], $success, $error);
+		return static::updateAll($db, $update, ['and', $attrs], $success, $error);
 	}
 	
 	public function delete(MySQLConnection $db, ?callable $success = null, ?callable $error = null) {

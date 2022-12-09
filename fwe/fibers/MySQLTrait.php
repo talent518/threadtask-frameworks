@@ -111,12 +111,14 @@ trait MySQLTrait {
 	}
 
 	public function update(MySQLFiber $db) {
+		$update = $this->attributes;
 		$attrs = [];
 		foreach(static::priKeys() as $key) {
 			$attrs[$key] = $this->$key;
+			unset($update[$key]);
 		}
 
-		return static::updateAll($db, $this->attributes, ['and', $attrs]);
+		return static::updateAll($db, $update, ['and', $attrs]);
 	}
 
 	public function delete(MySQLFiber $db) {
