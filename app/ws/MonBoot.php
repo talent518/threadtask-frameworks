@@ -221,6 +221,7 @@ class MonBoot {
 
         $fp = @fopen("/proc/$pid/stat", 'r');
         if($fp) {
+            $etime = $rss = 0;
             $n = fscanf($fp, '%*s (%[^)]) %c %d %d %*s %*s %*s %*s %*s %*s %*s %*s %d %d %d %d %*s %*s %d %*s %d %*s %d', $comm, $state, $ppid, $pgrp, $utime, $stime, $cutime, $cstime, $threads, $etime, $rss);
             $ret['time'] = microtime(true);
             fclose($fp);
