@@ -348,6 +348,7 @@ class RequestEvent {
 	}
 
 	protected function beforeAction() {
+		// echo __METHOD__ . ":{$this->key}\n";
 		$this->params = ['request'=>$this] + $this->get + $this->cookies;
 		$this->action = \Fwe::$app->getAction($this->path, $this->params);
 		if(!$this->action->beforeAction($this->params)) {
@@ -356,6 +357,7 @@ class RequestEvent {
 	}
 
 	protected function runAction() {
+		// echo __METHOD__ . ":{$this->key}\n";
 		$this->runTime = microtime(true);
 		$this->params += $this->post;
 		
@@ -453,6 +455,7 @@ class RequestEvent {
 	protected $isRecvBody;
 	
 	public function recv() {
+		// echo __METHOD__ . ":{$this->key}\n";
 		if($this->isRecvBody === null) return;
 		
 		$isRecvBody = $this->isRecvBody;
@@ -466,19 +469,31 @@ class RequestEvent {
 			if(isset($this->headers['Expect']) && $this->headers['Expect'] === '100-continue') {
 				if(!$this->send("{$this->protocol} 100 Continue\r\n\r\n")) return null;
 			}
+			$this->isRecvOnce = true;
 			$this->readHandler($this->event, null);
+			$this->isRecvOnce = false;
 		} else {
+			$this->isRecvOnce = true;
 			$this->readHandler($this->event, null);
+			$this->isRecvOnce = false;
 		}
 	}
 	
+	protected $isRecvOnce = false;
 	protected $params = [];
 	protected function read() {
 		if($this->mode === self::MODE_END) return true;
 		
 		$buf = $this->event->read(16384);
 		$n = strlen($buf);
-		if($n === 0) return null;
+		if($n === 0) {
+			if($this->isRecvOnce) {
+				$buf = $this->buf;
+				$n = strlen($buf);
+				$this->buf = null;
+				if($n === 0) return false;
+			} else return null;
+		}
 
 		if($this->recvTime === null) $this->recvTime = microtime(true);
 		
