@@ -117,8 +117,7 @@ class MySQLConnection extends AsyncConnection {
 		if($this->_isConnected) {
 			return;
 		}
-		$this->_isConnected = true;
-		$this->_mysqli->connect($this->_host, $this->_username, $this->_password, $this->_database, $this->_port, $this->_socket);
+		$this->_isConnected = $this->_mysqli->connect($this->_host, $this->_username, $this->_password, $this->_database, $this->_port, $this->_socket);
 		$this->_mysqli->set_charset($this->_charset);
 		$this->_time = microtime(true);
 	}
