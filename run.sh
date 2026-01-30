@@ -27,6 +27,10 @@ if ! command -v threadtask > /dev/null 2>&1; then
     sudo apt install -y make
   fi
 
+  if [ ! -d "$BIN_PATH" ]; then
+    git clone https://gitee.com/talent518/threadtask.git "$BIN_PATH"
+  fi
+
   if [ ! -f "$PHPDIR/lib/lib${PHPSO}.so" ]; then
     TMPDIR=$BIN_PATH/php-8.5
 
@@ -139,10 +143,6 @@ extension=inotify
 !
 
     popd
-  fi
-
-  if [ ! -d "$BIN_PATH" ]; then
-    git clone https://gitee.com/talent518/threadtask.git "$BIN_PATH"
   fi
 
   make --no-print-directory -C $BIN_PATH $JOB PHPDIR=$PHPDIR PHPSO=$PHPSO
