@@ -1,8 +1,15 @@
 # threadtask-frameworks
 基于项目threadtask封装的框架。
 
-* 运行先决条件就是必须安装 [threadtask](/talent518/threadtask)
-* docker容器仓库 [docker-threadtask](https://hub.docker.com/repository/docker/talent518/threadtask/general)
+### 入口文件(run.sh)
+* 自动编译安装线程安全的PHP-8.5
+* 自动编译安装PHP的event和inotify扩展
+* 自动配置php.ini
+
+### 创建ubuntu 24.04的docker容器
+```sh
+./docker.sh
+```
 
 ### DEMO使用有用户表
 * 用户表: user
