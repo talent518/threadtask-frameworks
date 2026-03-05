@@ -2,6 +2,7 @@
 namespace fwe\console;
 
 use fwe\base\Module;
+use fwe\base\RouteException;
 
 class HelpController extends Controller {
 
@@ -15,7 +16,6 @@ class HelpController extends Controller {
 		if($route === '') {
 			$this->help(\Fwe::$app);
 		} else {
-			var_dump($__params__);
 			if(isset($__params__['route'])) {
 				unset($__params__['route']);
 				$I = 0;
@@ -24,7 +24,12 @@ class HelpController extends Controller {
 				$I = 1;
 			}
 			$params = $__params__;
-			$action = \Fwe::$app->getAction($route, $__params__);
+			try {
+				$action = \Fwe::$app->getAction($route, $__params__);
+			} catch(RouteException $e) {
+				echo $e->getMessage(), PHP_EOL;
+				return;
+			}
 
 			if(is_array($action->callback)) {
 				$reflection = new \ReflectionMethod($action->callback[0], $action->callback[1]);
