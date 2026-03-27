@@ -15,14 +15,15 @@
 		#wrapper canvas{position:absolute;z-index:2;}
 		#wrapper > .proc, #procMask{position:absolute;left:-1px;top:40%;right:-1px;bottom:-1px;overflow:hidden;overflow-y:auto;border-top:1px #999 solid;}
 		#wrapper > .proc caption{line-height:30px;font:normal 30px Arial;color:white;text-align:left;text-indent:5px;text-shadow:#999 0 0 2px,#999 0 1px 2px,#999 1px 0 2px,#999 1px 1px 2px;}
-		#wrapper > .proc th{cursor:pointer;}
+		#wrapper > .proc th{padding:5px;cursor:pointer;font-size:16px;}
 		#wrapper > .proc th.asc:after{content:'⇑';color:#999;}
 		#wrapper > .proc th.desc:after{content:'⇓';color:#999;}
-		#wrapper > .proc td{white-space:nowrap;}
-		#wrapper > .proc table{border-collapse:collapse;}
+		#wrapper > .proc td{padding:5px;white-space:nowrap;}
+		#wrapper > .proc table{width:100%;border-collapse:collapse;}
 		#wrapper > .proc tr > *{border:1px #ccc solid;}
 		#wrapper > .proc tr div {width:40vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 		#wrapper > .proc tbody > tr{cursor:pointer;}
+		#wrapper > .proc tbody > tr:nth-child(odd){background:#f3f3f3;}
 		#wrapper > .proc tbody > tr:hover{background:#eee;}
 		#wrapper > .proc > canvas {background:white;}
 
@@ -49,7 +50,7 @@
 		<canvas id="diskCanvas" data="disks"></canvas>
 		<canvas id="netCanvas" data="nets"></canvas>
 		<div id="procBox" class="proc">
-			<table width="100%" cellpadding="5px" cellspacing="0">
+			<table>
 				<caption>PROC</caption>
 				<thead>
 					<tr id="procHead">
