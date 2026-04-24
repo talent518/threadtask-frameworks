@@ -62,9 +62,9 @@
 						<th>fds</th>
 						<th format="fsize">resident</th>
 						<th format="fsize">rssFile</th>
-						<th>ucpu</th>
-						<th>scpu</th>
-						<th class="desc">tcpu</th>
+						<th format="percent">ucpu</th>
+						<th format="percent">scpu</th>
+						<th format="percent" class="desc">tcpu</th>
 						<th format="strtotime">etime</th>
 						<th format="fsize">read_bytes</th>
 						<th format="fsize">write_bytes</th>
@@ -125,11 +125,14 @@
 		}
 		if(unit < 0) unit = 0;
 
-		return Math.round(size / Math.pow(1024, unit), 1) + "0KMGTPEZY".charAt(unit);
+		return (size / Math.pow(1024, unit)).toFixed(3).replace(/\.[0-9]+$/, '') + ' KMGTPEZY'.charAt(unit);
 	};
 	const formats = {
 		strtotime: strtotime,
-		fsize: fsize
+		fsize: fsize,
+		percent(val) {
+			return val.toFixed(3) + '%';
+		},
 	};
 	const actions = {
 		cpus: [],
@@ -238,7 +241,7 @@
 			const h = (height - 45) / keys.length;
 
 			keys.forEach(function(key, i) {
-				const str = key + ': ' + cpu[key] + '%';
+				const str = key + ': ' + cpu[key].toFixed(3) + '%';
 				const x = 5, y = 40 + (i + 1) * h;
 				
 				cpuCanvas.font = 'normal bold ' + h + 'px Arial';
@@ -370,7 +373,7 @@
 			const h = (height - 35) / keys.length;
 
 			keys.forEach(function(key, i) {
-				const str = key + ': ' + la[key];
+				const str = key + ': ' + la[key].toFixed(3);
 				const x = 5, y = 35 + (i + 0.6) * h;
 				loadavgCanvas.font = 'normal bold ' + (h*0.8) + 'px Arial';
 				{
@@ -522,7 +525,7 @@
 			const h = (height - 50) / keys.length;
 
 			keys.forEach(function(key, i) {
-				const str = key + ': ' + ((key.endsWith('bytes') || key === 'rssFile' || key === 'resident') ? fsize(proc[key]) : proc[key]);
+				const str = key + ': ' + ((key.endsWith('bytes') || key === 'rssFile' || key === 'resident') ? fsize(proc[key]) : (key.endsWith('cpu') ? proc[key].toFixed(3) + '%' : proc[key]));
 				const x = 5, y = 45 + (i + 0.5) * h;
 				procCanvas.font = 'normal bold ' + (h/2) + 'px Arial';
 				{

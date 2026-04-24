@@ -51,7 +51,7 @@ class MonBoot {
         $all = $this->all - $all;
         if($all <= 0) $all = 1;
         foreach($this->cpu as $key=>$val) {
-            $this->_cpu[$key] = round(($val - $cpu[$key]) * 100.0 / $all, 1);
+            $this->_cpu[$key] = round(($val - $cpu[$key]) * 100.0 / $all, 3);
         }
         $this->_cpu['times'] = ++ $times;
 
@@ -204,8 +204,8 @@ class MonBoot {
             }
 
             unset($proc['utime'], $proc['stime'], $proc['cutime'], $proc['cstime'], $proc['time']);
-            $proc['ucpu'] = round($ucpu, 1);
-            $proc['scpu'] = round($scpu, 1);
+            $proc['ucpu'] = round($ucpu, 3);
+            $proc['scpu'] = round($scpu, 3);
             $proc['interval'] = $interval;
             $this->_proc[$pid] = $proc;
         }
@@ -231,7 +231,7 @@ class MonBoot {
                     $n = fscanf($fp, "%f %f", $num1, $num2); // num1: 系统启动到现在的时间(以秒为单位), num2: 系统空闲的时间(以秒为单位)
                     fclose($fp);
                     if($n === 2) {
-                        $etime = round($num1 - $etime / 100, 2);
+                        $etime = round($num1 - $etime / 100, 3);
                     } else {
                         return false;
                     }
