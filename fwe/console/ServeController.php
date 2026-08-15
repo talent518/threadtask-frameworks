@@ -131,18 +131,18 @@ class ServeController extends Controller {
 	public function actionCrontab(bool $isDebug = false) {
 		$cfgFile = \Fwe::getAlias('@app/config/crontab.ini');
 		$timeFile = \Fwe::getAlias('@app/runtime/crontab.time');
-		$lockFile = \Fwe::getAlias('@app/runtime/crontab.lock');
+		$pidFile = \Fwe::getAlias('@app/runtime/crontab.pid');
 
 		if(!is_file($cfgFile)) {
 			echo "ini file not exists\n";
 			return;
 		}
 
-		if(is_file($lockFile)) {
+		if(is_file($pidFile)) {
 			echo "running...\n";
 			return;
 		}
-		touch($lockFile);
+		file_put_contents($pidFile, posix_getpid());
 
 		share_var_init();
 
@@ -309,7 +309,7 @@ class ServeController extends Controller {
 
 		file_put_contents($timeFile, json_encode($times, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
 
-		unlink($lockFile);
+		unlink($pidFile);
 
 		if(\Fwe::$app->exitSig() == SIGUSR1) {
 			$s = date('H:i:s');
