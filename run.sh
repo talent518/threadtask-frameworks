@@ -71,7 +71,7 @@ if ! command -v threadtask > /dev/null 2>&1; then
     sudo mkdir -p $PHPDIR/etc/php.d $PHPDIR/tmp
     sudo cp -vf php.ini-production $PHPDIR/etc/php.ini
 
-    sudo sh -c "cat - >> $PHPDIR/etc/php.d/def.ini" <<!
+    sudo tee $PHPDIR/etc/php.d/def.ini > /dev/null <<!
 date.timezone = Asia/Shanghai
 sys_temp_dir = $PHPDIR/tmp
 upload_tmp_dir = $PHPDIR/tmp
@@ -91,10 +91,11 @@ opcache.jit_buffer_size=128M
 opcache.jit=1205
 !
 
-    if [ -f "/opt/lampp/var/mysql/mysql.sock" ]; then
-      sudo sh -c "cat - >> $PHPDIR/etc/php.d/mysql.ini" <<!
-pdo_mysql.default_socket = /opt/lampp/var/mysql/mysql.sock
-mysqli.default_socket = /opt/lampp/var/mysql/mysql.sock
+    if [ -x /opt/lampp/bin/php ]; then
+      sockFile=$(/opt/lampp/bin/php -r 'echo ini_get("mysqli.default_socket");')
+      sudo tee $PHPDIR/etc/php.d/mysql.ini > /dev/null <<!
+pdo_mysql.default_socket = $sockFile
+mysqli.default_socket = $sockFile
 !
     fi
 
@@ -120,7 +121,7 @@ mysqli.default_socket = /opt/lampp/var/mysql/mysql.sock
 
     popd
 
-      sudo sh -c "cat - >> $PHPDIR/etc/php.d/event.ini" <<!
+      sudo tee $PHPDIR/etc/php.d/event.ini > /dev/null <<!
 extension=event
 !
   fi
@@ -138,7 +139,7 @@ extension=event
     make $JOB
     sudo make install $JOB
 
-      sudo sh -c "cat - >> $PHPDIR/etc/php.d/inotify.ini" <<!
+      sudo tee $PHPDIR/etc/php.d/inotify.ini > /dev/null <<!
 extension=inotify
 !
 
