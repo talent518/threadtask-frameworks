@@ -107,7 +107,7 @@ mysqli.default_socket = $sockFile
   if [ ! -f "$EXTENSION_DIR/event.so" ]; then
     TMPDIR=$BIN_PATH/pecl-event
     if [ ! -d "$TMPDIR" ]; then
-      git clone --depth=1 https://bitbucket.org/osmanov/pecl-event $TMPDIR
+      git clone --depth=1 https://gitee.com/talent518/pecl-event.git $TMPDIR
     fi
 
     sudo apt install -y libevent-dev
@@ -129,7 +129,7 @@ extension=event
   if [ ! -f "$EXTENSION_DIR/inotify.so" ]; then
     TMPDIR=$BIN_PATH/php-inotify
     if [ ! -d "$TMPDIR" ]; then
-      git clone --depth=1 https://github.com/arnaud-lb/php-inotify.git $TMPDIR
+      git clone --depth=1 https://gitee.com/talent518/php-inotify.git $TMPDIR
     fi
 
     pushd $TMPDIR
